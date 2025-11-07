@@ -20,14 +20,23 @@ if (file_exists(__DIR__ . '/../.env.production')) {
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php', // 👈 Add this line
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Append your Custom CORS Middleware
         $middleware->append(\App\Http\Middleware\CustomCors::class);
+        $middleware->append(\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class);
+        $middleware->alias([
+            'is.authenticated' => \App\Http\Middleware\IsAuthenticated::class,
+        ]);
+
+
+        // Allow stateful API sessions for Sanctum
+        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Customize exception handling if needed
+
     })
     ->create();
