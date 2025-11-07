@@ -36,4 +36,19 @@ class User extends Authenticatable
         $url = env('FRONTEND_URL') . '/reset-password?token=' . $token . '&email=' . $this->email;
         $this->notify(new ResetPasswordNotificationCustom($url));
     }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public function budgets()
+    {
+        return $this->hasMany(Budget::class);
+    }
+
+    public function savings()
+    {
+        return $this->hasMany(Saving::class);
+    }
 }
