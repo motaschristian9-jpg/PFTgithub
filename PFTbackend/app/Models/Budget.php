@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Scopes\UserScope;
 
 class Budget extends Model
 {
@@ -23,6 +24,11 @@ class Budget extends Model
         'start_date' => 'date',
         'end_date' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserScope);
+    }
 
     public function user()
     {

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Scopes\UserScope;
 
 class Transaction extends Model
 {
@@ -22,6 +23,11 @@ class Transaction extends Model
         'amount' => 'decimal:2',
         'date' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new UserScope);
+    }
 
     public function user()
     {

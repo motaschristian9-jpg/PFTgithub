@@ -28,6 +28,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Transactions routes
     Route::apiResource('transactions', TransactionController::class);
+    Route::get('transactions/summary/monthly', [TransactionController::class, 'monthlySummary']);
 
     // Budgets routes
     Route::apiResource('budgets', BudgetController::class);
