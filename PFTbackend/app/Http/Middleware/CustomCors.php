@@ -12,11 +12,19 @@ class CustomCors
     {
         $response = $next($request);
 
-        // Allow your frontend origin (Vite or Next.js)
-        $response->headers->set('Access-Control-Allow-Origin', 'http://localhost:5173');
-        $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-        $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        // Get allowed origins from .env (can be comma-separated for multiple)
+        $allowedOrigins = explode(',', env('FRONTEND_URL', 'http://localhost:5173'));
+        $allowedOrigins = array_map('trim', $allowedOrigins);
+
+        $requestOrigin = $request->headers->get('Origin');
+
+        // Only set CORS headers if the request origin is allowed
+        if ($requestOrigin && in_array($requestOrigin, $allowedOrigins)) {
+            $response->headers->set('Access-Control-Allow-Origin', $requestOrigin);
+            $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+            $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+            $response->headers->set('Access-Control-Allow-Credentials', 'true');
+        }
 
         // Handle preflight requests (OPTIONS)
         if ($request->getMethod() === 'OPTIONS') {

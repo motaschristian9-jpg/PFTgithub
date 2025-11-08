@@ -29,4 +29,14 @@ class UpdateTransactionsRequest extends FormRequest
             'category_id' => 'nullable|exists:budgets,id',
         ];
     }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'description' => $this->description ? trim(strip_tags($this->description)) : null,
+        ]);
+    }
 }

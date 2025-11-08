@@ -23,15 +23,25 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Custom CORS
-        $middleware->append(\App\Http\Middleware\CustomCors::class);
+        $middleware->web(append: [
+            \App\Http\Middleware\VerifyCsrfToken::class,
+        ]);
+
+        $middleware->api(prepend: [
+            \App\Http\Middleware\CustomCors::class,
+        ]);
+
+        // Force HTTPS redirection in production
+        if (env('APP_ENV') === 'production') {
+            $middleware->web(append: [
+                \Illuminate\Http\Middleware\TrustProxies::class,
+                \App\Http\Middleware\ForceHttps::class,
+            ]);
+        }
 
         // NOTE: Comment out if using pure API token auth (not SPA sessions).
         // This can cause issues with API-only routes.
         // $middleware->append(\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class);
-    
-        // Allow stateful API sessions for Sanctum (only if needed for hybrid auth)
-        $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Handle authentication exceptions for API routes

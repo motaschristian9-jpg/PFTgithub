@@ -2,6 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+// Apply CSRF middleware to web routes
+Route::middleware(['csrf'])->group(function () {
+    Route::get('/', function () {
+        return view('welcome');
+    });
 });

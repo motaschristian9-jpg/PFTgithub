@@ -29,4 +29,14 @@ class CreateBudgetRequest extends FormRequest
             'end_date' => 'required|date|after:start_date',
         ];
     }
+
+    /**
+     * Prepare the data for validation.
+     */
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            'name' => trim(strip_tags($this->name)),
+        ]);
+    }
 }

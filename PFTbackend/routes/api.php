@@ -11,16 +11,20 @@ use App\Http\Controllers\SavingController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->middleware('throttle:5,1');
 Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
 
 // Social login (Google)
 Route::get('/auth/google/login', [GoogleAuthController::class, 'loginWithGoogle']);
+
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 
+
+
+
 // Protected routes (Sanctum auth only)
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', function (Request $request) {
         return $request->user();

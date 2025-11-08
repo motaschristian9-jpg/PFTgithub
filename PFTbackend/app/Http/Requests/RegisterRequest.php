@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateSavingsRequest extends FormRequest
+class RegisterRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,9 +23,8 @@ class CreateSavingsRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'target_amount' => 'required|numeric|min:0',
-            'current_amount' => 'sometimes|numeric|min:0',
-            'description' => 'nullable|string',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6',
         ];
     }
 
@@ -35,8 +34,8 @@ class CreateSavingsRequest extends FormRequest
     protected function prepareForValidation()
     {
         $this->merge([
-            'name' => trim(strip_tags($this->name)),
-            'description' => $this->description ? trim(strip_tags($this->description)) : null,
+            'name' => trim($this->name),
+            'email' => trim($this->email),
         ]);
     }
 }
