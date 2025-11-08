@@ -11,9 +11,9 @@ use App\Http\Controllers\SavingController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1')->name('login');
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->middleware('throttle:5,1');
-Route::post('/reset-password', [ForgotPasswordController::class, 'reset']);
+Route::post('/reset-password', [ForgotPasswordController::class, 'reset'])->name('password.reset');
 
 // Social login (Google)
 Route::get('/auth/google/login', [GoogleAuthController::class, 'loginWithGoogle']);
@@ -40,3 +40,6 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     // Savings routes
     Route::apiResource('savings', SavingController::class);
 });
+
+// Test route for ApiException (public for testing)
+Route::get('/test-exception', [AuthController::class, 'testException']);

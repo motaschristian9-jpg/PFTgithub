@@ -8,9 +8,46 @@ use App\Http\Requests\ResetPasswordRequest;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Tag(
+ *     name="Password Reset",
+ *     description="API Endpoints for password reset functionality"
+ * )
+ */
 class ForgotPasswordController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/forgot-password",
+     *     summary="Send password reset link",
+     *     tags={"Password Reset"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset link sent successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Password reset link sent successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Unable to send password reset link",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Unable to send password reset link.")
+     *         )
+     *     )
+     * )
+     */
     public function sendResetLinkEmail(SendResetLinkRequest $request)
     {
         $status = Password::sendResetLink(
@@ -30,6 +67,39 @@ class ForgotPasswordController extends Controller
         ], 400);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/reset-password",
+     *     summary="Reset password",
+     *     tags={"Password Reset"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password","password_confirmation","token"},
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", example="newpassword123"),
+     *             @OA\Property(property="password_confirmation", type="string", example="newpassword123"),
+     *             @OA\Property(property="token", type="string", example="reset-token-here")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password has been reset successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Password has been reset successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Invalid token or email",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid token or email.")
+     *         )
+     *     )
+     * )
+     */
     public function reset(ResetPasswordRequest $request)
     {
         $status = Password::reset(

@@ -5,7 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Scopes\UserScope;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Schema(
+ *     schema="Budget",
+ *     required={"user_id", "name", "amount", "start_date", "end_date"},
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="user_id", type="integer", example=1),
+ *     @OA\Property(property="name", type="string", example="Monthly Grocery Budget"),
+ *     @OA\Property(property="amount", type="number", format="float", example=500.00),
+ *     @OA\Property(property="start_date", type="string", format="date", example="2024-01-01"),
+ *     @OA\Property(property="end_date", type="string", format="date", example="2024-01-31"),
+ *     @OA\Property(property="category_id", type="integer", nullable=true, example=1),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * )
+ */
 class Budget extends Model
 {
     use HasFactory;
@@ -14,9 +30,9 @@ class Budget extends Model
         'user_id',
         'name',
         'amount',
-        'category_id',
         'start_date',
         'end_date',
+        'category_id',
     ];
 
     protected $casts = [
@@ -25,18 +41,27 @@ class Budget extends Model
         'end_date' => 'date',
     ];
 
+    /**
+     * The "booted" method of the model.
+     */
     protected static function booted(): void
     {
         static::addGlobalScope(new UserScope);
     }
 
+    /**
+     * Get the user that owns the budget.
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Get the transactions for the budget.
+     */
     public function transactions()
     {
-        return $this->hasMany(Transaction::class, 'category_id');
+        return $this->hasMany(Transaction::class);
     }
 }

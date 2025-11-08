@@ -68,6 +68,31 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => $e->errors(),
                     ], 422);
                 }
+
+                // Handle custom ApiException
+                if ($e instanceof \App\Exceptions\ApiException) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $e->getMessage(),
+                    ], $e->getStatusCode());
+                }
+
+                // Handle RouteNotFoundException for API routes (prevent redirects)
+                if ($e instanceof \Symfony\Component\Routing\Exception\RouteNotFoundException) {
+                    return response()->json([
+                        'error' => 'Route not found.',
+                        'message' => 'The requested API endpoint does not exist.',
+                    ], 404);
+                }
+
+                // Handle MissingRateLimiterException
+                if ($e instanceof \Illuminate\Routing\Exceptions\MissingRateLimiterException) {
+                    return response()->json([
+                        'error' => 'Rate limiter not configured.',
+                        'message' => 'The rate limiter for this endpoint is not properly configured.',
+                    ], 500);
+                }
+
                 // Add more if needed, e.g., for other exceptions
             }
         });
