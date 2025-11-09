@@ -93,20 +93,24 @@ class GoogleAuthController extends Controller
                 ]
             );
 
+            $isNewUser = $user->wasRecentlyCreated;
             $token = $user->createToken('api-token')->plainTextToken;
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful via Google',
-                'user' => $user,
-                'token' => $token
-            ]);
+            // Redirect to frontend with token and new_user flag
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            $redirectUrl = $frontendUrl . '/dashboard?token=' . urlencode($token);
+            if ($isNewUser) {
+                $redirectUrl .= '&new_user=1';
+            }
+
+            return redirect($redirectUrl);
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication failed: ' . $e->getMessage()
-            ], 401);
+            // Redirect to login with error
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            $redirectUrl = $frontendUrl . '/login?error=' . urlencode('Authentication failed: ' . $e->getMessage());
+
+            return redirect($redirectUrl);
         }
     }
 }
