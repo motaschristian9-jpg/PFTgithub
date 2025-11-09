@@ -5,10 +5,8 @@ use L5Swagger\Http\Controllers\SwaggerController;
 use L5Swagger\Http\Controllers\SwaggerAssetController;
 
 // Web routes
-Route::middleware(['csrf'])->group(function () {
-    Route::get('/', function () {
-        return view('welcome');
-    });
+Route::get('/', function () {
+    return view('welcome');
 });
 
 // Swagger routes

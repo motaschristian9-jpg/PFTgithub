@@ -9,6 +9,7 @@ use App\Http\Resources\TransactionCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use OpenApi\Annotations as OA;
 
 /**
@@ -19,6 +20,8 @@ use OpenApi\Annotations as OA;
  */
 class TransactionController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * @OA\Get(
      *     path="/api/transactions",

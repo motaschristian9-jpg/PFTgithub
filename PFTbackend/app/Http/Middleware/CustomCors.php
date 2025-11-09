@@ -12,9 +12,9 @@ class CustomCors
     {
         $response = $next($request);
 
-        // Get allowed origins from .env (can be comma-separated for multiple)
-        $allowedOrigins = explode(',', env('FRONTEND_URL', 'http://localhost:5173'));
-        $allowedOrigins = array_map('trim', $allowedOrigins);
+        // Get allowed origins from config (with fallback to default if null/empty)
+        $allowedOriginsConfig = config('app.frontend_url') ?: 'http://localhost:5173';
+        $allowedOrigins = array_map('trim', explode(',', $allowedOriginsConfig));
 
         $requestOrigin = $request->headers->get('Origin');
 

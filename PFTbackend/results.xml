@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\ReactProjects\PFTMoneyTracker\PFTbackend\phpunit.xml" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.460355">
+    <testsuite name="Feature" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.460355">
+      <testsuite name="Tests\Feature\ForgotPasswordTest" file="C:\ReactProjects\PFTMoneyTracker\PFTbackend\tests\Feature\ForgotPasswordTest.php" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.460355">
+        <testcase name="test_send_reset_link_email_validation_error" file="C:\ReactProjects\PFTMoneyTracker\PFTbackend\tests\Feature\ForgotPasswordTest.php" line="42" class="Tests\Feature\ForgotPasswordTest" classname="Tests.Feature.ForgotPasswordTest" assertions="2" time="0.460355">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\ForgotPasswordTest::test_send_reset_link_email_validation_error&#13;
+Failed asserting that an array has the key 'success'.
+&#13;
+C:\ReactProjects\PFTMoneyTracker\PFTbackend\vendor\laravel\framework\src\Illuminate\Testing\AssertableJsonString.php:303
+C:\ReactProjects\PFTMoneyTracker\PFTbackend\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:978
+C:\ReactProjects\PFTMoneyTracker\PFTbackend\tests\Feature\ForgotPasswordTest.php:49</failure>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

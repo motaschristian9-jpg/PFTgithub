@@ -9,6 +9,7 @@ use App\Http\Resources\BudgetCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use OpenApi\Annotations as OA;
 
 /**
@@ -19,6 +20,8 @@ use OpenApi\Annotations as OA;
  */
 class BudgetController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * @OA\Get(
      *     path="/api/budgets",
@@ -82,7 +85,7 @@ class BudgetController extends Controller
         $cacheKey = 'user_' . $userId . '_budgets_' . md5(serialize($request->all()));
 
         $budgets = Cache::remember($cacheKey, 3600, function () use ($request, $userId) {
-            $query = Auth::user()->budgets()->with('transactions')->orderBy('created_at', 'desc');
+            $query = Auth::user()->budgets()->orderBy('created_at', 'desc');
 
             // Filter by name
             if ($request->has('name')) {

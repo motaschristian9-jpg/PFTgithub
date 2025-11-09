@@ -9,6 +9,7 @@ use App\Http\Resources\SavingCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use OpenApi\Annotations as OA;
 
 /**
@@ -31,6 +32,8 @@ use OpenApi\Annotations as OA;
  */
 class SavingController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * @OA\Get(
      *     path="/api/savings",

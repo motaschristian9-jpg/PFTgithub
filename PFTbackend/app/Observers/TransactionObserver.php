@@ -55,14 +55,14 @@ class TransactionObserver
         $userId = $transaction->user_id;
 
         // Clear transaction caches
-        Cache::forget('user_' . $userId . '_transactions_*');
+        Cache::forget('user_' . $userId . '_transactions');
 
         // Clear monthly summary caches
-        Cache::forget('user_' . $userId . '_monthly_summary_*');
+        Cache::forget('user_' . $userId . '_monthly_summary');
 
         // Clear budget caches if transaction has a category_id (linked to budget)
         if ($transaction->category_id) {
-            Cache::forget('user_' . $userId . '_budgets_*');
+            Cache::forget('user_' . $userId . '_budgets');
         }
     }
 }
