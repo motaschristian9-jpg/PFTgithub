@@ -68,12 +68,12 @@ class AuthController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        // Send email verification notification
+        $user->sendEmailVerificationNotification();
 
         return $this->success([
-            'token' => $token,
             'user' => $user,
-        ], 'User registered successfully.', 201);
+        ], 'User registered successfully. Please check your email to verify your account.', 201);
     }
 
     /**
@@ -120,8 +120,29 @@ class AuthController extends Controller
         $user = User::where('email', $validated['email'])->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            // Check if user exists but was created via Google OAuth
+            if ($user && $user->hasVerifiedEmail()) {
+                throw ValidationException::withMessages([
+                    'email' => ['This account was created using Google OAuth. Please use the "Continue with Google" button to sign in.'],
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        // Check if user was created via Google OAuth (has verified email but no password set)
+        if ($user->hasVerifiedEmail() && !$user->password) {
+            throw ValidationException::withMessages([
+                'email' => ['This account was created using Google OAuth. Please use the "Continue with Google" button to sign in.'],
+            ]);
+        }
+
+        // Check if email is verified for regular signup users
+        if (!$user->hasVerifiedEmail()) {
+            throw ValidationException::withMessages([
+                'email' => ['Please verify your email address before logging in. Check your email for the verification link.'],
             ]);
         }
 
@@ -159,6 +180,110 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return $this->success(null, 'Logged out successfully.');
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/email/verify/{id}/{hash}",
+     *     summary="Verify email address",
+     *     tags={"Authentication"},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Parameter(
+     *         name="hash",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Email verified successfully",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Email verified successfully.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Invalid verification link",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Invalid verification link.")
+     *         )
+     *     )
+     * )
+     */
+    // 📧 Verify email
+    public function verifyEmail(Request $request, $id, $hash)
+    {
+        $user = User::findOrFail($id);
+
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return response()->view('errors.invalid-verification-link', [], 403);
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->view('emails.already-verified', [], 200);
+        }
+
+        $user->markEmailAsVerified();
+
+        // Return HTML redirect page for email verification links
+        return response()->view('emails.verified-redirect', [
+            'redirect_url' => 'http://localhost:5173/login'
+        ]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/email/verification-notification",
+     *     summary="Resend email verification notification",
+     *     tags={"Authentication"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Verification email sent",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Verification email sent.")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Email already verified",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="message", type="string", example="Email already verified.")
+     *         )
+     *     )
+     * )
+     */
+    // 📧 Resend verification email
+    public function resendVerificationEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if ($user->hasVerifiedEmail()) {
+            return $this->error('Email already verified.', 400);
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return $this->success(null, 'Verification email sent.');
     }
 
     // Test endpoint to demonstrate ApiException

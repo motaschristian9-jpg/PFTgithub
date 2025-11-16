@@ -6,107 +6,142 @@ use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Str;
-use OpenApi\Annotations as OA;
 
 /**
- * @OA\Tag(
- *     name="Google Authentication",
- *     description="API Endpoints for Google OAuth authentication"
- * )
+ * Google Authentication Controller
+ *
+ * Handles Google OAuth authentication for signup and login
  */
 class GoogleAuthController extends Controller
 {
     /**
-     * @OA\Get(
-     *     path="/api/auth/google/login",
-     *     summary="Get Google OAuth login URL",
-     *     tags={"Google Authentication"},
-     *     @OA\Response(
-     *         response=200,
-     *         description="Google OAuth URL returned",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="redirect_url", type="string", example="https://accounts.google.com/oauth/authorize?...")
-     *         )
-     *     )
-     * )
+     * Get Google OAuth login URL
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-    // Step 1: Redirect user to Google OAuth
-    public function loginWithGoogle()
+    public function loginWithGoogle(Request $request)
     {
+        $state = $request->query('state'); // 'signup' or 'login'
+        $redirectUri = $request->query('redirect_uri'); // Frontend callback URI
+
+        // Validate state parameter
+        if (!$state || !in_array($state, ['signup', 'login'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid state parameter. Must be "signup" or "login".'
+            ], 400);
+        }
+
+        // Validate redirect URI
+        if (!$redirectUri) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Redirect URI is required.'
+            ], 400);
+        }
+
+        // Combine state and redirect URI for later retrieval
+        $combinedState = $state . '|' . $redirectUri;
+
+        // Generate Google OAuth URL (use config redirect URL, not frontend URL)
         $redirectUrl = Socialite::driver('google')
             ->stateless() // stateless since API only
+            ->with(['state' => $combinedState])
             ->redirect()
-            ->getTargetUrl(); // Returns redirect URL for API usage
+            ->getTargetUrl();
 
         return response()->json([
             'success' => true,
-            'redirect_url' => $redirectUrl
+            'redirect_url' => $redirectUrl,
         ]);
     }
 
     /**
-     * @OA\Get(
-     *     path="/api/auth/google/callback",
-     *     summary="Handle Google OAuth callback",
-     *     tags={"Google Authentication"},
-     *     @OA\Parameter(
-     *         name="code",
-     *         in="query",
-     *         description="Authorization code from Google",
-     *         required=true,
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Login successful via Google",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Login successful via Google"),
-     *             @OA\Property(property="user", ref="#/components/schemas/User"),
-     *             @OA\Property(property="token", type="string", example="1|abc123...")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Authentication failed",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="success", type="boolean", example=false),
-     *             @OA\Property(property="message", type="string", example="Authentication failed: [error message]")
-     *         )
-     *     )
-     * )
+     * Handle Google OAuth callback
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
-    // Step 2: Handle callback from Google
     public function callback(Request $request)
     {
         try {
+            $code = $request->input('code');
+            $combinedState = $request->input('state');
+
+            // Parse combined state (state|redirectUri)
+            $stateParts = explode('|', $combinedState);
+            if (count($stateParts) !== 2) {
+                return redirect('http://localhost:5173/auth/google/callback?error=invalid_state&message=' . urlencode('Invalid state parameter.'));
+            }
+
+            $state = $stateParts[0];
+            $redirectUri = $stateParts[1];
+
+            // Validate parameters
+            if (!$state || !in_array($state, ['signup', 'login'])) {
+                return redirect($redirectUri . '?error=invalid_state&message=' . urlencode('Invalid state parameter.'));
+            }
+
+            if (!$code) {
+                return redirect($redirectUri . '?error=no_code&message=' . urlencode('Authorization code is required.'));
+            }
+
+            // Get user info from Google
             $googleUser = Socialite::driver('google')
                 ->stateless()
                 ->user();
 
-            $user = User::firstOrCreate(
-                ['email' => $googleUser->getEmail()],
-                [
-                    'name' => $googleUser->getName() ?? 'User',
-                    'password' => bcrypt(Str::random(16)), // random password
-                ]
-            );
+            $email = $googleUser->getEmail();
 
-            $token = $user->createToken('api-token')->plainTextToken;
+            // Check if user exists
+            $existingUser = User::where('email', $email)->first();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Login successful via Google',
-                'user' => $user,
-                'token' => $token
-            ]);
+            if ($existingUser) {
+                // User exists - check verification status
+                if (!$existingUser->hasVerifiedEmail()) {
+                    return redirect($redirectUri . '?error=email_not_verified&message=' . urlencode('This email is already registered but not verified. Please verify your email first.'));
+                }
+
+                // User is verified
+                if ($state === 'signup') {
+                    // During signup, if account exists, prompt user
+                    return redirect($redirectUri . '?error=account_exists&message=' . urlencode('You already have an account with this email. Please login instead.'));
+                } else {
+                    // During login, proceed with auto-login
+                    $token = $existingUser->createToken('api-token')->plainTextToken;
+
+                    return redirect($redirectUri . '?success=true&action=login&token=' . urlencode($token) . '&user=' . urlencode(json_encode($existingUser)) . '&message=' . urlencode('Login successful via Google'));
+                }
+            } else {
+                // User does not exist
+                if ($state === 'signup') {
+                    // During signup, create new user but don't auto-login
+                    $user = User::create([
+                        'name' => $googleUser->getName() ?? 'User',
+                        'email' => $email,
+                        'password' => bcrypt(Str::random(16)),
+                        'email_verified_at' => now(),
+                    ]);
+
+                    return redirect($redirectUri . '?success=true&action=created_no_login&user=' . urlencode(json_encode($user)) . '&message=' . urlencode('Account created successfully via Google. Please login to continue.'));
+                } else {
+                    // During login, if no account exists, create and login
+                    $user = User::create([
+                        'name' => $googleUser->getName() ?? 'User',
+                        'email' => $email,
+                        'password' => bcrypt(Str::random(16)),
+                        'email_verified_at' => now(),
+                    ]);
+
+                    $token = $user->createToken('api-token')->plainTextToken;
+
+                    return redirect($redirectUri . '?success=true&action=login&token=' . urlencode($token) . '&user=' . urlencode(json_encode($user)) . '&message=' . urlencode('Account created and login successful via Google'));
+                }
+            }
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Authentication failed: ' . $e->getMessage()
-            ], 401);
+            return redirect($redirectUri . '?error=auth_failed&message=' . urlencode('Authentication failed: ' . $e->getMessage()));
         }
     }
 }

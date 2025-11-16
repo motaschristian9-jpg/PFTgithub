@@ -15,6 +15,10 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->middleware('throttle:5,1');
 Route::post('/reset-password', [ForgotPasswordController::class, 'reset'])->name('password.reset');
 
+// Email verification routes
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->middleware(['signed'])->name('verification.verify');
+Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware(['throttle:6,1'])->name('verification.send');
+
 // Social login (Google)
 Route::get('/auth/google/login', [GoogleAuthController::class, 'loginWithGoogle']);
 
