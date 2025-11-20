@@ -50,6 +50,18 @@ class ForgotPasswordController extends Controller
      */
     public function sendResetLinkEmail(SendResetLinkRequest $request)
     {
+        // Check if user exists with this email
+        $user = \App\Models\User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'email' => ['No account found with this email address.']
+                ]
+            ], 422);
+        }
+
         $status = Password::sendResetLink(
             $request->only('email')
         );
@@ -102,6 +114,28 @@ class ForgotPasswordController extends Controller
      */
     public function reset(ResetPasswordRequest $request)
     {
+        // Get the user by email first to check current password
+        $user = \App\Models\User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'password' => ['No account found with this email address.']
+                ]
+            ], 422);
+        }
+
+        // Check if new password is the same as current password
+        if (Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'password' => ['New password cannot be the same as your current password.']
+                ]
+            ], 422);
+        }
+
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {

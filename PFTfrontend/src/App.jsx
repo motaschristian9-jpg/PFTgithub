@@ -1,19 +1,40 @@
-import { Routes, Route } from "react-router-dom";
-
+import { Routes, Route } from "react-router-dom";  // Removed BrowserRouter import
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import LandingPage from "./pages/LandingPage.jsx";
-import SignupPage from "./pages/authpages/SignupPage.jsx";
 import LoginPage from "./pages/authpages/LoginPage.jsx";
+import SignupPage from "./pages/authpages/SignupPage.jsx";
+import Dashboard from "./pages/userpages/Dashboard.jsx";
+import TransactionsPage from "./pages/userpages/TransactionsPage.jsx";
 import EmailVerificationPage from "./pages/authpages/EmailVerificationPage.jsx";
+import ResetPasswordPage from "./pages/authpages/ResetPasswordPage.jsx";
+import ForgotPasswordPage from "./pages/authpages/ForgotPasswordPage.jsx";
 import GoogleCallbackPage from "./pages/authpages/GoogleCallbackPage.jsx";
+import PrivateRoutes from "./components/PrivateRoutes.jsx";
+import PublicRoutes from "./components/PublicRoutes.jsx";
 
-export default function App() {
+const queryClient = new QueryClient();
+
+function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/email-verification" element={<EmailVerificationPage />} />
-      <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
-    </Routes>
+    <QueryClientProvider client={queryClient}>
+      <Routes>  {/* No <Router> wrapper here */}
+        <Route path="/" element={<PublicRoutes />}>
+          <Route index element={<LandingPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="signup" element={<SignupPage />} />
+          <Route path="email-verification" element={<EmailVerificationPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+          <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
+        </Route>
+
+        <Route path="/" element={<PrivateRoutes />}>
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="transaction" element={<TransactionsPage />} />
+        </Route>
+      </Routes>
+    </QueryClientProvider>
   );
 }
+
+export default App;

@@ -29,6 +29,7 @@ class Transaction extends Model
 
     protected $fillable = [
         'user_id',
+        'name',
         'type',
         'amount',
         'description',
@@ -42,13 +43,7 @@ class Transaction extends Model
         'date' => 'date',
     ];
 
-    /**
-     * The "booted" method of the model.
-     */
-    protected static function booted(): void
-    {
-        static::addGlobalScope(new UserScope);
-    }
+
 
     /**
      * Get the user that owns the transaction.
@@ -64,5 +59,13 @@ class Transaction extends Model
     public function budget()
     {
         return $this->belongsTo(Budget::class);
+    }
+
+    /**
+     * Get the category associated with the transaction.
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
     }
 }

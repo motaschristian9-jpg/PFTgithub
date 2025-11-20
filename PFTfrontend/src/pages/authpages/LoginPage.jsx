@@ -4,22 +4,26 @@ import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { loginUser } from "../../api/auth";
+import { setToken } from "../../api/axios"; // Added import for setToken helper
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm({
     defaultValues: {
       email: "",
       password: "",
+      remember: false,
     },
   });
 
@@ -28,7 +32,7 @@ export default function LoginPage() {
     setIsVisible(true);
 
     // Check for email parameter from verification page
-    const emailParam = searchParams.get('email');
+    const emailParam = searchParams.get("email");
     if (emailParam) {
       // Pre-fill email if coming from verification
       // This would need to be handled differently with React Hook Form
@@ -40,48 +44,79 @@ export default function LoginPage() {
     try {
       const result = await loginUser(formData);
 
-      // Store token in localStorage
-      localStorage.setItem('token', result.token);
-      localStorage.setItem('user', JSON.stringify(result.user));
+      // Use setToken helper for consistent token storage (handles remember logic)
+      setToken(result.data.token, formData.remember);
+
+      // Store user data if needed
+      localStorage.setItem("user", JSON.stringify(result.data.user));
 
       Swal.fire("Success!", "Login successful!", "success");
 
-      // Redirect to dashboard or home
-      setTimeout(() => navigate('/dashboard'), 1500);
+      // Use navigate for soft redirect (stays in React Router, avoids reload issues)
+      navigate("/dashboard");
     } catch (err) {
+      console.log(err);
       if (err.response && err.response.data) {
         let errorMessage = "Login failed";
+        let errorField = "root"; // Default to root for general errors
 
         // Handle Laravel validation errors
-        if (err.response.data.message) {
-          if (typeof err.response.data.message === 'string') {
+        if (err.response.data.errors) {
+          // Laravel ValidationException returns errors in 'errors' key
+          const errors = err.response.data.errors;
+          if (errors.email) {
+            errorMessage = Array.isArray(errors.email) ? errors.email[0] : errors.email;
+            errorField = "email";
+          } else if (errors.password) {
+            errorMessage = Array.isArray(errors.password) ? errors.password[0] : errors.password;
+            errorField = "password";
+          }
+        } else if (err.response.data.message) {
+          if (typeof err.response.data.message === "string") {
             errorMessage = err.response.data.message;
-          } else if (typeof err.response.data.message === 'object' && err.response.data.message.email) {
-            // Laravel validation error format: { message: { email: [...] } }
-            errorMessage = err.response.data.message.email[0];
+          } else if (typeof err.response.data.message === "object") {
+            // Check for email-specific errors (non-existent email)
+            if (err.response.data.message.email) {
+              errorMessage = Array.isArray(err.response.data.message.email)
+                ? err.response.data.message.email[0]
+                : err.response.data.message.email;
+              errorField = "email";
+            }
+            // Check for password-specific errors (wrong password)
+            else if (err.response.data.message.password) {
+              errorMessage = Array.isArray(err.response.data.message.password)
+                ? err.response.data.message.password[0]
+                : err.response.data.message.password;
+              errorField = "password";
+            }
           }
         } else if (err.response.data.error) {
           errorMessage = err.response.data.error;
         }
 
         // Special handling for Google OAuth users trying to login with form
-        if (errorMessage.includes("Google OAuth") || errorMessage.includes("Continue with Google")) {
+        if (
+          errorMessage.includes("Google OAuth") ||
+          errorMessage.includes("Continue with Google")
+        ) {
           Swal.fire({
             title: "Google Account Detected",
             text: "This account was created using Google OAuth. Please use the 'Continue with Google' button to sign in.",
             icon: "info",
             confirmButtonText: "Continue with Google",
             showCancelButton: true,
-            cancelButtonText: "Cancel"
+            cancelButtonText: "Cancel",
           }).then((result) => {
             if (result.isConfirmed) {
               loginWithGoogle();
             }
           });
         } else {
-          Swal.fire("Error", errorMessage, "error");
+          // Use React Hook Form to display validation errors for authentication issues
+          setError(errorField, { message: errorMessage });
         }
       } else {
+        // Network or other errors - keep Swal for these
         Swal.fire("Error", "Something went wrong. Try again later.", "error");
       }
     } finally {
@@ -90,12 +125,15 @@ export default function LoginPage() {
   };
 
   const loginWithGoogle = async () => {
+    setGoogleLoading(true);
     try {
       // Get the Google OAuth URL from backend with login state
-      const response = await fetch("http://127.0.0.1:8000/api/auth/google/login?state=login&redirect_uri=http://localhost:5173/auth/google/callback");
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/auth/google/login?state=login&redirect_uri=http://localhost:5173/auth/google/callback"
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to get Google OAuth URL');
+        throw new Error("Failed to get Google OAuth URL");
       }
 
       const data = await response.json();
@@ -104,11 +142,21 @@ export default function LoginPage() {
         // Redirect to Google OAuth
         window.location.href = data.redirect_url;
       } else {
-        Swal.fire("Error", data.message || "Failed to initiate Google login", "error");
+        Swal.fire(
+          "Error",
+          data.message || "Failed to initiate Google login",
+          "error"
+        );
       }
     } catch (err) {
-      console.error('Google login error:', err);
-      Swal.fire("Error", "Something went wrong with Google login. Try again later.", "error");
+      console.error("Google login error:", err);
+      Swal.fire(
+        "Error",
+        "Something went wrong with Google login. Try again later.",
+        "error"
+      );
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -229,7 +277,10 @@ export default function LoginPage() {
                 </div>
 
                 {/* Form */}
-                <form className="space-y-4" onSubmit={handleSubmit(handleLogin)}>
+                <form
+                  className="space-y-4"
+                  onSubmit={handleSubmit(handleLogin)}
+                >
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -250,7 +301,9 @@ export default function LoginPage() {
                         }`}
                       />
                       {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.email.message}
+                        </p>
                       )}
                     </div>
 
@@ -270,6 +323,7 @@ export default function LoginPage() {
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-8 text-gray-500 hover:text-green-600 transition-colors duration-200"
                       >
@@ -280,8 +334,34 @@ export default function LoginPage() {
                         )}
                       </button>
                       {errors.password && (
-                        <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.password.message}
+                        </p>
                       )}
+                    </div>
+
+                    {/* Remember Me Checkbox */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          tabIndex={-1}
+                          {...register("remember")}
+                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        />
+                        <label className="ml-2 block text-sm text-gray-700">
+                          Remember me
+                        </label>
+                      </div>
+
+                      {/* Forgot Password Link */}
+                      <Link
+                        to="/forgot-password"
+                        tabIndex={-1}
+                        className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors duration-300"
+                      >
+                        Forgot password?
+                      </Link>
                     </div>
                   </div>
 
@@ -310,11 +390,22 @@ export default function LoginPage() {
 
                   <button
                     onClick={() => loginWithGoogle()}
-                    className="w-full bg-white border-2 border-gray-200 hover:border-green-300 text-gray-700 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center space-x-2 text-sm cursor-pointer"
+                    disabled={googleLoading}
+                    className="w-full bg-white border-2 border-gray-200 hover:border-green-300 text-gray-700 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center space-x-2 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {/* Use the Google logo from public folder */}
-                    <img src="/google.svg" alt="Google" className="w-4 h-4" />
-                    <span>Continue with Google</span>
+                    {googleLoading ? (
+                      <Loader2 className="animate-spin h-4 w-4" />
+                    ) : (
+                      <>
+                        {/* Use the Google logo from public folder */}
+                        <img
+                          src="/google.svg"
+                          alt="Google"
+                          className="w-4 h-4"
+                        />
+                        <span>Continue with Google</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -323,6 +414,7 @@ export default function LoginPage() {
                   <div className="text-center">
                     <Link
                       to="/email-verification"
+                      tabIndex={-1}
                       className="text-green-600 hover:text-green-700 text-sm font-medium transition-colors duration-300"
                     >
                       Need to verify your email?

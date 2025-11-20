@@ -8,6 +8,7 @@ use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\SavingController;
+use App\Http\Controllers\CategoryController;
 
 // Public routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -27,6 +28,9 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 
 
 
+// Public routes for testing
+// Route::get('transactions', [TransactionController::class, 'index']); // Removed to require authentication
+
 // Protected routes (Sanctum auth only)
 Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -35,7 +39,8 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     });
 
     // Transactions routes
-    Route::apiResource('transactions', TransactionController::class);
+    Route::get('transactions', [TransactionController::class, 'index']);
+    Route::apiResource('transactions', TransactionController::class)->except(['index']);
     Route::get('transactions/summary/monthly', [TransactionController::class, 'monthlySummary']);
 
     // Budgets routes
@@ -43,6 +48,9 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
 
     // Savings routes
     Route::apiResource('savings', SavingController::class);
+
+    // Categories routes
+    Route::get('categories', [CategoryController::class, 'index']);
 });
 
 // Test route for ApiException (public for testing)

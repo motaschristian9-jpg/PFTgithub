@@ -4,18 +4,6 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-/**
- * @OA\Schema(
- *     schema="CreateTransactionRequest",
- *     type="object",
- *     required={"type", "amount", "date"},
- *     @OA\Property(property="type", type="string", enum={"income", "expense"}, example="income"),
- *     @OA\Property(property="amount", type="number", format="float", minimum=0, example=100.50),
- *     @OA\Property(property="description", type="string", nullable=true, example="Salary payment"),
- *     @OA\Property(property="date", type="string", format="date", example="2024-01-15"),
- *     @OA\Property(property="category_id", type="integer", nullable=true, example=1)
- * )
- */
 class CreateTransactionsRequest extends FormRequest
 {
     /**
@@ -34,21 +22,13 @@ class CreateTransactionsRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'name' => 'required|string|max:255',
             'type' => 'required|in:income,expense',
             'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-            'category_id' => 'nullable|exists:budgets,id',
+            'description' => 'nullable|string|max:1000',
+            'date' => 'required|date|before_or_equal:today',
+            'category_id' => 'nullable|integer',
+            'budget_id' => 'nullable|integer',
         ];
-    }
-
-    /**
-     * Prepare the data for validation.
-     */
-    protected function prepareForValidation()
-    {
-        $this->merge([
-            'description' => $this->description ? trim(strip_tags($this->description)) : null,
-        ]);
     }
 }

@@ -1,97 +1,83 @@
-# Personal Finance Tracker (MoneyTracker)
+# PFTMoneyTracker
 
-## Description
-
-MoneyTracker is a personal finance management application developed as a school project. It helps users track their income, expenses, and budgets to better manage their financial health. Built with Laravel for the backend, this app provides a robust API for handling user authentication, financial data, and more.
+A personal finance tracking application built with React (frontend) and Laravel (backend).
 
 ## Features
 
-- **User Authentication**: Secure login and registration using Laravel Sanctum
-- **Expense Tracking**: Log and categorize daily expenses
-- **Income Management**: Record various income sources
-- **Budget Planning**: Set and monitor monthly budgets
-- **Financial Reports**: View summaries and analytics of financial data
-- **Google Authentication**: Optional Google OAuth integration for easy login
+- User authentication and authorization
+- Transaction management (income and expenses)
+- Category-based organization
+- Budget tracking
+- Savings goals
+- Dashboard with financial insights
+- Responsive design
 
-## Installation
+## Tech Stack
+
+### Frontend
+- React 18
+- Vite
+- Tailwind CSS
+- React Query (TanStack Query)
+- Axios for API calls
+- Lucide React for icons
+
+### Backend
+- Laravel 11
+- Laravel Sanctum for authentication
+- MySQL database
+- Swagger/OpenAPI documentation
+
+## Getting Started
 
 ### Prerequisites
-
-- PHP 8.1 or higher
+- Node.js (v18 or higher)
+- PHP (v8.2 or higher)
 - Composer
-- Node.js and npm (for frontend assets)
-- MySQL or another supported database
+- MySQL
 
-### Steps
+### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone <repository-url>
-   cd PFTMoneyTracker
-   ```
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/PFTMoneyTracker.git
+cd PFTMoneyTracker
+```
 
-2. **Install PHP dependencies:**
-   ```bash
-   cd PFTbackend
-   composer install
-   ```
+2. Backend Setup:
+```bash
+cd PFTbackend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed
+php artisan serve
+```
 
-3. **Install Node.js dependencies:**
-   ```bash
-   npm install
-   ```
+3. Frontend Setup:
+```bash
+cd PFTfrontend
+npm install
+npm run dev
+```
 
-4. **Environment Setup:**
-   - Copy `.env.example` to `.env`
-   - Configure your database and other environment variables in `.env`
-
-5. **Generate Application Key:**
-   ```bash
-   php artisan key:generate
-   ```
-
-6. **Run Migrations:**
-   ```bash
-   php artisan migrate
-   ```
-
-7. **Build Assets:**
-   ```bash
-   npm run build
-   ```
-
-8. **Start the Development Server:**
-   ```bash
-   php artisan serve
-   ```
-
-## Usage
-
-- Access the application at `http://localhost:8000`
-- Use API endpoints defined in `routes/api.php` for frontend integration
-- Run tests with `php artisan test`
+4. Access the application:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
 
 ## API Documentation
 
-The API provides endpoints for:
-- Authentication (`/api/login`, `/api/register`)
-- User management
-- Financial data operations
-
-Refer to `routes/api.php` for detailed route definitions.
+API documentation is available via Swagger at `/api/documentation` when the backend is running.
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-feature`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature/new-feature`)
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
 5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Team
-
-Developed as part of a school project.
+This project is licensed under the MIT License.

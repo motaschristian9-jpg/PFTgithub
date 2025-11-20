@@ -20,7 +20,7 @@ export const forgotPassword = async (email) => {
 
 // Reset password
 export const resetPassword = async (data) => {
-  // data should contain token, new_password, password_confirmation
+  // data should contain email, token, password, password_confirmation
   const response = await api.post("/reset-password", data);
   return response.data;
 };
@@ -43,4 +43,21 @@ export const getGoogleOAuthUrl = async (state, redirectUri) => {
 export const googleCallback = async (data) => {
   const response = await api.get("/auth/google/callback", { params: data });
   return response.data;
+};
+
+// Logout
+export const logoutUser = async () => {
+  try {
+    const response = await api.post("/logout");
+    // Force full page refresh after logout
+    window.location.href = "/login";
+    return response.data;
+  } catch (error) {
+    // If logout fails due to invalid token, that's okay - we still want to clear local data
+    if (error.response?.status === 401) {
+      window.location.href = "/login";
+      return { message: "Logged out successfully" };
+    }
+    throw error;
+  }
 };

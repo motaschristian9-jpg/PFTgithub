@@ -10,6 +10,7 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -17,6 +18,7 @@ export default function SignUpPage() {
     register,
     handleSubmit,
     watch,
+    setError,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -39,30 +41,42 @@ export default function SignUpPage() {
     try {
       const result = await registerUser(formData);
 
+      // Success - use SweetAlert for positive feedback
       Swal.fire("Success!", result.message || "Account created successfully. Please check your email to verify your account.", "success");
 
       setTimeout(() => navigate(`/email-verification?email=${encodeURIComponent(formData.email)}`), 1500);
     } catch (err) {
       if (err.response && err.response.data) {
-        let errorMessage = "Registration failed";
-
-        // Handle Laravel validation errors
-        if (err.response.data.message) {
+        // Handle Laravel validation errors - set them in form state for inline display
+        if (err.response.data.errors) {
+          // Laravel validation errors format: { errors: { field: [messages] } }
+          Object.keys(err.response.data.errors).forEach(field => {
+            setError(field, {
+              type: "server",
+              message: err.response.data.errors[field][0]
+            });
+          });
+        } else if (err.response.data.message) {
           if (typeof err.response.data.message === 'object' && err.response.data.message.email) {
-            // Laravel validation error format: { message: { email: [...] } }
-            errorMessage = err.response.data.message.email[0];
+            // Alternative Laravel format: { message: { email: [...] } }
+            setError("email", {
+              type: "server",
+              message: err.response.data.message.email[0]
+            });
           } else if (typeof err.response.data.message === 'string') {
-            // Simple string message
-            errorMessage = err.response.data.message;
+            // General server message - use SweetAlert for non-form errors
+            Swal.fire("Error", err.response.data.message, "error");
           }
         } else if (err.response.data.error) {
           // Alternative error format
-          errorMessage = err.response.data.error;
+          Swal.fire("Error", err.response.data.error, "error");
+        } else {
+          // Fallback for unexpected error format
+          Swal.fire("Error", "Registration failed. Please check your information and try again.", "error");
         }
-
-        Swal.fire("Error", errorMessage, "error");
       } else {
-        Swal.fire("Error", "Something went wrong. Try again later.", "error");
+        // Network or other critical errors - use SweetAlert
+        Swal.fire("Error", "Something went wrong. Please check your connection and try again.", "error");
       }
     } finally {
       setLoading(false);
@@ -70,6 +84,7 @@ export default function SignUpPage() {
   };
 
   const signupWithGoogle = async () => {
+    setGoogleLoading(true);
     try {
       // Get the Google OAuth URL from backend with signup state
       const response = await fetch("http://127.0.0.1:8000/api/auth/google/login?state=signup&redirect_uri=http://localhost:5173/auth/google/callback");
@@ -90,6 +105,8 @@ export default function SignUpPage() {
     } catch (err) {
       console.error('Google signup error:', err);
       Swal.fire("Error", "Something went wrong with Google signup. Try again later.", "error");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -278,6 +295,7 @@ export default function SignUpPage() {
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-8 text-gray-500 hover:text-green-600 transition-colors duration-200"
                       >
@@ -310,6 +328,7 @@ export default function SignUpPage() {
                       />
                       <button
                         type="button"
+                        tabIndex={-1}
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
@@ -352,11 +371,18 @@ export default function SignUpPage() {
 
                   <button
                     onClick={() => signupWithGoogle()}
-                    className="w-full bg-white border-2 border-gray-200 hover:border-green-300 text-gray-700 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center space-x-2 text-sm cursor-pointer"
+                    disabled={googleLoading}
+                    className="w-full bg-white border-2 border-gray-200 hover:border-green-300 text-gray-700 py-2.5 rounded-lg font-semibold transition-all duration-300 hover:shadow-lg flex items-center justify-center space-x-2 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {/* Use the Google logo from public folder */}
-                    <img src="/google.svg" alt="Google" className="w-4 h-4" />
-                    <span>Continue with Google</span>
+                    {googleLoading ? (
+                      <Loader2 className="animate-spin h-4 w-4" />
+                    ) : (
+                      <>
+                        {/* Use the Google logo from public folder */}
+                        <img src="/google.svg" alt="Google" className="w-4 h-4" />
+                        <span>Continue with Google</span>
+                      </>
+                    )}
                   </button>
                 </div>
 

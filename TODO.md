@@ -1,10 +1,11 @@
-# TODO: Fix Google OAuth CORS Error
+# TODO: Make TransactionsPage Responsive
 
-## Tasks
-- [x] Remove incorrect fetch request in GoogleCallbackPage.jsx that causes CORS error
-- [x] Ensure GoogleCallbackPage only handles query parameters from backend redirect
-- [x] Update SignupPage.jsx to use correct frontend callback URL (localhost:5173)
-- [x] Update GoogleAuthController to dynamically use frontend redirect URI from state
-- [x] Add email verification check to login method to prevent unverified users from logging in
-- [ ] Test the OAuth flow after changes
-- [ ] Verify no breaking changes to existing functionality
+## Pending Tasks
+- [ ] Update header layout for mobile stacking (flex-col md:flex-row)
+- [ ] Adjust filters section for better mobile responsiveness
+- [ ] Make table fully responsive with proper scrolling (add min-w-full)
+- [ ] Update pagination to stack on mobile (flex-col sm:flex-row)
+- [ ] Adjust button sizes and padding for mobile
+- [ ] Test responsiveness after changes
+- [ ] Run the app and check on different screen sizes
+- [ ] Confirm matches DashboardPage responsiveness

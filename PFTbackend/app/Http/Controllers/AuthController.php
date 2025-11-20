@@ -119,31 +119,43 @@ class AuthController extends Controller
         $validated = $request->validated();
         $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            // Check if user exists but was created via Google OAuth
-            if ($user && $user->hasVerifiedEmail()) {
-                throw ValidationException::withMessages([
-                    'email' => ['This account was created using Google OAuth. Please use the "Continue with Google" button to sign in.'],
-                ]);
-            }
-
-            throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
-            ]);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'email' => ['No account found with this email address.']
+                ]
+            ], 422);
         }
 
         // Check if user was created via Google OAuth (has verified email but no password set)
         if ($user->hasVerifiedEmail() && !$user->password) {
-            throw ValidationException::withMessages([
-                'email' => ['This account was created using Google OAuth. Please use the "Continue with Google" button to sign in.'],
-            ]);
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'email' => ['This account was created using Google OAuth. Please use the "Continue with Google" button to sign in.']
+                ]
+            ], 422);
+        }
+
+        // Check password for regular users
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'password' => ['The password is incorrect.']
+                ]
+            ], 422);
         }
 
         // Check if email is verified for regular signup users
         if (!$user->hasVerifiedEmail()) {
-            throw ValidationException::withMessages([
-                'email' => ['Please verify your email address before logging in. Check your email for the verification link.'],
-            ]);
+            return response()->json([
+                'success' => false,
+                'errors' => [
+                    'email' => ['Please verify your email address before logging in. Check your email for the verification link.']
+                ]
+            ], 422);
         }
 
         // If "remember me" is checked, create a longer-lived token
