@@ -10,7 +10,12 @@ import {
   TrendingUp,
   TrendingDown,
   Plus,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
+
+import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
 
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
@@ -18,74 +23,76 @@ import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import TransactionModal from "../../components/TransactionModal.jsx";
 import { logoutUser } from "../../api/auth.js";
-import { useUser } from "../../hooks/useAuth.js";
-import { useTransactions } from "../../hooks/useTransactions.js";
-import { useCategories } from "../../hooks/useCategories.js";
+import { useExampleTransactionsApi } from "../../hooks/useExampleTransactionsApi.js";
 import Swal from "sweetalert2";
+import { useLocation } from "react-router-dom";
+import { useDataContext } from "../../components/DataLoader";
 
 export default function TransactionsPage() {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sortConfig, setSortConfig] = useState({
-    key: "date",
-    direction: "desc",
-  });
-  const [filterType, setFilterType] = useState("all"); // 'all', 'income', 'expense'
-  const [searchTerm, setSearchTerm] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
-  const [datePreset, setDatePreset] = useState("all"); // 'all', 'this_month', 'last_month', 'custom'
 
-  const { data: user, isLoading: loading, error } = useUser();
+  const { user, categoriesData } = useDataContext();
+
   const {
-    data: transactionsData,
-    isLoading: loadingTransactions,
-    error: transactionsError,
-  } = useTransactions({
-    type: filterType !== "all" ? filterType : undefined, // FIXED: Added 'undefined' after the comma
-    search: searchTerm || undefined,
-    start_date: dateRange.start || undefined,
-    end_date: dateRange.end || undefined,
-    category_id: selectedCategory || undefined,
-    page: currentPage,
-  });
-  const { data: categoriesData, isLoading: loadingCategories } =
-    useCategories();
-  const transactions = transactionsData?.data || [];
-  const totalPages = transactionsData?.last_page || 1;
-  const categories = categoriesData || [];
+    transactions,
+    totalIncome,
+    totalExpenses,
+    pagination,
+    page,
+    setPage,
+    type,
+    setType,
+    search,
+    setSearch,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    categoryId,
+    setCategoryId,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    isLoading,
+    isError,
+  } = useExampleTransactionsApi();
 
-  const getPresetDates = (preset) => {
-    const now = new Date();
-    if (preset === "this_month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = now;
-      return {
-        start: start.toISOString().split("T")[0],
-        end: end.toISOString().split("T")[0],
-      };
-    } else if (preset === "last_month") {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const end = new Date(now.getFullYear(), now.getMonth(), 0);
-      return {
-        start: start.toISOString().split("T")[0],
-        end: end.toISOString().split("T")[0],
-      };
-    } else {
-      return { start: "", end: "" };
-    }
-  };
+  const [modalOpen, setModalOpen] = useState(false);
+  const [datePreset, setDatePreset] = useState("all");
+  const [isExpanded, setIsExpanded] = useState(false);
 
+  // Add useEffect to update startDate and endDate when datePreset changes
   useEffect(() => {
-    if (datePreset !== "custom") {
-      setDateRange(getPresetDates(datePreset));
+    let start = "";
+    let end = "";
+    const today = new Date();
+
+    if (datePreset === "this_month") {
+      start = format(startOfMonth(today), "yyyy-MM-dd");
+      end = format(endOfMonth(today), "yyyy-MM-dd");
+    } else if (datePreset === "last_month") {
+      const lastMonthDate = subMonths(today, 1);
+      start = format(startOfMonth(lastMonthDate), "yyyy-MM-dd");
+      end = format(endOfMonth(lastMonthDate), "yyyy-MM-dd");
+    } else if (datePreset === "all") {
+      start = "";
+      end = "";
     }
+
+    setStartDate(start);
+    setEndDate(end);
+    setPage(1); // Reset page when date changes
   }, [datePreset]);
+
+  const filteredCategories = (categoriesData?.data || []).filter(
+    (cat) => type === "all" || cat.type === type
+  );
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -124,28 +131,20 @@ export default function TransactionsPage() {
     }
   };
 
-  // Sorting function
   const handleSort = (key) => {
     let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
+    if (sortBy === key && sortOrder === "asc") {
       direction = "desc";
     }
-    setSortConfig({ key, direction });
-  };
-
-  // Handle sort change
-  const handleSortChange = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+    setSortBy(key);
+    setSortOrder(direction);
+    setPage(1); // Reset page when sorting changes
   };
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key)
+    if (sortBy !== key)
       return <ArrowUpDown size={16} className="text-gray-400" />;
-    return sortConfig.direction === "asc" ? (
+    return sortOrder === "asc" ? (
       <ArrowUp size={16} className="text-green-600" />
     ) : (
       <ArrowDown size={16} className="text-green-600" />
@@ -164,9 +163,6 @@ export default function TransactionsPage() {
     const absAmount = Math.abs(amount);
     return `$${absAmount.toFixed(2)}`;
   };
-
-  const totalIncome = transactionsData?.totals?.income || 0;
-  const totalExpenses = transactionsData?.totals?.expenses || 0;
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
@@ -222,18 +218,16 @@ export default function TransactionsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <button
-                      onClick={() => setModalOpen(true)}
-                      className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 text-sm sm:text-base cursor-pointer"
-                    >
-                      <Plus
-                        size={16}
-                        className="text-white sm:w-[18px] sm:h-[18px]"
-                      />
-                      <span className="font-medium">Add Transaction</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setModalOpen(true)}
+                    className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 text-sm sm:text-base cursor-pointer"
+                  >
+                    <Plus
+                      size={16}
+                      className="text-white sm:w-[18px] sm:h-[18px]"
+                    />
+                    <span className="font-medium">Add Transaction</span>
+                  </button>
                 </div>
               </div>
             </section>
@@ -307,11 +301,13 @@ export default function TransactionsPage() {
             {/* Filters and Search */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-gray-200/30 to-gray-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100/50 p-6 lg:p-8">
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100/50 p-4 sm:p-6 lg:p-8">
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                    <div className="flex flex-col sm:flex-row gap-4 items-center">
-                      <div className="relative">
+                  {/* Search and Filters Row */}
+                  <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                    {/* Left side filters */}
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto flex-wrap">
+                      <div className="relative w-full sm:w-auto">
                         <Search
                           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                           size={18}
@@ -319,43 +315,55 @@ export default function TransactionsPage() {
                         <input
                           type="text"
                           placeholder="Search transactions..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
+                          value={search}
+                          onChange={(e) => {
+                            setSearch(e.target.value);
+                            setPage(1);
+                          }}
                           className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-64"
                         />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Filter size={18} className="text-gray-600" />
+                      <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <Filter
+                          size={18}
+                          className="text-gray-600 hidden sm:block"
+                        />
                         <select
-                          value={filterType}
-                          onChange={(e) => setFilterType(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={type}
+                          onChange={(e) => {
+                            setType(e.target.value);
+                            setCategoryId("");
+                            setPage(1);
+                          }}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
                         >
                           <option value="all">All Types</option>
                           <option value="income">Income</option>
                           <option value="expense">Expenses</option>
                         </select>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <select
-                          value={selectedCategory}
-                          onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        >
-                          <option value="">All Categories</option>
-                          {categories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Calendar size={18} className="text-gray-600" />
+                      <select
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
+                      >
+                        <option value="">All Categories</option>
+                        {filteredCategories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Date Preset */}
+                      <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <Calendar
+                          size={18}
+                          className="text-gray-600 hidden sm:block"
+                        />
                         <select
                           value={datePreset}
                           onChange={(e) => setDatePreset(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
                         >
                           <option value="all">All Dates</option>
                           <option value="this_month">This Month</option>
@@ -363,39 +371,68 @@ export default function TransactionsPage() {
                           <option value="custom">Custom Range</option>
                         </select>
                       </div>
+                      {/* Pagination Controls */}
+                      <div className="flex items-center space-x-2 w-full sm:w-auto">
+                        <button
+                          onClick={() =>
+                            setPage(Math.max(pagination.currentPage - 1, 1))
+                          }
+                          disabled={pagination.currentPage === 1}
+                          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronLeft size={18} className="text-gray-600" />
+                        </button>
+                        <div className="px-3 py-2 border border-gray-300 rounded-lg bg-white min-w-[60px] text-center">
+                          <span className="text-sm font-medium text-gray-700">
+                            {pagination.currentPage}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setPage(
+                              Math.min(
+                                pagination.currentPage + 1,
+                                pagination.lastPage
+                              )
+                            )
+                          }
+                          disabled={
+                            pagination.currentPage === pagination.lastPage
+                          }
+                          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronRight size={18} className="text-gray-600" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-600">
+                    {/* Transaction count */}
+                    <div className="text-sm text-gray-600 self-start lg:self-center">
                       Showing {transactions.length} transactions
                     </div>
                   </div>
+                  {/* Custom date range */}
                   {datePreset === "custom" && (
-                    <div className="flex gap-4 items-center">
-                      <div className="flex items-center space-x-2">
-                        <label className="text-sm text-gray-600">From:</label>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                        <label className="text-sm text-gray-600 whitespace-nowrap">
+                          From:
+                        </label>
                         <input
                           type="date"
-                          value={dateRange.start}
-                          onChange={(e) =>
-                            setDateRange((prev) => ({
-                              ...prev,
-                              start: e.target.value,
-                            }))
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
                         />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <label className="text-sm text-gray-600">To:</label>
+                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                        <label className="text-sm text-gray-600 whitespace-nowrap">
+                          To:
+                        </label>
                         <input
                           type="date"
-                          value={dateRange.end}
-                          onChange={(e) =>
-                            setDateRange((prev) => ({
-                              ...prev,
-                              end: e.target.value,
-                            }))
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
                         />
                       </div>
                     </div>
@@ -407,26 +444,27 @@ export default function TransactionsPage() {
             {/* Transactions Table */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden p-4 sm:p-6 lg:p-8">
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="min-w-full w-full">
                     <thead className="bg-gray-50/50">
                       <tr>
                         <th
-                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
+                          className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
                           onClick={() => handleSort("date")}
                         >
                           <div className="flex items-center space-x-1">
-                            <Calendar size={16} />
-                            <span>Date</span>
+                            <Calendar size={14} className="sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline">Date</span>
+                            <span className="sm:hidden">Date</span>
                             {getSortIcon("date")}
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           Name
                         </th>
                         <th
-                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
+                          className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors hidden md:table-cell"
                           onClick={() => handleSort("category")}
                         >
                           <div className="flex items-center space-x-1">
@@ -434,44 +472,52 @@ export default function TransactionsPage() {
                             {getSortIcon("category")}
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
                           Description
                         </th>
                         <th
-                          className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
+                          className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
                           onClick={() => handleSort("amount")}
                         >
                           <div className="flex items-center space-x-1">
-                            <DollarSign size={16} />
-                            <span>Amount</span>
+                            <DollarSign size={14} className="sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline">Amount</span>
                             {getSortIcon("amount")}
                           </div>
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden sm:table-cell">
                           Type
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200/50">
-                      {transactions.map((transaction) => (
+                      {(isExpanded
+                        ? transactions
+                        : transactions.slice(0, 15)
+                      ).map((transaction, index) => (
                         <tr
-                          key={transaction.id}
+                          key={transaction.id ?? `txn-${index}`}
                           className="hover:bg-gray-50/50 transition-colors"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                             {formatDate(transaction.date)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {transaction.name || "Unnamed"}
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                            <div className="max-w-[120px] sm:max-w-none truncate">
+                              {transaction.name || "Unnamed"}
+                            </div>
+                            <div className="md:hidden text-xs text-gray-500 mt-1">
+                              {transaction.category_name || "Uncategorized"}
+                            </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 hidden md:table-cell">
                             {transaction.category_name || "Uncategorized"}
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 max-w-xs truncate hidden lg:table-cell">
                             {transaction.description}
                           </td>
                           <td
-                            className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                            className={`px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-semibold ${
                               transaction.type === "income"
                                 ? "text-green-600"
                                 : "text-red-500"
@@ -480,7 +526,7 @@ export default function TransactionsPage() {
                             {transaction.type === "income" ? "+" : "-"}
                             {formatAmount(transaction.amount)}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                                 transaction.type === "income"
@@ -495,70 +541,70 @@ export default function TransactionsPage() {
                           </td>
                         </tr>
                       ))}
+                      {transactions.length > 15 && (
+                        <tr>
+                          <td
+                            colSpan="6"
+                            className="px-3 sm:px-6 py-4 text-center bg-gray-50/50 border-t border-gray-200/50"
+                          >
+                            <button
+                              onClick={() => setIsExpanded(!isExpanded)}
+                              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 mx-auto text-sm"
+                            >
+                              <ChevronDown
+                                size={16}
+                                className={`transform transition-transform duration-300 ${
+                                  isExpanded ? "rotate-180" : ""
+                                }`}
+                              />
+                              <span className="font-medium">
+                                {isExpanded
+                                  ? "Show Less"
+                                  : `Show More (${
+                                      transactions.length - 15
+                                    } remaining)`}
+                              </span>
+                            </button>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
 
-                {transactions.length === 0 && (
-                  <div className="text-center py-12">
+                {transactions.length === 0 && !isLoading && (
+                  <div className="text-center py-12 px-4">
                     <div className="flex flex-col items-center space-y-2">
                       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                         <DollarSign className="text-gray-400" size={24} />
                       </div>
-                      <p className="text-gray-500">No transactions found</p>
+                      <p className="text-gray-500 text-sm sm:text-base">
+                        No transactions found
+                      </p>
                     </div>
                   </div>
                 )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-200/50">
-                    <div className="flex flex-col sm:flex-row items-center justify-between">
-                      <div className="text-sm text-gray-700">
-                        Page {currentPage} of {totalPages}
+                {isLoading && (
+                  <div className="text-center py-12 px-4">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                      <p className="text-green-600 text-sm sm:text-base">
+                        Loading transactions...
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {isError && (
+                  <div className="text-center py-12 px-4">
+                    <div className="flex flex-col items-center space-y-2">
+                      <div className="w-12 h-12 flex items-center justify-center text-red-600 text-3xl">
+                        ⚠️
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() =>
-                            setCurrentPage((prev) => Math.max(prev - 1, 1))
-                          }
-                          disabled={currentPage === 1}
-                          className="px-3 py-1 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Previous
-                        </button>
-                        {Array.from(
-                          { length: Math.min(5, totalPages) },
-                          (_, i) => {
-                            const page = Math.max(1, currentPage - 2) + i;
-                            if (page > totalPages) return null;
-                            return (
-                              <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`px-3 py-1 text-sm font-medium rounded-md ${
-                                  page === currentPage
-                                    ? "text-white bg-green-600 border border-green-600"
-                                    : "text-gray-500 bg-white border border-gray-300 hover:bg-gray-50"
-                                }`}
-                              >
-                                {page}
-                              </button>
-                            );
-                          }
-                        )}
-                        <button
-                          onClick={() =>
-                            setCurrentPage((prev) =>
-                              Math.min(prev + 1, totalPages)
-                            )
-                          }
-                          disabled={currentPage === totalPages}
-                          className="px-3 py-1 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Next
-                        </button>
-                      </div>
+                      <p className="text-red-600 text-sm sm:text-base">
+                        Error loading transactions. Please try again later.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -574,6 +620,10 @@ export default function TransactionsPage() {
       <TransactionModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        onTransactionAdded={() => {
+          // reset to first page to see new transaction
+          setPage(1);
+        }}
       />
     </div>
   );

@@ -4,8 +4,8 @@ import { useCategories } from "./useCategories";
 export const useModalFormHooks = (type) => {
   const { data: categoriesData, isLoading } = useCategories();
 
-  const expenseCategories = categoriesData?.filter(cat => cat.type === 'expense') || [];
-  const incomeCategories = categoriesData?.filter(cat => cat.type === 'income') || [];
+  const expenseCategories = categoriesData?.data?.filter(cat => cat.type === 'expense') || [];
+  const incomeCategories = categoriesData?.data?.filter(cat => cat.type === 'income') || [];
 
   const configs = {
     income: {

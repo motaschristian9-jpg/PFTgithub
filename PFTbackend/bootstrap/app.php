@@ -28,7 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->api(prepend: [
-            \App\Http\Middleware\CustomCors::class,
+            \Illuminate\Http\Middleware\HandleCors::class,
         ]);
 
         // Force HTTPS redirection in production

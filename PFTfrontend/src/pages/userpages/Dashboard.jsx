@@ -1,25 +1,56 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import { logoutUser } from "../../api/auth.js";
-import { useAuth } from "../../hooks/useAuth";
-import { fetchTransactions } from "../../api/transactions";
-import LoadingScreen from "../../components/LoadingScreen";
 import Swal from "sweetalert2";
+import { useLocation } from "react-router-dom";
+import { useDataContext } from "../../components/DataLoader";
+
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as ReTooltip,
+  Legend as ReLegend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from "recharts";
+
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#A569BD",
+  "#CD6155",
+  "#5DADE2",
+  "#58D68D",
+  "#F5B041",
+  "#DC7633",
+];
 
 const Dashboard = () => {
-  const { user, isLoading: userLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
+  const location = useLocation();
+  // Consume data from DataLoader context
+  const { user, transactionsData, categoriesData } = useDataContext();
+
+  const [sidebarOpen, setSidebarOpen] = React.useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [error, setError] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+  // Use the full transactionsData object (including totals, links, meta)
+  const transactions = transactionsData || [];
+
+  // Handle sidebar toggle
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
       const newValue = !prev;
@@ -30,16 +61,17 @@ const Dashboard = () => {
 
   const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
 
+  // Logout handler
   const handleLogout = async () => {
     const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: 'You will be logged out of your account',
-      icon: 'question',
+      title: "Are you sure?",
+      text: "You will be logged out of your account",
+      icon: "question",
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, logout',
-      cancelButtonText: 'Cancel'
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, logout",
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
@@ -57,20 +89,30 @@ const Dashboard = () => {
     }
   };
 
-  if (userLoading) {
-    return <LoadingScreen />;
-  }
+  // Removed local loading and error handling as handled globally by DataLoader
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Dashboard</h2>
-          <p className="text-gray-600">{error}</p>
-        </div>
-      </div>
-    );
-  }
+  // Aggregate total Income and Expenses for BarChart
+  const totalIncome = transactions?.totals?.income || 0;
+  const totalExpenses = transactions?.totals?.expenses || 0;
+
+  // Aggregate expenses by category for PieChart
+  // Build a map of expense totals by category_id
+  const expenseByCategoryMap = {};
+  (transactions?.data || []).forEach((t) => {
+    if (t.type === "expense" && t.category_id) {
+      expenseByCategoryMap[t.category_id] =
+        (expenseByCategoryMap[t.category_id] || 0) + parseFloat(t.amount);
+    }
+  });
+
+  // Build PieChart data showing all expense categories with amounts or zero
+  const pieChartData =
+    categoriesData?.data
+      ?.filter((category) => category.type === "expense")
+      .map((category) => ({
+        name: category.name,
+        value: expenseByCategoryMap[category.id] || 0,
+      })) || [];
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
@@ -88,7 +130,12 @@ const Dashboard = () => {
         />
       )}
 
-      <Sidebar sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} mobileMenuOpen={mobileMenuOpen} toggleMobileMenu={toggleMobileMenu} />
+      <Sidebar
+        sidebarOpen={sidebarOpen}
+        toggleSidebar={toggleSidebar}
+        mobileMenuOpen={mobileMenuOpen}
+        toggleMobileMenu={toggleMobileMenu}
+      />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col relative z-10">
@@ -116,14 +163,15 @@ const Dashboard = () => {
                       Dashboard
                     </h1>
                     <p className="text-sm sm:text-base text-gray-600 mt-1">
-                      Welcome back, {user?.name || "User"}! Here's your financial overview.
+                      Welcome back, {user?.name || "User"}! Here's your
+                      financial overview.
                     </p>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* Transactions Summary */}
+            {/* Transactions Summary cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               <div className="relative group">
                 <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
@@ -137,7 +185,7 @@ const Dashboard = () => {
                         Total Income
                       </h3>
                       <p className="text-2xl font-bold text-green-600">
-                        ${(transactions?.data || []).filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0).toFixed(2)}
+                        ${totalIncome.toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -156,7 +204,7 @@ const Dashboard = () => {
                         Total Expenses
                       </h3>
                       <p className="text-2xl font-bold text-red-500">
-                        ${(transactions?.data || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0).toFixed(2)}
+                        ${totalExpenses.toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -174,8 +222,14 @@ const Dashboard = () => {
                       <h3 className="font-semibold text-gray-700 text-sm">
                         Net Balance
                       </h3>
-                      <p className={`text-2xl font-bold ${(transactions?.data || []).filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0) - (transactions?.data || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        ${((transactions?.data || []).filter(t => t.type === 'income').reduce((sum, t) => sum + parseFloat(t.amount), 0) - (transactions?.data || []).filter(t => t.type === 'expense').reduce((sum, t) => sum + parseFloat(t.amount), 0)).toFixed(2)}
+                      <p
+                        className={`text-2xl font-bold ${
+                          totalIncome - totalExpenses >= 0
+                            ? "text-green-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        ${(totalIncome - totalExpenses).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -183,35 +237,105 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Recent Transactions */}
-            <section className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Recent Transactions</h3>
-                {(transactions?.data || []).length > 0 ? (
-                  <div className="space-y-2">
-                    {(transactions?.data || []).slice(0, 5).map((transaction) => (
-                      <div key={transaction.id} className="flex justify-between items-center p-4 bg-gray-50/50 rounded-lg hover:bg-gray-100/50 transition-colors">
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.description}</p>
-                          <p className="text-sm text-gray-500">{new Date(transaction.date).toLocaleDateString()}</p>
-                        </div>
-                        <p className={`font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                          {transaction.type === 'income' ? '+' : '-'}${parseFloat(transaction.amount).toFixed(2)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+            {/* Charts section */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* Expense Breakdown PieChart */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-4 sm:p-6 lg:p-8">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                  Expense Breakdown
+                </h3>
+                {pieChartData.length === 0 ? (
+                  <p className="text-gray-500">No expense data available.</p>
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                        <DollarSign className="text-gray-400" size={24} />
-                      </div>
-                      <p className="text-gray-500">No transactions found</p>
-                    </div>
-                  </div>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={pieChartData}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        fill="#8884d8"
+                        label
+                      >
+                        {pieChartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <ReTooltip />
+                      <ReLegend />
+                    </PieChart>
+                  </ResponsiveContainer>
                 )}
+              </div>
+
+              {/* Income vs Expense BarChart */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-4 sm:p-6 lg:p-8">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                  Income vs Expenses
+                </h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={[
+                      { name: "Income", amount: totalIncome, color: "#82ca9d" },
+                      {
+                        name: "Expenses",
+                        amount: totalExpenses,
+                        color: "#ff0000",
+                      },
+                    ]}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <ReTooltip />
+                    <ReLegend />
+                    <Bar dataKey="amount">
+                      {[
+                        {
+                          name: "Income",
+                          amount: totalIncome,
+                          color: "#82ca9d",
+                        },
+                        {
+                          name: "Expenses",
+                          amount: totalExpenses,
+                          color: "#ff0000",
+                        },
+                      ].map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+
+            {/* Savings and Budgets Placeholder Section */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              {/* Savings List Placeholder */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-4 sm:p-6 lg:p-8 min-h-[200px]">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                  Savings
+                </h3>
+                <p className="text-gray-500 italic">
+                  No savings data available.
+                </p>
+              </div>
+
+              {/* Budgets List Placeholder */}
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-4 sm:p-6 lg:p-8 min-h-[200px]">
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                  Budgets & Progress
+                </h3>
+                <p className="text-gray-500 italic">
+                  No budgets data available.
+                </p>
               </div>
             </section>
           </div>

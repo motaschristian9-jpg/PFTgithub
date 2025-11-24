@@ -1,11 +1,12 @@
 import { Navigate, Outlet } from "react-router-dom";
-
-const isAuthenticated = () => {
-  const token =
-    localStorage.getItem("token") || sessionStorage.getItem("token");
-  return !!token;
-};
+import { useAuth } from "../hooks/useAuth.js";
 
 export default function PublicRoutes() {
-  return !isAuthenticated() ? <Outlet /> : <Navigate to="/dashboard" replace />;
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null; // or a loading spinner component
+  }
+
+  return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" replace />;
 }

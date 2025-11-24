@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Swal from "sweetalert2";
 import { Loader2 } from "lucide-react";
+import { useUserContext } from "../../context/UserContext";
 
 export default function GoogleCallbackPage() {
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { setUser, setIsAuthenticated } = useUserContext();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -22,19 +24,22 @@ export default function GoogleCallbackPage() {
         if (success === 'true') {
           // Handle successful authentication from backend redirect
           if (action === 'login') {
-            // Login successful - store token and redirect to dashboard
+            // Save token and user info to localStorage
             localStorage.setItem('token', decodeURIComponent(token));
             localStorage.setItem('user', decodeURIComponent(user));
 
             Swal.fire({
               title: "Login Successful!",
-              text: decodeURIComponent(message),
+              text: "Welcome back!",
               icon: "success",
-              timer: 1500,
-              showConfirmButton: false,
+              confirmButtonText: "OK",
+              allowOutsideClick: false,
+            }).then(() => {
+              // Update context state to trigger re-render & navigate
+              setUser(JSON.parse(decodeURIComponent(user)));
+              setIsAuthenticated(true);
+              navigate("/dashboard");
             });
-
-            setTimeout(() => navigate('/dashboard'), 1500);
           } else if (action === 'created_no_login') {
             // Account created successfully, redirect to login
             Swal.fire({
@@ -122,48 +127,9 @@ export default function GoogleCallbackPage() {
     };
 
     handleCallback();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, setUser, setIsAuthenticated]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100 flex items-center justify-center">
-      <div className="text-center space-y-6">
-        <div className="relative">
-          <div className="absolute -inset-3 bg-gradient-to-r from-green-200/50 to-green-300/30 rounded-2xl blur opacity-60"></div>
-          <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-green-100">
-            <div className="space-y-4">
-              {loading ? (
-                <>
-                  <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                    <Loader2 className="animate-spin h-8 w-8 text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-gray-800">
-                      Completing Authentication
-                    </h2>
-                    <p className="text-gray-600 text-sm">
-                      Please wait while we process your Google account...
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                    <span className="text-2xl">✓</span>
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-bold text-gray-800">
-                      Redirecting...
-                    </h2>
-                    <p className="text-gray-600 text-sm">
-                      Taking you to the next step...
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <></>
   );
 }

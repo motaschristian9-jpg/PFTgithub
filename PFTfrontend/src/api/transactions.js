@@ -8,7 +8,6 @@ export const createTransaction = async (transactionData) => {
 
 export const fetchTransactions = async (params = {}) => {
   const response = await api.get("/transactions", { params });
-  console.log(response.data);
   return response.data;
 };
 
@@ -46,6 +45,8 @@ export const fetchBudgets = async () => {
 
 // Categories API
 export const fetchCategories = async (params = {}) => {
-  const response = await api.get("/categories", { params });
+  // Remove internal react-query keys that cause malformed url params
+  const { queryKey, signal, ...cleanParams } = params;
+  const response = await api.get("/categories", { params: cleanParams });
   return response.data;
 };

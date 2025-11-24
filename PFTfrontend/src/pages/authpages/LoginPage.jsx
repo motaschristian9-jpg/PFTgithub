@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { loginUser } from "../../api/auth";
 import { setToken } from "../../api/axios"; // Added import for setToken helper
+import { useUserContext } from "../../context/UserContext";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +40,19 @@ export default function LoginPage() {
     }
   }, [searchParams]);
 
-  const handleLogin = async (formData) => {
+
+  const userContext = useUserContext();
+
+  // New effect to watch user changes and redirect when logged in
+  useEffect(() => {
+    if (!userContext.isLoading && userContext.user) {
+      navigate("/dashboard");
+    }
+  }, [userContext.user, userContext.isLoading, navigate]);
+
+  const { setUser } = userContext;
+
+const handleLogin = async (formData) => {
     setLoading(true);
     try {
       const result = await loginUser(formData);
@@ -47,13 +60,23 @@ export default function LoginPage() {
       // Use setToken helper for consistent token storage (handles remember logic)
       setToken(result.data.token, formData.remember);
 
-      // Store user data if needed
-      localStorage.setItem("user", JSON.stringify(result.data.user));
+      // Store user data in UserContext state (this also syncs to localStorage)
+      setUser(result.data.user);
 
-      Swal.fire("Success!", "Login successful!", "success");
+      // Added back Swal alert for login success
+      await Swal.fire({
+        title: "Login Successful!",
+        text: "Welcome back!",
+        icon: "success",
+        confirmButtonText: "OK",
+        allowOutsideClick: false,
+      });
 
-      // Use navigate for soft redirect (stays in React Router, avoids reload issues)
+      // Redirect only after user clicks OK
       navigate("/dashboard");
+
+      // Removed direct navigate to allow useEffect handle navigation
+      // navigate("/dashboard");
     } catch (err) {
       console.log(err);
       if (err.response && err.response.data) {

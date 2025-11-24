@@ -4,59 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use Illuminate\Http\Request;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use OpenApi\Annotations as OA;
 
-/**
- * @OA\Tag(
- *     name="Categories",
- *     description="API Endpoints for managing categories"
- * )
- */
 class CategoryController extends Controller
 {
-    use AuthorizesRequests;
+    /**
+     * Display a listing of the categories.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function index()
+    {
+        $categories = Category::all();
+        return response()->json(['data' => $categories]);
+    }
 
     /**
-     * @OA\Get(
-     *     path="/api/categories",
-     *     summary="Get list of categories",
-     *     tags={"Categories"},
-     *     security={{"sanctum":{}}},
-     *     @OA\Parameter(
-     *         name="type",
-     *         in="query",
-     *         description="Filter by category type",
-     *         required=false,
-     *         @OA\Schema(type="string", enum={"income", "expense"})
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="List of categories",
-     *         @OA\JsonContent(
-     *             type="array",
-     *             @OA\Items(
-     *                 type="object",
-     *                 @OA\Property(property="id", type="integer", example=1),
-     *                 @OA\Property(property="name", type="string", example="Food"),
-     *                 @OA\Property(property="type", type="string", example="expense"),
-     *                 @OA\Property(property="created_at", type="string", format="date-time"),
-     *                 @OA\Property(property="updated_at", type="string", format="date-time")
-     *             )
-     *         )
-     *     )
-     * )
+     * Display the specified category.
+     *
+     * @param  \App\Models\Category  $category
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request)
+    public function show(Category $category)
     {
-        $query = Category::query();
-
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
-        }
-
-        $categories = $query->orderBy('name')->get();
-
-        return response()->json($categories);
+        return response()->json(['data' => $category]);
     }
 }

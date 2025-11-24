@@ -1,5 +1,6 @@
-import { Routes, Route } from "react-router-dom";  // Removed BrowserRouter import
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import React from "react";
+import { Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import LandingPage from "./pages/LandingPage.jsx";
 import LoginPage from "./pages/authpages/LoginPage.jsx";
 import SignupPage from "./pages/authpages/SignupPage.jsx";
@@ -11,28 +12,54 @@ import ForgotPasswordPage from "./pages/authpages/ForgotPasswordPage.jsx";
 import GoogleCallbackPage from "./pages/authpages/GoogleCallbackPage.jsx";
 import PrivateRoutes from "./components/PrivateRoutes.jsx";
 import PublicRoutes from "./components/PublicRoutes.jsx";
+import { UserProvider } from "./context/UserContext.jsx";
+import DataLoader from "./components/DataLoader.jsx";
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Routes>  {/* No <Router> wrapper here */}
-        <Route path="/" element={<PublicRoutes />}>
-          <Route index element={<LandingPage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="signup" element={<SignupPage />} />
-          <Route path="email-verification" element={<EmailVerificationPage />} />
-          <Route path="forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="reset-password" element={<ResetPasswordPage />} />
-          <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
-        </Route>
+      <UserProvider>
+        <Routes>
+          {/* Public routes under "/" */}
+          <Route path="/" element={<PublicRoutes />}>
+            <Route index element={<LandingPage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="signup" element={<SignupPage />} />
+            <Route
+              path="email-verification"
+              element={<EmailVerificationPage />}
+            />
+            <Route path="forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="reset-password" element={<ResetPasswordPage />} />
+            <Route
+              path="auth/google/callback"
+              element={<GoogleCallbackPage />}
+            />
+          </Route>
 
-        <Route path="/" element={<PrivateRoutes />}>
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="transaction" element={<TransactionsPage />} />
-        </Route>
-      </Routes>
+          {/* Private routes nested inside PrivateRoutes */}
+          <Route element={<PrivateRoutes />}>
+            <Route
+              path="dashboard"
+              element={
+                <DataLoader>
+                  <Dashboard />
+                </DataLoader>
+              }
+            />
+            <Route
+              path="transaction"
+              element={
+                <DataLoader>
+                  <TransactionsPage />
+                </DataLoader>
+              }
+            />
+          </Route>
+        </Routes>
+      </UserProvider>
     </QueryClientProvider>
   );
 }

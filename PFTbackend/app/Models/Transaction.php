@@ -43,7 +43,12 @@ class Transaction extends Model
         'date' => 'date',
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
 
+        static::addGlobalScope(new UserScope());
+    }
 
     /**
      * Get the user that owns the transaction.

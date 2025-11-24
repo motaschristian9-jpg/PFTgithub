@@ -4,7 +4,8 @@ import { useForm } from "react-hook-form";
 import { X, Loader2, Calendar, FileText, DollarSign, CreditCard } from "lucide-react";
 import Swal from "sweetalert2";
 import { useModalFormHooks } from "../hooks/useModalFormHooks.js";
-import { createTransaction, fetchSavings, fetchBudgets, updateSaving, updateTransaction } from "../api/transactions.js";
+import { fetchSavings, fetchBudgets, updateSaving, updateTransaction } from "../api/transactions.js";
+import { useCreateTransaction } from "../hooks/useTransactions.js";
 
 export default function TransactionModal({
   isOpen,
@@ -25,6 +26,8 @@ export default function TransactionModal({
   const [budgets, setBudgets] = useState([]);
   const [loadingSavings, setLoadingSavings] = useState(false);
   const [loadingBudgets, setLoadingBudgets] = useState(false);
+
+  const addTransactionMutation = useCreateTransaction();
 
   const { register, handleSubmit, reset, watch, formState: { errors, isValid } } = useForm({
     key: modalKey,
@@ -148,7 +151,7 @@ export default function TransactionModal({
         response = await updateTransaction(transactionToEdit.id, transactionData);
       } else {
         // Create the transaction
-        response = await createTransaction(transactionData);
+        response = await addTransactionMutation.mutateAsync(transactionData);
 
         // Handle savings for income
         if (type === "income" && saveToSavings && selectedSavingsGoal) {
