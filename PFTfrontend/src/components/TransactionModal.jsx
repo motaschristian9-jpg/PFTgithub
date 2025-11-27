@@ -1,11 +1,29 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useForm } from "react-hook-form";
-import { X, Loader2, Calendar, FileText, DollarSign, CreditCard } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import {
+  X,
+  Loader2,
+  Calendar,
+  FileText,
+  DollarSign,
+  CreditCard,
+  PieChart,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import Swal from "sweetalert2";
 import { useModalFormHooks } from "../hooks/useModalFormHooks.js";
-import { fetchSavings, fetchBudgets, updateSaving, updateTransaction } from "../api/transactions.js";
-import { useCreateTransaction } from "../hooks/useTransactions.js";
+import { useDataContext } from "./DataLoader.jsx";
+import {
+  fetchSavings,
+  updateSaving,
+  updateTransaction,
+} from "../api/transactions.js";
+import {
+  useCreateTransaction,
+  useUpdateTransaction,
+} from "../hooks/useTransactions.js";
 
 export default function TransactionModal({
   isOpen,
@@ -14,8 +32,10 @@ export default function TransactionModal({
   editMode = false,
   transactionToEdit = null,
 }) {
+  const { budgetsData, transactionsData } = useDataContext();
   const [type, setType] = useState("income");
   const [loading, setLoading] = useState(false);
+  const [loadingSavings, setLoadingSavings] = useState(false);
   const [modalKey, setModalKey] = useState(0);
   const [saveToSavings, setSaveToSavings] = useState(false);
   const [selectedSavingsGoal, setSelectedSavingsGoal] = useState("");
@@ -23,30 +43,79 @@ export default function TransactionModal({
   const [savingsPercentage, setSavingsPercentage] = useState("");
   const [linkedBudget, setLinkedBudget] = useState(null);
   const [savingsGoals, setSavingsGoals] = useState([]);
-  const [budgets, setBudgets] = useState([]);
-  const [loadingSavings, setLoadingSavings] = useState(false);
-  const [loadingBudgets, setLoadingBudgets] = useState(false);
 
   const addTransactionMutation = useCreateTransaction();
+  const updateTransactionMutation = useUpdateTransaction();
 
-  const { register, handleSubmit, reset, watch, formState: { errors, isValid } } = useForm({
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    control,
+    formState: { errors, isValid },
+  } = useForm({
     key: modalKey,
     defaultValues: {
       name: "",
       category: "",
       amount: "",
-      transaction_date: new Date().toISOString().split('T')[0],
+      transaction_date: new Date().toISOString().split("T")[0],
       description: "",
     },
-    mode: "onChange"
+    mode: "onChange",
   });
 
   const { config, IconComponent, expenseCategories, incomeCategories } =
     useModalFormHooks(type);
 
+  // --- UPDATED LINK BUDGET FUNCTION ---
+  const linkBudget = (categoryId) => {
+    if (type === "expense") {
+      const selectedCategory = expenseCategories.find(
+        (cat) => cat.id == categoryId
+      );
+      const categoryName = selectedCategory ? selectedCategory.name : "";
+
+      if (categoryId || categoryName) {
+        const budget = budgetsData.data?.find((b) => {
+          const matchesCategoryId = b.category_id == categoryId;
+          const matchesName =
+            b.name &&
+            categoryName &&
+            b.name.toLowerCase().trim() === categoryName.toLowerCase().trim();
+          const isActive = b.status ? b.status === "active" : true;
+          return (matchesCategoryId || matchesName) && isActive;
+        });
+
+        if (budget) {
+          // Calculate spent amount from all transactions for this category (expense type)
+          const spent = transactionsData.data
+            ? transactionsData.data
+                .filter(transaction => transaction.category_id == categoryId && transaction.type === 'expense')
+                .reduce((total, transaction) => total + parseFloat(transaction.amount), 0)
+            : 0;
+          const remaining = parseFloat(budget.amount) - spent;
+
+          setLinkedBudget({
+            ...budget,
+            spent: spent,
+            remaining: remaining,
+          });
+        } else {
+          setLinkedBudget(null);
+        }
+      } else {
+        setLinkedBudget(null);
+      }
+    } else {
+      setLinkedBudget(null);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
-      setModalKey(prev => prev + 1);
+      setModalKey((prev) => prev + 1);
       setSaveToSavings(false);
       setSelectedSavingsGoal("");
       setSavingsAmount("");
@@ -54,7 +123,6 @@ export default function TransactionModal({
       setLinkedBudget(null);
       document.body.style.overflow = "hidden";
 
-      // If editing, populate form with transaction data
       if (editMode && transactionToEdit) {
         setType(transactionToEdit.type);
         reset({
@@ -64,34 +132,29 @@ export default function TransactionModal({
           transaction_date: transactionToEdit.date,
           description: transactionToEdit.description || "",
         });
+        if (transactionToEdit.category_id) {
+          linkBudget(transactionToEdit.category_id.toString());
+        }
       } else {
-        // Reset for new transaction
         setType("income");
         reset({
           name: "",
           category: "",
           amount: "",
-          transaction_date: new Date().toISOString().split('T')[0],
+          transaction_date: new Date().toISOString().split("T")[0],
           description: "",
         });
       }
 
-      // Fetch savings goals and budgets
       const loadData = async () => {
         setLoadingSavings(true);
-        setLoadingBudgets(true);
         try {
-          const [savingsResponse, budgetsResponse] = await Promise.all([
-            fetchSavings(),
-            fetchBudgets()
-          ]);
+          const savingsResponse = await fetchSavings();
           setSavingsGoals(savingsResponse.data || []);
-          setBudgets(budgetsResponse.data || []);
         } catch (error) {
-          console.error("Error fetching data:", error);
+          console.error("Error fetching savings:", error);
         } finally {
           setLoadingSavings(false);
-          setLoadingBudgets(false);
         }
       };
       loadData();
@@ -117,25 +180,11 @@ export default function TransactionModal({
     };
   }, [isOpen, onClose]);
 
-  useEffect(() => {
-    if (type === "expense") {
-      const categoryId = watch("category");
-      const categoryName = ((type === "income" ? incomeCategories : expenseCategories).find(cat => cat.id == categoryId) || {}).name;
-      const budget = budgets.find(b => b.name === categoryName);
-      if (budget) {
-        setLinkedBudget(budget);
-      } else {
-        setLinkedBudget(null);
-      }
-    } else {
-      setLinkedBudget(null);
-    }
-  }, [type, watch("category"), budgets, expenseCategories, incomeCategories]);
-
   const onSubmit = async (data) => {
     setLoading(true);
+    let response;
+
     try {
-      // Prepare transaction data
       const transactionData = {
         name: data.name,
         type,
@@ -145,42 +194,44 @@ export default function TransactionModal({
         category_id: data.category ? parseInt(data.category) : null,
       };
 
-      let response;
       if (editMode && transactionToEdit) {
-        // Update the transaction
-        response = await updateTransaction(transactionToEdit.id, transactionData);
+        response = await updateTransactionMutation.mutateAsync({
+          id: transactionToEdit.id,
+          data: transactionData,
+        });
       } else {
-        // Create the transaction
         response = await addTransactionMutation.mutateAsync(transactionData);
 
-        // Handle savings for income
         if (type === "income" && saveToSavings && selectedSavingsGoal) {
-          const savingsGoal = savingsGoals.find(goal => goal.name === selectedSavingsGoal);
+          const savingsGoal = savingsGoals.find(
+            (goal) => goal.name === selectedSavingsGoal
+          );
           if (savingsGoal) {
-            const savingsAmountValue = savingsAmount ? parseFloat(savingsAmount) : (parseFloat(data.amount) * (parseFloat(savingsPercentage) / 100));
+            const savingsAmountValue = savingsAmount
+              ? parseFloat(savingsAmount)
+              : parseFloat(data.amount) * (parseFloat(savingsPercentage) / 100);
             await updateSaving(savingsGoal.id, {
-              current_amount: savingsGoal.current_amount + savingsAmountValue
+              current_amount: savingsGoal.current_amount + savingsAmountValue,
             });
           }
         }
       }
 
-      // Show success alert
       await Swal.fire({
-        icon: 'success',
-        title: editMode ? 'Transaction Updated!' : 'Transaction Added!',
-        text: editMode ? 'Your transaction has been successfully updated.' : 'Your transaction has been successfully recorded.',
+        icon: "success",
+        title: editMode ? "Transaction Updated!" : "Transaction Added!",
+        text: editMode
+          ? "Your transaction has been successfully updated."
+          : "Your transaction has been successfully recorded.",
         timer: 2000,
         timerProgressBar: true,
-        showConfirmButton: false
+        showConfirmButton: false,
       });
 
-      // Call the callback to notify parent component
       if (onTransactionAdded) {
         onTransactionAdded(response);
       }
 
-      // Reset form and close modal
       reset();
       onClose();
     } catch (error) {
@@ -188,6 +239,13 @@ export default function TransactionModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper to determine progress bar color
+  const getProgressColor = (percent) => {
+    if (percent >= 100) return "bg-red-500";
+    if (percent >= 75) return "bg-orange-500";
+    return "bg-emerald-500";
   };
 
   if (!isOpen) return null;
@@ -225,7 +283,9 @@ export default function TransactionModal({
                     {editMode ? "Edit Transaction" : config.title}
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
-                    {editMode ? "Update your transaction details" : `Record your ${type} transaction`}
+                    {editMode
+                      ? "Update your transaction details"
+                      : `Record your ${type} transaction`}
                   </p>
                 </div>
               </div>
@@ -239,7 +299,10 @@ export default function TransactionModal({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto"
+          >
             <div className="space-y-4">
               {/* Transaction Type Selection */}
               <div className="space-y-2">
@@ -300,40 +363,140 @@ export default function TransactionModal({
                   Category <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <select
-                    {...register("category", { required: "Category is required" })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
-                  >
-                    <option value="" disabled>
-                      Select category
-                    </option>
-                    {(type === "income"
-                      ? incomeCategories
-                      : expenseCategories
-                    )
-                      .sort((a, b) => {
-                        if (a.name === "Other") return 1;
-                        if (b.name === "Other") return -1;
-                        return a.name.localeCompare(b.name);
-                      })
-                      .map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.name}
+                  <Controller
+                    name="category"
+                    control={control}
+                    rules={{ required: "Category is required" }}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          linkBudget(e.target.value);
+                        }}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
+                      >
+                        <option value="" disabled>
+                          Select category
                         </option>
-                      ))}
-                  </select>
+                        {(type === "income"
+                          ? incomeCategories
+                          : expenseCategories
+                        )
+                          .sort((a, b) => {
+                            if (a.name === "Other") return 1;
+                            if (b.name === "Other") return -1;
+                            return a.name.localeCompare(b.name);
+                          })
+                          .map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+                  />
                 </div>
                 {errors.category && (
-                  <p className="text-red-500 text-sm">{errors.category.message}</p>
+                  <p className="text-red-500 text-sm">
+                    {errors.category.message}
+                  </p>
                 )}
               </div>
 
-              {/* Linked Budget for Expense */}
+              {/* === REDESIGNED LINKED BUDGET SECTION === */}
               {type === "expense" && linkedBudget && (
-                <div className="space-y-2">
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">This expense will be linked to your {linkedBudget.category} budget.</p>
-                    <p className="text-sm text-blue-600">Budget: ${linkedBudget.amount} | Spent: ${linkedBudget.spent}</p>
+                <div className="mt-2 p-4 bg-white/60 border border-gray-200 rounded-xl shadow-sm backdrop-blur-sm">
+                  <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <PieChart size={16} className="text-gray-500" />
+                      <span className="text-sm font-semibold text-gray-700">
+                        {linkedBudget.name} Budget
+                      </span>
+                    </div>
+                    {linkedBudget.remaining < 0 ? (
+                      <div className="flex items-center space-x-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                        <AlertCircle size={12} />
+                        <span className="text-xs font-medium">Over Budget</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 size={12} />
+                        <span className="text-xs font-medium">On Track</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="flex flex-col p-2 bg-gray-50 rounded-lg border border-gray-100">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+                        Allocated
+                      </span>
+                      <span className="font-semibold text-gray-700">
+                        ${parseFloat(linkedBudget.amount).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex flex-col p-2 bg-gray-50 rounded-lg border border-gray-100">
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+                        Spent
+                      </span>
+                      <span className="font-semibold text-gray-700">
+                        ${linkedBudget.spent.toFixed(2)}
+                      </span>
+                    </div>
+                    <div
+                      className={`flex flex-col p-2 rounded-lg border ${
+                        linkedBudget.remaining < 0
+                          ? "bg-red-50 border-red-100"
+                          : "bg-emerald-50 border-emerald-100"
+                      }`}
+                    >
+                      <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+                        Remaining
+                      </span>
+                      <span
+                        className={`font-bold ${
+                          linkedBudget.remaining < 0
+                            ? "text-red-600"
+                            : "text-emerald-600"
+                        }`}
+                      >
+                        ${Math.abs(linkedBudget.remaining).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                      <span>Usage</span>
+                      <span className="font-medium">
+                        {(
+                          (linkedBudget.spent /
+                            parseFloat(linkedBudget.amount)) *
+                          100
+                        ).toFixed(1)}
+                        %
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressColor(
+                          (linkedBudget.spent /
+                            parseFloat(linkedBudget.amount)) *
+                            100
+                        )}`}
+                        style={{
+                          width: `${Math.min(
+                            (linkedBudget.spent /
+                              parseFloat(linkedBudget.amount)) *
+                              100,
+                            100
+                          )}%`,
+                        }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -344,20 +507,27 @@ export default function TransactionModal({
                   Amount <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">$</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                    $
+                  </span>
                   <input
                     type="number"
                     placeholder="0.00"
                     step="0.01"
                     {...register("amount", {
                       required: "Amount is required",
-                      min: { value: 0.01, message: "Amount must be greater than 0" }
+                      min: {
+                        value: 0.01,
+                        message: "Amount must be greater than 0",
+                      },
                     })}
                     className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                   />
                 </div>
                 {errors.amount && (
-                  <p className="text-red-500 text-sm">{errors.amount.message}</p>
+                  <p className="text-red-500 text-sm">
+                    {errors.amount.message}
+                  </p>
                 )}
               </div>
 
@@ -373,12 +543,16 @@ export default function TransactionModal({
                   />
                   <input
                     type="date"
-                    {...register("transaction_date", { required: "Date is required" })}
+                    {...register("transaction_date", {
+                      required: "Date is required",
+                    })}
                     className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer"
                   />
                 </div>
                 {errors.transaction_date && (
-                  <p className="text-red-500 text-sm">{errors.transaction_date.message}</p>
+                  <p className="text-red-500 text-sm">
+                    {errors.transaction_date.message}
+                  </p>
                 )}
               </div>
 
@@ -411,23 +585,35 @@ export default function TransactionModal({
                       onChange={(e) => setSaveToSavings(e.target.checked)}
                       className="rounded"
                     />
-                    <span className="text-sm font-medium text-gray-700">Save part of this income</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Save part of this income
+                    </span>
                   </label>
                   {saveToSavings && (
                     <div className="space-y-3 pl-6 border-l-2 border-green-200">
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Savings Goal</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Savings Goal
+                        </label>
                         <select
                           value={selectedSavingsGoal}
-                          onChange={(e) => setSelectedSavingsGoal(e.target.value)}
+                          onChange={(e) =>
+                            setSelectedSavingsGoal(e.target.value)
+                          }
                           className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
                         >
                           <option value="">Select goal</option>
-                          {savingsGoals.map(goal => <option key={goal.id} value={goal.name}>{goal.name}</option>)}
+                          {savingsGoals.map((goal) => (
+                            <option key={goal.id} value={goal.name}>
+                              {goal.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Savings Amount</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Savings Amount
+                        </label>
                         <input
                           type="number"
                           placeholder="0.00"
@@ -437,7 +623,9 @@ export default function TransactionModal({
                         />
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Percentage (%)</label>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Percentage (%)
+                        </label>
                         <input
                           type="number"
                           placeholder="10"
@@ -463,6 +651,8 @@ export default function TransactionModal({
               >
                 {loading ? (
                   <Loader2 className="animate-spin mx-auto" size={20} />
+                ) : editMode ? (
+                  "Update Transaction"
                 ) : (
                   "Add Transaction"
                 )}

@@ -13,6 +13,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
@@ -27,6 +29,7 @@ import { useExampleTransactionsApi } from "../../hooks/useExampleTransactionsApi
 import Swal from "sweetalert2";
 import { useLocation } from "react-router-dom";
 import { useDataContext } from "../../components/DataLoader";
+import { useDeleteTransaction } from "../../hooks/useTransactions.js";
 
 export default function TransactionsPage() {
   const location = useLocation();
@@ -37,6 +40,7 @@ export default function TransactionsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { user, categoriesData } = useDataContext();
+  const deleteTransactionMutation = useDeleteTransaction();
 
   const {
     transactions,
@@ -66,6 +70,7 @@ export default function TransactionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [datePreset, setDatePreset] = useState("all");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
   // Add useEffect to update startDate and endDate when datePreset changes
   useEffect(() => {
@@ -103,6 +108,37 @@ export default function TransactionsPage() {
   };
 
   const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
+
+  const handleEdit = (transaction) => {
+    setEditingTransaction(transaction);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (transactionId) => {
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      await deleteTransactionMutation.mutateAsync(transactionId);
+
+      await Swal.fire({
+        icon: "success",
+        title: "Transaction Deleted!",
+        text: "The transaction has been successfully removed.",
+        timer: 2000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+      });
+    }
+  };
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -306,8 +342,8 @@ export default function TransactionsPage() {
                   {/* Search and Filters Row */}
                   <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
                     {/* Left side filters */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full lg:w-auto flex-wrap">
-                      <div className="relative w-full sm:w-auto">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full xl:w-auto flex-wrap">
+                      <div className="relative w-full sm:w-64">
                         <Search
                           className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                           size={18}
@@ -320,7 +356,7 @@ export default function TransactionsPage() {
                             setSearch(e.target.value);
                             setPage(1);
                           }}
-                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-64"
+                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full"
                         />
                       </div>
                       <div className="flex items-center space-x-2 w-full sm:w-auto">
@@ -337,9 +373,9 @@ export default function TransactionsPage() {
                           }}
                           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
                         >
-                          <option value="all">All Types</option>
-                          <option value="income">Income</option>
-                          <option value="expense">Expenses</option>
+                          <option key="all" value="all">All Types</option>
+                          <option key="income" value="income">Income</option>
+                          <option key="expense" value="expense">Expenses</option>
                         </select>
                       </div>
                       <select
@@ -365,10 +401,10 @@ export default function TransactionsPage() {
                           onChange={(e) => setDatePreset(e.target.value)}
                           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
                         >
-                          <option value="all">All Dates</option>
-                          <option value="this_month">This Month</option>
-                          <option value="last_month">Last Month</option>
-                          <option value="custom">Custom Range</option>
+                          <option key="all" value="all">All Dates</option>
+                          <option key="this_month" value="this_month">This Month</option>
+                          <option key="last_month" value="last_month">Last Month</option>
+                          <option key="custom" value="custom">Custom Range</option>
                         </select>
                       </div>
                       {/* Pagination Controls */}
@@ -406,7 +442,7 @@ export default function TransactionsPage() {
                       </div>
                     </div>
                     {/* Transaction count */}
-                    <div className="text-sm text-gray-600 self-start lg:self-center">
+                    <div className="text-sm text-gray-600 self-start xl:self-center">
                       Showing {transactions.length} transactions
                     </div>
                   </div>
@@ -441,173 +477,312 @@ export default function TransactionsPage() {
               </div>
             </section>
 
-            {/* Transactions Table */}
-            <section className="relative">
+            {/* Transactions Table - Desktop View
+                NOTE: changed breakpoint so table only shows at lg (>=1024px).
+                This keeps the compact/mobile cards up through 768-1023px and
+                prevents zooming/shrinking issues on medium screens.
+            */}
+            <section className="relative hidden lg:block">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full w-full">
-                    <thead className="bg-gray-50/50">
-                      <tr>
-                        <th
-                          className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
-                          onClick={() => handleSort("date")}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <Calendar size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden sm:inline">Date</span>
-                            <span className="sm:hidden">Date</span>
-                            {getSortIcon("date")}
-                          </div>
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Name
-                        </th>
-                        <th
-                          className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors hidden md:table-cell"
-                          onClick={() => handleSort("category")}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <span>Category</span>
-                            {getSortIcon("category")}
-                          </div>
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">
-                          Description
-                        </th>
-                        <th
-                          className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-100/50 transition-colors"
-                          onClick={() => handleSort("amount")}
-                        >
-                          <div className="flex items-center space-x-1">
-                            <DollarSign size={14} className="sm:w-4 sm:h-4" />
-                            <span className="hidden sm:inline">Amount</span>
-                            {getSortIcon("amount")}
-                          </div>
-                        </th>
-                        <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden sm:table-cell">
-                          Type
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200/50">
-                      {(isExpanded
-                        ? transactions
-                        : transactions.slice(0, 15)
-                      ).map((transaction, index) => (
-                        <tr
-                          key={transaction.id ?? `txn-${index}`}
-                          className="hover:bg-gray-50/50 transition-colors"
-                        >
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
-                            {formatDate(transaction.date)}
-                          </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                            <div className="max-w-[120px] sm:max-w-none truncate">
-                              {transaction.name || "Unnamed"}
-                            </div>
-                            <div className="md:hidden text-xs text-gray-500 mt-1">
-                              {transaction.category_name || "Uncategorized"}
-                            </div>
-                          </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 hidden md:table-cell">
-                            {transaction.category_name || "Uncategorized"}
-                          </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 max-w-xs truncate hidden lg:table-cell">
-                            {transaction.description}
-                          </td>
-                          <td
-                            className={`px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-semibold ${
-                              transaction.type === "income"
-                                ? "text-green-600"
-                                : "text-red-500"
-                            }`}
-                          >
-                            {transaction.type === "income" ? "+" : "-"}
-                            {formatAmount(transaction.amount)}
-                          </td>
-                          <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap hidden sm:table-cell">
-                            <span
-                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                transaction.type === "income"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {transaction.type === "income"
-                                ? "Income"
-                                : "Expense"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {transactions.length > 15 && (
-                        <tr>
-                          <td
-                            colSpan="6"
-                            className="px-3 sm:px-6 py-4 text-center bg-gray-50/50 border-t border-gray-200/50"
-                          >
-                            <button
-                              onClick={() => setIsExpanded(!isExpanded)}
-                              className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 mx-auto text-sm"
-                            >
-                              <ChevronDown
-                                size={16}
-                                className={`transform transition-transform duration-300 ${
-                                  isExpanded ? "rotate-180" : ""
-                                }`}
-                              />
-                              <span className="font-medium">
-                                {isExpanded
-                                  ? "Show Less"
-                                  : `Show More (${
-                                      transactions.length - 15
-                                    } remaining)`}
-                              </span>
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="p-4 sm:p-6 border-b border-green-100/50">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
+                    Transaction History
+                  </h3>
+                  <p className="text-gray-600 text-sm mt-1">
+                    {transactions.length} transaction{transactions.length !== 1 ? "s" : ""} found
+                  </p>
                 </div>
 
-                {transactions.length === 0 && !isLoading && (
-                  <div className="text-center py-12 px-4">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                        <DollarSign className="text-gray-400" size={24} />
-                      </div>
-                      <p className="text-gray-500 text-sm sm:text-base">
-                        No transactions found
-                      </p>
-                    </div>
+                <div className="overflow-x-auto">
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-green-50 sticky top-0">
+                        <tr>
+                          <th 
+                            className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 cursor-pointer hover:bg-green-100 transition-colors"
+                            onClick={() => handleSort("date")}
+                          >
+                            <div className="flex items-center space-x-1">
+                              <span>Date</span>
+                              {getSortIcon("date")}
+                            </div>
+                          </th>
+                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                            Name
+                          </th>
+                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                            Category
+                          </th>
+                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                            Description
+                          </th>
+                          <th 
+                            className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 cursor-pointer hover:bg-green-100 transition-colors"
+                            onClick={() => handleSort("amount")}
+                          >
+                            <div className="flex items-center space-x-1">
+                              <span>Amount</span>
+                              {getSortIcon("amount")}
+                            </div>
+                          </th>
+                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                            Type
+                          </th>
+                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 text-right">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {isLoading ? (
+                          <tr>
+                            <td colSpan="7" className="text-center py-12">
+                              <div className="flex flex-col items-center space-y-2">
+                                <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-green-600">Loading transactions...</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : isError ? (
+                          <tr>
+                            <td colSpan="7" className="text-center py-12">
+                              <div className="flex flex-col items-center space-y-2">
+                                <div className="w-12 h-12 flex items-center justify-center text-red-600 text-3xl">
+                                  ⚠️
+                                </div>
+                                <p className="text-red-600">Error loading transactions. Please try again later.</p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : transactions.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="text-center py-12">
+                              <div className="flex flex-col items-center space-y-3">
+                                <DollarSign className="text-gray-300" size={48} />
+                                <span className="text-gray-500 font-medium">
+                                  No transactions found
+                                </span>
+                                <p className="text-gray-400 text-sm">
+                                  Try adjusting your search or filters
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          transactions.map((transaction, index) => (
+                            <tr
+                              key={transaction.id ?? `txn-${index}`}
+                              className="hover:bg-green-50/30 transition-colors border-b border-gray-100/50"
+                            >
+                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-700">
+                                {formatDate(transaction.date)}
+                              </td>
+                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-800 font-medium">
+                                {transaction.name || "Unnamed"}
+                              </td>
+                              <td className="py-3 sm:py-4 px-4 sm:px-6">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    transaction.type === "income"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {transaction.category_name || "Uncategorized"}
+                                </span>
+                              </td>
+                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-600 max-w-xs truncate">
+                                {transaction.description || "-"}
+                              </td>
+                              <td
+                                className={`py-3 sm:py-4 px-4 sm:px-6 font-bold ${
+                                  transaction.type === "income"
+                                    ? "text-green-600"
+                                    : "text-red-500"
+                                }`}
+                              >
+                                <div className="flex items-center space-x-1">
+                                  {transaction.type === "income" ? (
+                                    <TrendingUp size={16} />
+                                  ) : (
+                                    <TrendingDown size={16} />
+                                  )}
+                                  <span>
+                                    {transaction.type === "income" ? "+" : "-"}{" "}
+                                    {formatAmount(transaction.amount)}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3 sm:py-4 px-4 sm:px-6">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                    transaction.type === "income"
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {transaction.type === "income" ? "Income" : "Expense"}
+                                </span>
+                              </td>
+                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-right">
+                                <div className="flex items-center justify-end space-x-2">
+                                  <button
+                                    className="p-2 rounded-lg transition-colors text-blue-500 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+                                    onClick={() => handleEdit(transaction)}
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    className="p-2 rounded-lg transition-colors text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                                    onClick={() => handleDelete(transaction.id)}
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                )}
+                </div>
+              </div>
+            </section>
 
-                {isLoading && (
-                  <div className="text-center py-12 px-4">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                      <p className="text-green-600 text-sm sm:text-base">
-                        Loading transactions...
-                      </p>
-                    </div>
-                  </div>
-                )}
+            {/* Transactions Cards - Mobile View (keeps visible up to 1023px) */}
+            <section className="relative lg:hidden">
+              <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
+                <div className="p-4 border-b border-green-100/50">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Transaction History
+                  </h3>
+                  <p className="text-gray-600 text-sm mt-1">
+                    {transactions.length} transaction{transactions.length !== 1 ? "s" : ""} found
+                  </p>
+                </div>
 
-                {isError && (
-                  <div className="text-center py-12 px-4">
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-12 h-12 flex items-center justify-center text-red-600 text-3xl">
-                        ⚠️
+                <div className="max-h-96 overflow-y-auto">
+                  {isLoading ? (
+                    <div className="text-center py-12 px-4">
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-green-600">Loading transactions...</p>
                       </div>
-                      <p className="text-red-600 text-sm sm:text-base">
-                        Error loading transactions. Please try again later.
-                      </p>
                     </div>
-                  </div>
-                )}
+                  ) : isError ? (
+                    <div className="text-center py-12 px-4">
+                      <div className="flex flex-col items-center space-y-2">
+                        <div className="w-12 h-12 flex items-center justify-center text-red-600 text-3xl">
+                          ⚠️
+                        </div>
+                        <p className="text-red-600">Error loading transactions. Please try again later.</p>
+                      </div>
+                    </div>
+                  ) : transactions.length === 0 ? (
+                    <div className="text-center py-12 px-4">
+                      <div className="flex flex-col items-center space-y-3">
+                        <DollarSign className="text-gray-300" size={48} />
+                        <span className="text-gray-500 font-medium">
+                          No transactions found
+                        </span>
+                        <p className="text-gray-400 text-sm">
+                          Try adjusting your search or filters
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-100">
+                      {transactions.map((transaction, index) => (
+                        <div
+                          key={transaction.id ?? `txn-${index}`}
+                          className="p-4 hover:bg-green-50/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between space-x-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <div
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                    transaction.type === "income"
+                                      ? "bg-green-100"
+                                      : "bg-red-100"
+                                  }`}
+                                >
+                                  {transaction.type === "income" ? (
+                                    <TrendingUp
+                                      size={14}
+                                      className="text-green-600"
+                                    />
+                                  ) : (
+                                    <TrendingDown
+                                      size={14}
+                                      className="text-red-500"
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {transaction.name || "Unnamed"}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                        transaction.type === "income"
+                                          ? "bg-green-100 text-green-800"
+                                          : "bg-red-100 text-red-800"
+                                      }`}
+                                    >
+                                      {transaction.type === "income" ? "Income" : "Expense"}
+                                    </span>
+                                    {transaction.category_name && (
+                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 truncate max-w-[120px]">
+                                        {transaction.category_name}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                                  <Calendar size={12} />
+                                  <span>{formatDate(transaction.date)}</span>
+                                </div>
+                                <div
+                                  className={`text-lg font-bold ${
+                                    transaction.type === "income"
+                                      ? "text-green-600"
+                                      : "text-red-500"
+                                  }`}
+                                >
+                                  {transaction.type === "income" ? "+" : "-"}
+                                  {formatAmount(transaction.amount)}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col space-y-1 flex-shrink-0">
+                              <button
+                                className="p-2 rounded-lg transition-colors text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => handleEdit(transaction)}
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                className="p-2 rounded-lg transition-colors text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDelete(transaction.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
           </div>
@@ -619,11 +794,15 @@ export default function TransactionsPage() {
       {/* Modal */}
       <TransactionModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingTransaction(null);
+        }}
         onTransactionAdded={() => {
-          // reset to first page to see new transaction
           setPage(1);
         }}
+        editMode={!!editingTransaction}
+        transactionToEdit={editingTransaction}
       />
     </div>
   );

@@ -29,6 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('transactions', TransactionController::class);
     Route::get('transactions/search', [TransactionController::class, 'search']);
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
-    Route::apiResource('budgets', BudgetController::class)->only(['index', 'show']);
+    Route::apiResource('budgets', BudgetController::class); 
     Route::apiResource('savings', SavingController::class)->only(['index', 'show']);
 });

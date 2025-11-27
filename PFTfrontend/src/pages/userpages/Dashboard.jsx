@@ -40,6 +40,7 @@ const Dashboard = () => {
   const location = useLocation();
   // Consume data from DataLoader context
   const { user, transactionsData, categoriesData } = useDataContext();
+  console.log(transactionsData);
 
   const [sidebarOpen, setSidebarOpen] = React.useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
@@ -94,25 +95,27 @@ const Dashboard = () => {
   // Aggregate total Income and Expenses for BarChart
   const totalIncome = transactions?.totals?.income || 0;
   const totalExpenses = transactions?.totals?.expenses || 0;
+  console.log(transactions);
 
   // Aggregate expenses by category for PieChart
   // Build a map of expense totals by category_id
-  const expenseByCategoryMap = {};
-  (transactions?.data || []).forEach((t) => {
-    if (t.type === "expense" && t.category_id) {
-      expenseByCategoryMap[t.category_id] =
-        (expenseByCategoryMap[t.category_id] || 0) + parseFloat(t.amount);
-    }
+  // Convert your array into a lookup map for quick access
+  const expenseByCategoryLookup = {};
+  transactions.expense_by_category?.forEach((item) => {
+    expenseByCategoryLookup[item.category_id] = item.total;
   });
 
-  // Build PieChart data showing all expense categories with amounts or zero
+  // Build PieChart data
   const pieChartData =
     categoriesData?.data
       ?.filter((category) => category.type === "expense")
       .map((category) => ({
         name: category.name,
-        value: expenseByCategoryMap[category.id] || 0,
+        value: expenseByCategoryLookup[category.id] || 0,
       })) || [];
+
+  console.log(pieChartData);
+  console.log(categoriesData);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">

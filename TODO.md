@@ -1,11 +1,6 @@
-# TODO: Make TransactionsPage Responsive
-
-## Pending Tasks
-- [ ] Update header layout for mobile stacking (flex-col md:flex-row)
-- [ ] Adjust filters section for better mobile responsiveness
-- [ ] Make table fully responsive with proper scrolling (add min-w-full)
-- [ ] Update pagination to stack on mobile (flex-col sm:flex-row)
-- [ ] Adjust button sizes and padding for mobile
-- [ ] Test responsiveness after changes
-- [ ] Run the app and check on different screen sizes
-- [ ] Confirm matches DashboardPage responsiveness
+- [x] Import Controller from react-hook-form
+- [x] Add control to useForm destructuring
+- [x] Define linkBudget function with the linking logic
+- [x] Remove the useEffect that handles budget linking on category/type change
+- [x] In the useEffect for isOpen, add call to linkBudget for editMode after reset
+- [x] Replace the category select with Controller and add onChange to call linkBudget

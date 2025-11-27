@@ -12,6 +12,7 @@ class BudgetObserver
      */
     public function created(Budget $budget): void
     {
+        $this->updateStatus($budget);
         $this->clearCaches($budget);
     }
 
@@ -20,6 +21,7 @@ class BudgetObserver
      */
     public function updated(Budget $budget): void
     {
+        $this->updateStatus($budget);
         $this->clearCaches($budget);
     }
 
@@ -45,6 +47,24 @@ class BudgetObserver
     public function forceDeleted(Budget $budget): void
     {
         $this->clearCaches($budget);
+    }
+
+    /**
+     * Update the budget status based on dates.
+     */
+    private function updateStatus(Budget $budget): void
+    {
+        $now = now()->toDateString();
+
+        if ($budget->start_date > $now) {
+            $budget->status = 'active'; // or 'upcoming' if needed, but user said active, completed, expired
+        } elseif ($budget->end_date < $now) {
+            $budget->status = 'expired';
+        } else {
+            $budget->status = 'active';
+        }
+
+        $budget->saveQuietly(); // Save without triggering events
     }
 
     /**

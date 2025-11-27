@@ -168,13 +168,31 @@ class TransactionController extends Controller
         $totalIncome = (clone $query)->where('type', 'income')->sum('amount');
         $totalExpenses = (clone $query)->where('type', 'expense')->sum('amount');
 
+        $totalExpensesByCategory = (clone $query)
+            ->where('type', 'expense')
+            ->whereHas('category', function ($q) {
+                $q->where('type', 'expense');
+            })
+            ->selectRaw('category_id, SUM(amount) as total')
+            ->groupBy('category_id')
+            ->with('category')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'category_id' => $item->category_id,
+                    'category_name' => $item->category ? $item->category->name : 'Uncategorized',
+                    'total' => (float) $item->total,
+                ];
+            });
+
         $paginated = $query->paginate(15);
 
         return (new TransactionCollection($paginated))->additional([
             'totals' => [
                 'income' => (float) $totalIncome,
                 'expenses' => (float) $totalExpenses,
-            ]
+            ],
+            'expense_by_category' => $totalExpensesByCategory,
         ]);
     }
 
@@ -217,7 +235,23 @@ class TransactionController extends Controller
      */
     public function store(CreateTransactionsRequest $request)
     {
-        $transaction = Auth::user()->transactions()->create($request->validated());
+        $validatedData = $request->validated();
+
+        // For expense transactions, check if there's an active budget for the category
+        if ($validatedData['type'] === 'expense' && isset($validatedData['category_id'])) {
+            $activeBudget = Auth::user()->budgets()
+                ->where('category_id', $validatedData['category_id'])
+                ->where('status', 'active')
+                ->where('start_date', '<=', $validatedData['date'])
+                ->where('end_date', '>=', $validatedData['date'])
+                ->first();
+
+            if ($activeBudget) {
+                $validatedData['budget_id'] = $activeBudget->id;
+            }
+        }
+
+        $transaction = Auth::user()->transactions()->create($validatedData);
 
         return new TransactionResource($transaction);
     }

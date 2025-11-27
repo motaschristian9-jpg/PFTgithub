@@ -22,6 +22,7 @@ class BudgetResource extends JsonResource
             'category_id' => $this->category_id,
             'start_date' => $this->start_date->format('Y-m-d'),
             'end_date' => $this->end_date->format('Y-m-d'),
+            'status' => $this->status,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'transactions' => $this->whenLoaded('transactions'),

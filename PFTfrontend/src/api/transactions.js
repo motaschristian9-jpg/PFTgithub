@@ -13,6 +13,7 @@ export const fetchTransactions = async (params = {}) => {
 
 export const updateTransaction = async (id, transactionData) => {
   const response = await api.put(`/transactions/${id}`, transactionData);
+  console.log(response);
   return response.data;
 };
 

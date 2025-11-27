@@ -6,6 +6,7 @@ import LoginPage from "./pages/authpages/LoginPage.jsx";
 import SignupPage from "./pages/authpages/SignupPage.jsx";
 import Dashboard from "./pages/userpages/Dashboard.jsx";
 import TransactionsPage from "./pages/userpages/TransactionsPage.jsx";
+import BudgetPage from "./pages/userpages/BudgetPage.jsx";
 import EmailVerificationPage from "./pages/authpages/EmailVerificationPage.jsx";
 import ResetPasswordPage from "./pages/authpages/ResetPasswordPage.jsx";
 import ForgotPasswordPage from "./pages/authpages/ForgotPasswordPage.jsx";
@@ -54,6 +55,14 @@ function App() {
               element={
                 <DataLoader>
                   <TransactionsPage />
+                </DataLoader>
+              }
+            />
+            <Route
+              path="budget"
+              element={
+                <DataLoader>
+                  <BudgetPage />
                 </DataLoader>
               }
             />

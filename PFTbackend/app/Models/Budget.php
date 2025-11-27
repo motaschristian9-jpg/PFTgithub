@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Scopes\UserScope;
 use OpenApi\Annotations as OA;
+use Carbon\Carbon;
 
 /**
  * @OA\Schema(
@@ -33,6 +34,7 @@ class Budget extends Model
         'start_date',
         'end_date',
         'category_id',
+        'status',
     ];
 
     protected $casts = [
@@ -63,5 +65,21 @@ class Budget extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Scope a query to only include active budgets.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope a query to only include completed/expired budgets.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->whereIn('status', ['completed', 'expired']);
     }
 }

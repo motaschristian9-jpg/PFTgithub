@@ -3,6 +3,7 @@ import LoadingScreen from "./LoadingScreen.jsx";
 import { useAuth } from "../hooks/useAuth.js";
 import { useTransactions } from "../hooks/useTransactions.js";
 import { useCategories } from "../hooks/useCategories.js";
+import { useBudget } from "../hooks/useBudget.js";
 
 const DataContext = createContext(null);
 
@@ -19,8 +20,9 @@ const DataLoader = ({ children }) => {
   // Fetch all transactions for sharing; parameterized fetch still done in TransactionsPage for filters.
   const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useTransactions({}, { fetchAll: true });
   const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useCategories();
+  const { data: budgetsData, isLoading: budgetsLoading, error: budgetsError } = useBudget();
 
-  if (userLoading || transactionsLoading || categoriesLoading) {
+  if (userLoading || transactionsLoading || categoriesLoading || budgetsLoading) {
     return <LoadingScreen />;
   }
 
@@ -48,8 +50,16 @@ const DataLoader = ({ children }) => {
     );
   }
 
+  if (budgetsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Budgets error: {budgetsError.message}</p>
+      </div>
+    );
+  }
+
   return (
-    <DataContext.Provider value={{ user, transactionsData, categoriesData }}>
+    <DataContext.Provider value={{ user, transactionsData, categoriesData, budgetsData }}>
       {children}
     </DataContext.Provider>
   );
