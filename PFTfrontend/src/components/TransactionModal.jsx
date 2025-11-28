@@ -32,7 +32,7 @@ export default function TransactionModal({
   editMode = false,
   transactionToEdit = null,
 }) {
-  const { budgetsData, transactionsData } = useDataContext();
+  const { activeBudgetsData, transactionsData } = useDataContext();
   const [type, setType] = useState("income");
   const [loading, setLoading] = useState(false);
   const [loadingSavings, setLoadingSavings] = useState(false);
@@ -44,6 +44,8 @@ export default function TransactionModal({
   const [linkedBudget, setLinkedBudget] = useState(null);
   const [savingsGoals, setSavingsGoals] = useState([]);
 
+  console.log(linkedBudget);
+
   const addTransactionMutation = useCreateTransaction();
   const updateTransactionMutation = useUpdateTransaction();
 
@@ -53,7 +55,10 @@ export default function TransactionModal({
     reset,
     watch,
     control,
-    formState: { errors, isValid },
+    trigger,
+    getValues,
+    setError,
+    formState: { errors },
   } = useForm({
     key: modalKey,
     defaultValues: {
@@ -69,42 +74,47 @@ export default function TransactionModal({
   const { config, IconComponent, expenseCategories, incomeCategories } =
     useModalFormHooks(type);
 
+  console.log(transactionsData);
+
+  // --- HELPERS ---
+  const getBudgetTransactions = (budget) => {
+    if (!budget || !transactionsData?.data) return [];
+    return transactionsData.data
+      .filter((t) => {
+        // Use the direct budget_id relationship instead of category/date matching
+        return t.budget_id == budget.id && t.type === "expense";
+      })
+      .sort(
+        (a, b) => new Date(b.transaction_date) - new Date(a.transaction_date)
+      );
+  };
+
+  const budgetSpent = (budget) => {
+    if (!budget) return 0;
+    const relevantTransactions = getBudgetTransactions(budget);
+    return relevantTransactions.reduce(
+      (total, t) => total + parseFloat(t.amount || 0),
+      0
+    );
+  };
+
   // --- UPDATED LINK BUDGET FUNCTION ---
   const linkBudget = (categoryId) => {
+
     if (type === "expense") {
-      const selectedCategory = expenseCategories.find(
-        (cat) => cat.id == categoryId
-      );
-      const categoryName = selectedCategory ? selectedCategory.name : "";
+      // Find active budget
+      const budget = activeBudgetsData.data?.find((b) => {
+        return b.category_id == categoryId;
+      });
 
-      if (categoryId || categoryName) {
-        const budget = budgetsData.data?.find((b) => {
-          const matchesCategoryId = b.category_id == categoryId;
-          const matchesName =
-            b.name &&
-            categoryName &&
-            b.name.toLowerCase().trim() === categoryName.toLowerCase().trim();
-          const isActive = b.status ? b.status === "active" : true;
-          return (matchesCategoryId || matchesName) && isActive;
+      if (budget) {
+        const spent = budgetSpent(budget);
+
+        setLinkedBudget({
+          ...budget,
+          spent,
+          remaining: parseFloat(budget.amount) - spent,
         });
-
-        if (budget) {
-          // Calculate spent amount from all transactions for this category (expense type)
-          const spent = transactionsData.data
-            ? transactionsData.data
-                .filter(transaction => transaction.category_id == categoryId && transaction.type === 'expense')
-                .reduce((total, transaction) => total + parseFloat(transaction.amount), 0)
-            : 0;
-          const remaining = parseFloat(budget.amount) - spent;
-
-          setLinkedBudget({
-            ...budget,
-            spent: spent,
-            remaining: remaining,
-          });
-        } else {
-          setLinkedBudget(null);
-        }
       } else {
         setLinkedBudget(null);
       }
@@ -185,6 +195,30 @@ export default function TransactionModal({
     let response;
 
     try {
+      // 1. Determine Budget ID to send (Strict Linking)
+      let budgetIdToSend = null;
+
+      if (type === "expense" && data.category) {
+        const activeBudget = activeBudgetsData?.data?.find(
+          (b) => b.category_id == data.category
+        );
+
+        // Only link if date fits strictly within budget range
+        if (activeBudget) {
+          const txDate = new Date(data.transaction_date);
+          const start = new Date(activeBudget.start_date);
+          const end = new Date(activeBudget.end_date);
+          // Normalize time
+          txDate.setHours(0, 0, 0, 0);
+          start.setHours(0, 0, 0, 0);
+          end.setHours(23, 59, 59, 999);
+
+          if (txDate >= start && txDate <= end) {
+            budgetIdToSend = activeBudget.id;
+          }
+        }
+      }
+
       const transactionData = {
         name: data.name,
         type,
@@ -192,6 +226,7 @@ export default function TransactionModal({
         description: data.description || null,
         date: data.transaction_date,
         category_id: data.category ? parseInt(data.category) : null,
+        budget_id: budgetIdToSend, // <--- CRITICAL: Sending the specific ID
       };
 
       if (editMode && transactionToEdit) {
@@ -236,12 +271,38 @@ export default function TransactionModal({
       onClose();
     } catch (error) {
       console.error("Error submitting transaction:", error);
+
+      if (error.response && error.response.status === 422) {
+        const serverErrors = error.response.data.errors;
+        if (serverErrors) {
+          Object.keys(serverErrors).forEach((key) => {
+            let fieldName = key;
+            if (key === "category_id") fieldName = "category";
+            if (key === "date") fieldName = "transaction_date";
+            setError(fieldName, {
+              type: "server",
+              message: serverErrors[key][0],
+            });
+          });
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "Validation Error",
+            text: error.response.data.message || "Please check your inputs.",
+          });
+        }
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: "Something went wrong. Please try again.",
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper to determine progress bar color
   const getProgressColor = (percent) => {
     if (percent >= 100) return "bg-red-500";
     if (percent >= 75) return "bg-orange-500";
@@ -304,7 +365,6 @@ export default function TransactionModal({
             className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto"
           >
             <div className="space-y-4">
-              {/* Transaction Type Selection */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Transaction Type <span className="text-red-500">*</span>
@@ -341,7 +401,6 @@ export default function TransactionModal({
                 </div>
               </div>
 
-              {/* Name */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Name <span className="text-red-500">*</span>
@@ -357,7 +416,6 @@ export default function TransactionModal({
                 )}
               </div>
 
-              {/* Category */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Category <span className="text-red-500">*</span>
@@ -373,6 +431,7 @@ export default function TransactionModal({
                         onChange={(e) => {
                           field.onChange(e);
                           linkBudget(e.target.value);
+                          trigger("transaction_date");
                         }}
                         className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
                       >
@@ -404,7 +463,6 @@ export default function TransactionModal({
                 )}
               </div>
 
-              {/* === REDESIGNED LINKED BUDGET SECTION === */}
               {type === "expense" && linkedBudget && (
                 <div className="mt-2 p-4 bg-white/60 border border-gray-200 rounded-xl shadow-sm backdrop-blur-sm">
                   <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
@@ -414,94 +472,88 @@ export default function TransactionModal({
                         {linkedBudget.name} Budget
                       </span>
                     </div>
-                    {linkedBudget.remaining < 0 ? (
-                      <div className="flex items-center space-x-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-                        <AlertCircle size={12} />
-                        <span className="text-xs font-medium">Over Budget</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 size={12} />
-                        <span className="text-xs font-medium">On Track</span>
-                      </div>
-                    )}
+                    <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                      <CheckCircle2 size={12} />
+                      <span className="text-xs font-medium">Active</span>
+                    </div>
                   </div>
 
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="flex flex-col p-2 bg-gray-50 rounded-lg border border-gray-100">
-                      <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
-                        Allocated
-                      </span>
-                      <span className="font-semibold text-gray-700">
-                        ${parseFloat(linkedBudget.amount).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex flex-col p-2 bg-gray-50 rounded-lg border border-gray-100">
-                      <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
-                        Spent
-                      </span>
-                      <span className="font-semibold text-gray-700">
-                        ${linkedBudget.spent.toFixed(2)}
+                  <div className="flex items-center space-x-4 mb-4 text-xs text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <Calendar size={12} />
+                      <span>
+                        {linkedBudget.start_date
+                          ? new Date(linkedBudget.start_date).toLocaleDateString()
+                          : "-"}
                       </span>
                     </div>
-                    <div
-                      className={`flex flex-col p-2 rounded-lg border ${
-                        linkedBudget.remaining < 0
-                          ? "bg-red-50 border-red-100"
-                          : "bg-emerald-50 border-emerald-100"
-                      }`}
-                    >
-                      <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
-                        Remaining
-                      </span>
-                      <span
-                        className={`font-bold ${
-                          linkedBudget.remaining < 0
-                            ? "text-red-600"
-                            : "text-emerald-600"
-                        }`}
-                      >
-                        ${Math.abs(linkedBudget.remaining).toFixed(2)}
+                    <span>to</span>
+                    <div className="flex items-center space-x-1">
+                      <Calendar size={12} />
+                      <span>
+                        {linkedBudget.end_date
+                          ? new Date(linkedBudget.end_date).toLocaleDateString()
+                          : "-"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
-                  <div>
-                    <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-                      <span>Usage</span>
-                      <span className="font-medium">
-                        {(
-                          (linkedBudget.spent /
-                            parseFloat(linkedBudget.amount)) *
-                          100
-                        ).toFixed(1)}
-                        %
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Allocated:</span>
+                      <span className="font-semibold text-green-600">
+                        ${parseFloat(linkedBudget.amount).toLocaleString()}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Spent:</span>
+                      <span className="font-semibold text-red-600">
+                        ${linkedBudget.spent.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Remaining:</span>
+                      <span className={`font-semibold ${
+                        linkedBudget.remaining < 0 ? "text-red-600" : "text-orange-600"
+                      }`}>
+                        ${Math.max(linkedBudget.remaining, 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-gray-500">Progress</span>
+                      <span className="text-xs font-medium text-gray-700">
+                        {((linkedBudget.spent / parseFloat(linkedBudget.amount)) * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ease-out ${getProgressColor(
-                          (linkedBudget.spent /
-                            parseFloat(linkedBudget.amount)) *
-                            100
-                        )}`}
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          (linkedBudget.spent / parseFloat(linkedBudget.amount)) * 100 > 90
+                            ? "bg-red-500"
+                            : "bg-green-500"
+                        }`}
                         style={{
                           width: `${Math.min(
-                            (linkedBudget.spent /
-                              parseFloat(linkedBudget.amount)) *
-                              100,
+                            (linkedBudget.spent / parseFloat(linkedBudget.amount)) * 100,
                             100
                           )}%`,
                         }}
                       ></div>
                     </div>
                   </div>
+
+                  {linkedBudget.remaining < 0 && (
+                    <div className="flex items-center space-x-1 text-red-600 bg-red-50 px-2 py-1 rounded-lg">
+                      <AlertCircle size={14} />
+                      <span className="text-xs font-medium">This transaction will exceed your budget limit</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Amount */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Amount <span className="text-red-500">*</span>
@@ -531,7 +583,6 @@ export default function TransactionModal({
                 )}
               </div>
 
-              {/* Date */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Date <span className="text-red-500">*</span>
@@ -545,6 +596,30 @@ export default function TransactionModal({
                     type="date"
                     {...register("transaction_date", {
                       required: "Date is required",
+                      validate: (value) => {
+                        if (type !== "expense") return true;
+                        const categoryId = getValues("category");
+                        if (!categoryId) return true;
+
+                        const budget = activeBudgetsData?.data?.find(
+                          (b) =>
+                            b.category_id == categoryId
+                        );
+
+                        if (budget) {
+                          const txDate = new Date(value);
+                          txDate.setHours(0, 0, 0, 0);
+                          const budgetStart = new Date(budget.start_date);
+                          budgetStart.setHours(0, 0, 0, 0);
+
+                          if (txDate < budgetStart) {
+                            return `Date must be after budget start (${new Date(
+                              budget.start_date
+                            ).toLocaleDateString()})`;
+                          }
+                        }
+                        return true;
+                      },
                     })}
                     className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer"
                   />
@@ -556,7 +631,6 @@ export default function TransactionModal({
                 )}
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Description
@@ -575,7 +649,6 @@ export default function TransactionModal({
                 </div>
               </div>
 
-              {/* Savings Option for Income */}
               {type === "income" && (
                 <div className="space-y-2">
                   <label className="flex items-center space-x-2">
@@ -639,7 +712,6 @@ export default function TransactionModal({
                 </div>
               )}
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}

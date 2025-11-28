@@ -18,18 +18,49 @@ export const useDataContext = () => {
 const DataLoader = ({ children }) => {
   const { user, isLoading: userLoading, error: userError } = useAuth();
   // Fetch all transactions for sharing; parameterized fetch still done in TransactionsPage for filters.
-  const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useTransactions({}, { fetchAll: true });
-  const { data: categoriesData, isLoading: categoriesLoading, error: categoriesError } = useCategories();
-  const { data: budgetsData, isLoading: budgetsLoading, error: budgetsError } = useBudget();
+  const {
+    data: transactionsData,
+    isLoading: transactionsLoading,
+    error: transactionsError,
+  } = useTransactions({}, { fetchAll: true });
+  const {
+    data: categoriesData,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = useCategories();
+  const {
+    data: budgetsData,
+    isLoading: budgetsLoading,
+    error: budgetsError,
+  } = useBudget();
+  const {
+    data: activeBudgetsData,
+    isLoading: activeBudgetsLoading,
+    error: activeBudgetsError,
+  } = useBudget("active");
+  const {
+    data: historyBudgetsData,
+    isLoading: historyBudgetsLoading,
+    error: historyBudgetsError,
+  } = useBudget("history");
 
-  if (userLoading || transactionsLoading || categoriesLoading || budgetsLoading) {
+  if (
+    userLoading ||
+    transactionsLoading ||
+    categoriesLoading ||
+    budgetsLoading ||
+    activeBudgetsLoading ||
+    historyBudgetsLoading
+  ) {
     return <LoadingScreen />;
   }
 
   if (userError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-600">Authentication error: {userError.message}</p>
+        <p className="text-red-600">
+          Authentication error: {userError.message}
+        </p>
       </div>
     );
   }
@@ -37,7 +68,9 @@ const DataLoader = ({ children }) => {
   if (transactionsError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-600">Transactions error: {transactionsError.message}</p>
+        <p className="text-red-600">
+          Transactions error: {transactionsError.message}
+        </p>
       </div>
     );
   }
@@ -45,7 +78,9 @@ const DataLoader = ({ children }) => {
   if (categoriesError) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-red-600">Categories error: {categoriesError.message}</p>
+        <p className="text-red-600">
+          Categories error: {categoriesError.message}
+        </p>
       </div>
     );
   }
@@ -58,8 +93,26 @@ const DataLoader = ({ children }) => {
     );
   }
 
+  if (activeBudgetsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">Active Budgets error: {budgetsError.message}</p>
+      </div>
+    );
+  }
+
+  if (historyBudgetsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600">History Budgets error: {budgetsError.message}</p>
+      </div>
+    );
+  }
+
   return (
-    <DataContext.Provider value={{ user, transactionsData, categoriesData, budgetsData }}>
+    <DataContext.Provider
+      value={{ user, transactionsData, categoriesData, budgetsData, historyBudgetsData, activeBudgetsData }}
+    >
       {children}
     </DataContext.Provider>
   );

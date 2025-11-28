@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import { X, Loader2 } from "lucide-react";
+import Swal from "sweetalert2"; // <--- 1. IMPORT ADDED
 import { useModalFormHooks } from "../hooks/useModalFormHooks.js";
 
 export default function BudgetModal({
@@ -11,11 +12,9 @@ export default function BudgetModal({
   editMode = false,
   budget = null,
   categories = [],
-  currentBudgets = [], // <--- This must receive the active budgets list
+  currentBudgets = [],
 }) {
   const [loading, setLoading] = useState(false);
-  const [modalKey, setModalKey] = useState(0);
-
   const { config, IconComponent } = useModalFormHooks("budget");
 
   const {
@@ -23,6 +22,7 @@ export default function BudgetModal({
     handleSubmit,
     reset,
     setError,
+    getValues,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -36,19 +36,9 @@ export default function BudgetModal({
     mode: "onChange",
   });
 
-  // Debugging: Check if budgets are actually arriving
   useEffect(() => {
     if (isOpen) {
-      console.log("BudgetModal Open. Checking Active Budgets:", currentBudgets);
-    }
-  }, [isOpen, currentBudgets]);
-
-  // Reset form when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setModalKey((prev) => prev + 1);
       document.body.style.overflow = "hidden";
-
       const today = new Date().toISOString().split("T")[0];
 
       if (editMode && budget) {
@@ -78,7 +68,6 @@ export default function BudgetModal({
     };
   }, [isOpen, editMode, budget, reset]);
 
-  // Close on escape key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape" && isOpen) onClose();
@@ -93,13 +82,29 @@ export default function BudgetModal({
       if (!editMode) {
         data.start_date = new Date().toISOString().split("T")[0];
       }
+
+      // Save data to backend
       await onSave(data);
+
+      // Reset form
       reset();
+
+      // <--- 2. SUCCESS ALERT ADDED HERE
+      Swal.fire({
+        icon: "success",
+        title: editMode ? "Budget Updated!" : "Budget Created!",
+        text: `Your budget has been successfully ${
+          editMode ? "updated" : "added"
+        }.`,
+        timer: 2000,
+        showConfirmButton: false,
+        customClass: { container: "swal-z-index-fix" },
+      });
     } catch (error) {
       console.error("Failed to save budget:", error);
       if (error.response && error.response.status === 422) {
         const message = error.response.data.message;
-        if (message.toLowerCase().includes("category")) {
+        if (message && message.toLowerCase().includes("category")) {
           setError("category_id", {
             type: "server",
             message: "You already have an active budget for this category.",
@@ -113,7 +118,6 @@ export default function BudgetModal({
 
   if (!isOpen) return null;
 
-  // Filter categories safely
   const categoriesArray = categories?.data || categories || [];
   const expenseCategories = categoriesArray.filter(
     (cat) => cat.type === "expense"
@@ -142,7 +146,6 @@ export default function BudgetModal({
         <div
           className={`relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border ${config.borderColor} overflow-hidden`}
         >
-          {/* Header */}
           <div
             className={`p-4 sm:p-6 border-b border-gray-100/50 bg-gradient-to-r ${config.bgGradient}`}
           >
@@ -179,7 +182,6 @@ export default function BudgetModal({
             onSubmit={handleSubmit(onSubmit)}
             className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto space-y-4"
           >
-            {/* Name */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Name <span className="text-red-500">*</span>
@@ -202,7 +204,6 @@ export default function BudgetModal({
               )}
             </div>
 
-            {/* Amount */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Amount <span className="text-red-500">*</span>
@@ -231,7 +232,6 @@ export default function BudgetModal({
               )}
             </div>
 
-            {/* Category Select (FIXED LOGIC) */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">
                 Category <span className="text-red-500">*</span>
@@ -247,27 +247,15 @@ export default function BudgetModal({
                   Select category
                 </option>
                 {sortedCategories.map((cat) => {
-                  // CHECK IF CATEGORY IS ACTIVE
                   const activeBudget = currentBudgets.find((b) => {
-                    // 1. Check Category ID match (loose equality for string vs number)
                     const idMatch = b.category_id == cat.id;
-
-                    // 2. Check Date validity (Normalize time to handle 'Today')
                     const budgetEnd = new Date(b.end_date);
-                    // Set budget expiration to the VERY END of that day (23:59:59)
                     budgetEnd.setHours(23, 59, 59, 999);
-
                     const now = new Date();
-                    // Set 'now' to the VERY START of today (00:00:00)
-                    // This creates a lenient check: "Is it today or in the future?"
                     now.setHours(0, 0, 0, 0);
-
-                    const isActive = budgetEnd >= now;
-
-                    return idMatch && isActive;
+                    return idMatch && budgetEnd >= now;
                   });
 
-                  // Disable if active budget exists AND we are NOT editing that specific budget
                   const isDisabled =
                     activeBudget &&
                     (!editMode || activeBudget.id !== budget?.id);
@@ -291,7 +279,6 @@ export default function BudgetModal({
               )}
             </div>
 
-            {/* Date Range Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -314,16 +301,17 @@ export default function BudgetModal({
                   {...register("end_date", {
                     required: "End date is required",
                     validate: (value) => {
-                      const startDate = new Date(getValues("start_date"));
+                      const startDateVal = getValues("start_date");
+                      if (!startDateVal) return true;
+                      const startDate = new Date(startDateVal);
                       const endDate = new Date(value);
-                      if (!value) return "End date is required";
-                      return (
-                        endDate > startDate ||
-                        "End date must be after start date"
-                      );
+                      if (endDate < startDate) {
+                        return "End date must be after start date";
+                      }
+                      return true;
                     },
                   })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                   disabled={loading}
                 />
                 {errors.end_date && (

@@ -11,8 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('budgets', function (Blueprint $table) {
-            $table->enum('status', ['active', 'completed', 'expired', 'reached'])->default('active');
+        Schema::table('transactions', function (Blueprint $table) {
+            //
         });
     }
 
@@ -21,8 +21,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('budgets', function (Blueprint $table) {
-            $table->dropColumn('status');
+        Schema::table('transactions', function (Blueprint $table) {
+            $table->dropForeign(['budget_id']);
+            $table->foreign('budget_id')->references('id')->on('budgets')->onDelete('set null');
         });
     }
 };

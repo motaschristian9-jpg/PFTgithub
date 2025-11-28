@@ -4,10 +4,9 @@ import {
   DollarSign,
   Plus,
   PieChart,
-  CheckCircle,
-  AlertCircle,
   Clock,
   Eye,
+  Trash2,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -31,25 +30,49 @@ export default function BudgetPage() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Data Context
-  const { categoriesData, user, budgetsData, transactionsData } =
-    useDataContext();
-  const { data: completedBudgetsData } = useBudget("completed");
+  // --- DATA FETCHING ---
+  const { categoriesData, user, transactionsData, activeBudgetsData, historyBudgetsData } = useDataContext();
 
-  const budgets = budgetsData?.data || [];
-  const completedBudgets = completedBudgetsData?.data || [];
+  const activeBudgets = activeBudgetsData?.data || [];
+  const historyBudgets = historyBudgetsData?.data || [];
 
-  // Helper: Get Category Name
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(null);
+  const [budgetCardModalOpen, setBudgetCardModalOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState(null);
+
+  // --- HELPERS ---
+
   const getCategoryName = (categoryId) => {
     if (!categoryId) return "Uncategorized";
     const category = categoriesData?.data?.find((cat) => cat.id === categoryId);
     return category ? category.name : "Uncategorized";
   };
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingBudget, setEditingBudget] = useState(null);
-  const [budgetCardModalOpen, setBudgetCardModalOpen] = useState(false);
-  const [selectedBudget, setSelectedBudget] = useState(null);
+  // Helper to get transactions linked to this budget via budget_id
+  const getBudgetTransactions = (budget) => {
+    if (!budget || !transactionsData?.data) return [];
+    return transactionsData.data
+      .filter((t) => {
+        // Use the direct budget_id relationship instead of category/date matching
+        return t.budget_id == budget.id && t.type === "expense";
+      })
+      .sort(
+        (a, b) => new Date(b.transaction_date) - new Date(a.transaction_date)
+      );
+  };
+
+  const budgetSpent = (budget) => {
+    if (!budget) return 0;
+    const relevantTransactions = getBudgetTransactions(budget);
+    console.log(relevantTransactions);
+    return relevantTransactions.reduce(
+      (total, t) => total + parseFloat(t.amount || 0),
+      0
+    );
+  };
+
+  // --- HANDLERS ---
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -61,144 +84,18 @@ export default function BudgetPage() {
 
   const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
 
-  // Helper: Determine Budget Status
-  const getBudgetStatus = (budget) => {
-    if (!budget.end_date) return "Active";
-    const today = new Date();
-    const endDate = new Date(budget.end_date);
-    const startDate = new Date(budget.start_date);
-
-    // Normalize time for fair comparison
-    today.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
-
-    if (today > endDate) return "Completed";
-    if (today < startDate) return "Upcoming";
-    return "Active";
-  };
-
-  // Helper: Filter Transactions for Modal
-  const getBudgetTransactions = (budget) => {
-    if (!budget || !transactionsData?.data) return [];
-
-    return transactionsData.data
-      .filter((t) => {
-        // 1. Match Category (Loose equality handles null vs undefined)
-        const matchesCategory = t.category_id == budget.category_id;
-
-        // 2. Must be an expense
-        const isExpense = t.type === "expense";
-
-        // 3. Date Range
-        const dateString = t.transaction_date || t.created_at;
-        if (!dateString) return false;
-
-        const tDate = new Date(dateString);
-        const start = new Date(budget.start_date);
-        const end = new Date(budget.end_date);
-
-        tDate.setHours(0, 0, 0, 0);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
-
-        const inDateRange = tDate >= start && tDate <= end;
-
-        return matchesCategory && isExpense && inDateRange;
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.transaction_date || a.created_at);
-        const dateB = new Date(b.transaction_date || b.created_at);
-        return dateB - dateA; // Newest first
-      });
-  };
-
-  // Helper: Calculate Spent Amount
-  const budgetSpent = (budgetId) => {
-    const budget = budgets.find((b) => b.id === budgetId);
-    if (!budget) return 0;
-
-    const relevantTransactions = getBudgetTransactions(budget);
-    return relevantTransactions.reduce(
-      (total, t) => total + parseFloat(t.amount || 0),
-      0
-    );
-  };
-
-  // Handler: Open Detailed Modal
   const handleBudgetCardModalOpen = (budget) => {
-    const spent = budgetSpent(budget.id);
+    const spent = budgetSpent(budget);
     const remaining = Number(budget.amount) - spent;
-
     setSelectedBudget({ ...budget, spent, remaining });
     setBudgetCardModalOpen(true);
   };
 
-  // Handler: Open Edit Form
-  const handleEdit = (budget) => {
-    setEditingBudget(budget);
-    setModalOpen(true);
-  };
-
-  // --- ACTIONS ---
-
-  // 1. Delete Transaction
-  const handleDeleteTransaction = async (transaction) => {
-    try {
-      const result = await Swal.fire({
-        title: "Delete Transaction?",
-        text: "This will remove the expense from this budget.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#dc2626",
-        cancelButtonColor: "#6b7280",
-        confirmButtonText: "Yes, delete it!",
-        customClass: { container: "swal-z-index-fix" },
-      });
-
-      if (result.isConfirmed) {
-        await deleteTransaction(transaction.id);
-
-        // REFRESH DATA
-        await queryClient.invalidateQueries(["transactions"]);
-        await queryClient.invalidateQueries(["budgets"]);
-
-        // Optimistic UI update for the open modal
-        if (selectedBudget) {
-          const amount = parseFloat(transaction.amount);
-          setSelectedBudget((prev) => ({
-            ...prev,
-            spent: prev.spent - amount,
-            remaining: prev.remaining + amount,
-          }));
-        }
-
-        Swal.fire({
-          icon: "success",
-          title: "Deleted!",
-          timer: 1500,
-          showConfirmButton: false,
-          customClass: { container: "swal-z-index-fix" },
-        });
-      }
-    } catch (error) {
-      console.error("Failed to delete transaction:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to delete transaction",
-        customClass: { container: "swal-z-index-fix" },
-      });
-    }
-  };
-
-  // 2. Delete Budget
   const handleDelete = async (budgetIdOrObject) => {
     const id =
       typeof budgetIdOrObject === "object"
         ? budgetIdOrObject.id
         : budgetIdOrObject;
-
     const result = await Swal.fire({
       title: "Are you sure?",
       text: "You won't be able to revert this!",
@@ -212,75 +109,67 @@ export default function BudgetPage() {
 
     if (result.isConfirmed) {
       try {
-        // 1. Call API
         await deleteBudget(id);
-
-        // 2. IMPORTANT: Force React Query to re-fetch the list
         await queryClient.invalidateQueries(["budgets"]);
-
-        // 3. Update UI state
         if (budgetCardModalOpen) {
           setBudgetCardModalOpen(false);
           setSelectedBudget(null);
         }
-
         Swal.fire({
           icon: "success",
-          title: "Budget Deleted!",
-          text: "The budget has been successfully removed.",
-          timer: 2000,
+          title: "Deleted!",
+          timer: 1500,
           showConfirmButton: false,
           customClass: { container: "swal-z-index-fix" },
         });
       } catch (error) {
         console.error("Failed to delete budget:", error);
-        Swal.fire({
-          icon: "error",
-          title: "Failed to delete budget",
-          text: "Please try again later.",
-          customClass: { container: "swal-z-index-fix" },
-        });
       }
     }
   };
 
-  // 3. Save Budget
   const handleSaveBudget = async (budgetData) => {
     try {
       if (budgetData.id) {
         await updateBudget(budgetData.id, budgetData);
-
-        if (selectedBudget && selectedBudget.id === budgetData.id) {
-          setSelectedBudget((prev) => ({ ...prev, ...budgetData }));
-        }
       } else {
         await createBudget(budgetData);
       }
-
-      // IMPORTANT: Force React Query to re-fetch the list after save/edit
       await queryClient.invalidateQueries(["budgets"]);
-
       setEditingBudget(null);
       setModalOpen(false);
     } catch (error) {
-      console.error("Failed to save budget:", error);
       Swal.fire({
         icon: "error",
-        title: "Failed to save budget",
-        text: "Please try again later.",
+        title: "Error",
+        text: error.response?.data?.message || "Failed to save budget",
         customClass: { container: "swal-z-index-fix" },
       });
     }
   };
 
+  const handleDeleteTransaction = async (transaction) => {
+    try {
+      await deleteTransaction(transaction.id);
+      await queryClient.invalidateQueries(["transactions"]);
+      await queryClient.invalidateQueries(["budgets"]);
+      // Update modal local state
+      if (selectedBudget) {
+        const amount = parseFloat(transaction.amount);
+        setSelectedBudget((prev) => ({
+          ...prev,
+          spent: prev.spent - amount,
+          remaining: prev.remaining + amount,
+        }));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
-      {/* CSS Fix for SweetAlert Z-Index */}
-      <style>{`
-        .swal-z-index-fix {
-            z-index: 10000 !important;
-        }
-      `}</style>
+      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
 
       {/* Background decorations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -327,7 +216,7 @@ export default function BudgetPage() {
                         Budgets
                       </h1>
                       <p className="text-sm sm:text-base text-gray-600 mt-1">
-                        Manage and track your budgets
+                        Manage active budgets and view history
                       </p>
                     </div>
                   </div>
@@ -348,54 +237,38 @@ export default function BudgetPage() {
               </div>
             </section>
 
-            {/* Budget Overview */}
+            {/* Active Budgets Grid */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-4 sm:p-6">
                 <div className="mb-6">
                   <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
-                    Budget Overview
+                    Active Budgets
                   </h2>
-                  <p className="text-gray-600 text-sm mt-1">
-                    {budgets.length} budget{budgets.length !== 1 ? "s" : ""}{" "}
-                    created
-                  </p>
                 </div>
 
-                {budgets.length === 0 ? (
+                {activeBudgets.length === 0 ? (
                   <div className="text-center py-12">
                     <div className="flex flex-col items-center space-y-3">
                       <PieChart className="text-gray-300" size={48} />
                       <span className="text-gray-500 font-medium">
-                        No budgets created yet
+                        No active budgets
                       </span>
                       <p className="text-gray-400 text-sm">
-                        Create your first budget to start tracking expenses
+                        Create a new budget or check history
                       </p>
-                      <button
-                        onClick={() => {
-                          setEditingBudget(null);
-                          setModalOpen(true);
-                        }}
-                        className="mt-4 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:shadow-lg transition-all duration-300 cursor-pointer"
-                      >
-                        Create Budget
-                      </button>
                     </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
-                    {budgets.map((b, i) => {
-                      const spent = budgetSpent(b.id);
+                    {activeBudgets.map((b, i) => {
+                      const spent = budgetSpent(b);
                       const allocated = Number(b.amount);
                       const remaining = allocated - spent;
                       const percent =
                         allocated > 0
                           ? Math.min((spent / allocated) * 100, 100)
                           : 0;
-                      const status = getBudgetStatus(b);
-                      const isCompleted = status === "Completed";
-                      const statusColor = isCompleted ? "green" : "green"; // Modify if red/yellow needed
 
                       return (
                         <div
@@ -405,9 +278,7 @@ export default function BudgetPage() {
                         >
                           <div className="absolute -inset-1 bg-gradient-to-r from-gray-200/30 to-gray-300/20 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity"></div>
                           <div className="relative bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-lg transition-all duration-300 overflow-hidden">
-                            <div
-                              className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-400`}
-                            ></div>
+                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-400"></div>
 
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex-1 min-w-0">
@@ -419,14 +290,7 @@ export default function BudgetPage() {
                                 </p>
                               </div>
                               <div className="flex items-center space-x-1 ml-2">
-                                {isCompleted ? (
-                                  <CheckCircle
-                                    className="text-green-500"
-                                    size={20}
-                                  />
-                                ) : (
-                                  <Clock className="text-green-500" size={20} />
-                                )}
+                                <Clock className="text-green-500" size={20} />
                               </div>
                             </div>
 
@@ -458,7 +322,7 @@ export default function BudgetPage() {
                                   Allocated:
                                 </span>
                                 <span className="font-semibold text-green-600">
-                                  {allocated.toLocaleString()}
+                                  ${allocated.toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
@@ -466,7 +330,7 @@ export default function BudgetPage() {
                                   Spent:
                                 </span>
                                 <span className="font-semibold text-red-600">
-                                  {spent.toLocaleString()}
+                                  ${spent.toLocaleString()}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
@@ -474,7 +338,7 @@ export default function BudgetPage() {
                                   Remaining:
                                 </span>
                                 <span className="font-semibold text-orange-600">
-                                  {Math.max(remaining, 0).toLocaleString()}
+                                  ${Math.max(remaining, 0).toLocaleString()}
                                 </span>
                               </div>
                             </div>
@@ -500,7 +364,7 @@ export default function BudgetPage() {
 
                             <div className="flex items-center justify-between">
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                {status}
+                                Active
                               </span>
                               <Eye
                                 className="text-gray-400 group-hover:text-green-500 transition-colors"
@@ -516,77 +380,204 @@ export default function BudgetPage() {
               </div>
             </section>
 
-            {/* Completed Budgets Table */}
-            {completedBudgets.length > 0 && (
-              <section className="relative">
-                <div className="absolute -inset-1 bg-gradient-to-r from-gray-200/30 to-gray-300/20 rounded-2xl blur opacity-40"></div>
-                <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100/50 p-4 sm:p-6">
-                  <div className="mb-6">
-                    <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
-                      Completed Budgets
-                    </h2>
+            {/* History Table - Desktop View */}
+            {historyBudgets.length > 0 && (
+              <section className="relative hidden lg:block">
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
+                <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
+                  <div className="p-4 sm:p-6 border-b border-green-100/50">
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
+                      Budget History
+                    </h3>
+                    <p className="text-gray-600 text-sm mt-1">
+                      Completed, Reached, or Expired budgets
+                    </p>
                   </div>
+
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3">
-                            Name
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Category
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Amount
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Status
-                          </th>
-                          <th scope="col" className="px-6 py-3">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {completedBudgets.map((b, i) => (
-                          <tr
-                            key={i}
-                            className="bg-white border-b hover:bg-gray-50"
-                          >
-                            <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                              {b.name}
+                    <div className="max-h-96 overflow-y-auto">
+                      <table className="w-full text-left">
+                        <thead className="bg-green-50 sticky top-0">
+                          <tr>
+                            <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                              Name
                             </th>
-                            <td className="px-6 py-4">
-                              {getCategoryName(b.category_id)}
-                            </td>
-                            <td className="px-6 py-4 font-semibold">
-                              ${Number(b.amount).toLocaleString()}
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Completed
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => handleBudgetCardModalOpen(b)}
-                                  className="text-green-600 hover:text-green-900"
-                                >
-                                  <Eye size={16} />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(b.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
+                            <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                              Category
+                            </th>
+                            <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                              Allocated
+                            </th>
+                            <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                              Spent
+                            </th>
+                            <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
+                              Status
+                            </th>
+                            <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 text-right">
+                              Actions
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {historyBudgets.map((b, i) => {
+                            const spent = budgetSpent(b);
+                            const allocated = Number(b.amount);
+                            const status = b.status;
+
+                            let statusClass = "bg-gray-100 text-gray-800";
+                            let statusLabel = status;
+
+                            if (status === "completed") {
+                              statusClass = "bg-green-100 text-green-800";
+                              statusLabel = "Completed";
+                            } else if (status === "reached") {
+                              statusClass = "bg-red-100 text-red-800";
+                              statusLabel = "Limit Reached";
+                            } else if (status === "expired") {
+                              statusClass = "bg-orange-100 text-orange-800";
+                              statusLabel = "Expired";
+                            }
+
+                            return (
+                              <tr
+                                key={i}
+                                className="hover:bg-green-50/30 transition-colors border-b border-gray-100/50"
+                              >
+                                <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-800 font-medium">
+                                  {b.name}
+                                </td>
+                                <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-600">
+                                  {getCategoryName(b.category_id)}
+                                </td>
+                                <td className="py-3 sm:py-4 px-4 sm:px-6 font-medium text-gray-700">
+                                  ${allocated.toLocaleString()}
+                                </td>
+                                <td className="py-3 sm:py-4 px-4 sm:px-6 font-medium text-red-600">
+                                  ${spent.toLocaleString()}
+                                </td>
+                                <td className="py-3 sm:py-4 px-4 sm:px-6">
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-medium ${statusClass} capitalize`}
+                                  >
+                                    {statusLabel}
+                                  </span>
+                                </td>
+                                <td className="py-3 sm:py-4 px-4 sm:px-6 text-right">
+                                  <div className="flex items-center justify-end space-x-2">
+                                    <button
+                                      className="p-2 rounded-lg transition-colors text-blue-500 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
+                                      onClick={() =>
+                                        handleBudgetCardModalOpen(b)
+                                      }
+                                    >
+                                      <Eye size={16} />
+                                    </button>
+                                    <button
+                                      className="p-2 rounded-lg transition-colors text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                                      onClick={() => handleDelete(b.id)}
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* History Cards - Mobile View */}
+            {historyBudgets.length > 0 && (
+              <section className="relative lg:hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
+                <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
+                  <div className="p-4 border-b border-green-100/50">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      Budget History
+                    </h3>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto divide-y divide-gray-100">
+                    {historyBudgets.map((b, i) => {
+                      const spent = budgetSpent(b);
+                      const status = b.status;
+                      let statusClass = "bg-gray-100 text-gray-800";
+                      let statusLabel = status;
+
+                      if (status === "completed") {
+                        statusClass = "bg-green-100 text-green-800";
+                        statusLabel = "Completed";
+                      } else if (status === "reached") {
+                        statusClass = "bg-red-100 text-red-800";
+                        statusLabel = "Limit Reached";
+                      } else if (status === "expired") {
+                        statusClass = "bg-orange-100 text-orange-800";
+                        statusLabel = "Expired";
+                      }
+
+                      return (
+                        <div
+                          key={i}
+                          className="p-4 hover:bg-green-50/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between space-x-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-green-100">
+                                  <DollarSign
+                                    size={14}
+                                    className="text-green-600"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {b.name}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span
+                                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusClass} capitalize`}
+                                    >
+                                      {statusLabel}
+                                    </span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 truncate max-w-[120px]">
+                                      {getCategoryName(b.category_id)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="text-gray-500">
+                                  Allocated: $
+                                  {Number(b.amount).toLocaleString()}
+                                </div>
+                                <div className="font-bold text-red-600">
+                                  Spent: ${spent.toLocaleString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col space-y-1 flex-shrink-0">
+                              <button
+                                className="p-2 rounded-lg transition-colors text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                onClick={() => handleBudgetCardModalOpen(b)}
+                              >
+                                <Eye size={14} />
+                              </button>
+                              <button
+                                className="p-2 rounded-lg transition-colors text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => handleDelete(b.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </section>
@@ -606,7 +597,7 @@ export default function BudgetPage() {
         editMode={!!editingBudget}
         budget={editingBudget}
         categories={categoriesData?.data ?? []}
-        currentBudgets={budgets} // <--- THIS LINE IS CRITICAL. 'budgets' comes from useDataContext -> budgetsData.data
+        currentBudgets={activeBudgets}
       />
 
       <BudgetCardModal

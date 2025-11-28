@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
-import Swal from "sweetalert2"; // Import SweetAlert
+import Swal from "sweetalert2";
 import {
   Edit,
   X,
@@ -9,7 +9,7 @@ import {
   DollarSign,
   TrendingDown,
   Trash2,
-  Loader2, // Import Loader Icon
+  Loader2,
 } from "lucide-react";
 
 export default function BudgetCardModal({
@@ -20,12 +20,15 @@ export default function BudgetCardModal({
   onEditBudget,
   onDeleteTransaction,
   onDeleteBudget,
-  isLoading = false,
   getCategoryName,
 }) {
   const [localBudget, setLocalBudget] = useState(budget || {});
   const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false); // New Loading State
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 1. Determine Read-Only Status
+  // If status is NOT 'active' (e.g., 'completed', 'expired', 'reached'), it is read-only.
+  const isReadOnly = localBudget.status !== "active";
 
   const {
     register,
@@ -74,12 +77,10 @@ export default function BudgetCardModal({
     };
   }, [isOpen, onClose]);
 
-  const remaining = isEditing
-    ? Number(localBudget.amount) - Number(localBudget.spent)
-    : Number(localBudget.amount) - Number(localBudget.spent);
+  // --- ACTIONS ---
 
   const handleSaveChanges = async (data) => {
-    setIsSaving(true); // Start Loading
+    setIsSaving(true);
     try {
       await onEditBudget({
         ...localBudget,
@@ -89,24 +90,45 @@ export default function BudgetCardModal({
         end_date: data.end_date,
       });
 
-      // Show Success Alert
       Swal.fire({
         icon: "success",
         title: "Budget Updated",
         text: "Your changes have been saved successfully.",
         timer: 1500,
         showConfirmButton: false,
-        customClass: { container: "swal-z-index-fix" }, // Ensure it appears above modal
+        customClass: { container: "swal-z-index-fix" },
       });
 
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating budget", error);
-      // Optional: Add error alert here if parent doesn't handle it
     } finally {
-      setIsSaving(false); // Stop Loading
+      setIsSaving(false);
     }
   };
+
+  // 2. Transaction Delete Confirmation
+  const handleDeleteTx = (tx) => {
+    Swal.fire({
+      title: "Delete Transaction?",
+      text: "This will remove the expense from this budget calculation.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, delete it!",
+      customClass: { container: "swal-z-index-fix" },
+    }).then((result) => {
+      if (result.isConfirmed) {
+        onDeleteTransaction(tx);
+      }
+    });
+  };
+
+  // --- CALCULATIONS ---
+
+  const remaining =
+    Number(localBudget.amount || 0) - Number(localBudget.spent || 0);
 
   const percentage = localBudget.amount
     ? Math.min(
@@ -142,11 +164,26 @@ export default function BudgetCardModal({
                   <DollarSign className="text-white" size={20} />
                 </div>
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                    {getCategoryName
-                      ? getCategoryName(localBudget.category_id)
-                      : localBudget.category}
-                  </h2>
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                      {getCategoryName
+                        ? getCategoryName(localBudget.category_id)
+                        : localBudget.category}
+                    </h2>
+                    {/* Status Badge */}
+                    <span
+                      className={`px-2 py-0.5 text-xs font-bold rounded-full uppercase tracking-wide
+                      ${
+                        localBudget.status === "active"
+                          ? "bg-green-100 text-green-700"
+                          : localBudget.status === "reached"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-orange-100 text-orange-700"
+                      }`}
+                    >
+                      {localBudget.status}
+                    </span>
+                  </div>
                   {!isEditing && (
                     <p className="text-sm text-gray-600 mt-1">
                       {localBudget.description || "No description"}
@@ -156,27 +193,34 @@ export default function BudgetCardModal({
               </div>
 
               <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  disabled={isSaving} // Disable while saving
-                  className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
-                    isSaving
-                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                      : "bg-green-100 text-green-700 hover:bg-green-200"
-                  }`}
-                >
-                  <Edit size={16} />
-                  <span className="hidden sm:inline">
-                    {isEditing ? "Cancel" : "Edit"}
-                  </span>
-                </button>
-                <button
-                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                  onClick={() => onDeleteBudget(localBudget)}
-                  disabled={isSaving}
-                >
-                  <Trash2 size={16} />
-                </button>
+                {/* 3. CONDITIONAL RENDERING: Hide buttons if Read Only */}
+                {!isReadOnly && (
+                  <button
+                    onClick={() => setIsEditing(!isEditing)}
+                    disabled={isSaving}
+                    className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-all duration-200 text-sm font-medium ${
+                      isSaving
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-green-100 text-green-700 hover:bg-green-200"
+                    }`}
+                  >
+                    <Edit size={16} />
+                    <span className="hidden sm:inline">
+                      {isEditing ? "Cancel" : "Edit"}
+                    </span>
+                  </button>
+                )}
+
+                {!isReadOnly && (
+                  <button
+                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    onClick={() => onDeleteBudget(localBudget)}
+                    disabled={isSaving}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+
                 <button
                   onClick={onClose}
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200"
@@ -232,7 +276,7 @@ export default function BudgetCardModal({
                             Allocated
                           </p>
                           <p className="text-lg font-bold text-green-700">
-                            {Number(budget.amount || 0).toLocaleString()}
+                            ${Number(localBudget.amount || 0).toLocaleString()}
                           </p>
                         </div>
                         <div className="bg-red-50 rounded-lg p-4 text-center">
@@ -240,7 +284,7 @@ export default function BudgetCardModal({
                             Spent
                           </p>
                           <p className="text-lg font-bold text-red-700">
-                            {Number(budget.spent || 0).toLocaleString()}
+                            ${Number(localBudget.spent || 0).toLocaleString()}
                           </p>
                         </div>
                         <div className="bg-orange-50 rounded-lg p-4 text-center">
@@ -248,7 +292,7 @@ export default function BudgetCardModal({
                             Remaining
                           </p>
                           <p className="text-lg font-bold text-orange-700">
-                            {remaining.toLocaleString()}
+                            ${remaining.toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -258,7 +302,7 @@ export default function BudgetCardModal({
               </div>
 
               {/* Edit Mode */}
-              {isEditing && (
+              {isEditing && !isReadOnly && (
                 <div className="relative mb-6">
                   <div className="absolute -inset-1 bg-gradient-to-r from-orange-200/30 to-orange-300/20 rounded-xl blur opacity-30"></div>
                   <div className="relative bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-orange-100/50 p-4 sm:p-6">
@@ -391,25 +435,7 @@ export default function BudgetCardModal({
                   </h3>
 
                   <div className="flex-1 overflow-y-auto">
-                    {isLoading ? (
-                      <div className="space-y-3">
-                        {[...Array(5)].map((_, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 animate-pulse"
-                          >
-                            <div className="flex items-center space-x-3 flex-1">
-                              <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                              <div className="flex-1">
-                                <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-                                <div className="h-3 bg-gray-200 rounded w-20"></div>
-                              </div>
-                            </div>
-                            <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : transactions.length === 0 ? (
+                    {transactions.length === 0 ? (
                       <div className="text-center py-8">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                           <Calendar className="text-gray-400" size={24} />
@@ -451,10 +477,11 @@ export default function BudgetCardModal({
                               </div>
                             </div>
 
-                            {onDeleteTransaction && (
+                            {/* 4. HIDE DELETE TRANSACTION IF READ ONLY */}
+                            {!isReadOnly && (
                               <button
                                 className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50"
-                                onClick={() => onDeleteTransaction(tx)}
+                                onClick={() => handleDeleteTx(tx)}
                                 disabled={isSaving}
                               >
                                 <Trash2 size={16} />

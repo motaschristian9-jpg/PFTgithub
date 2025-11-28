@@ -24,6 +24,7 @@ class TransactionResource extends JsonResource
             'date' => $this->date?->format('Y-m-d'),
             'category_id' => $this->category_id,
             'category_name' => $this->category?->name,
+            'budget_id' => $this->budget_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
