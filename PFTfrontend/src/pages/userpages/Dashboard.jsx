@@ -17,6 +17,7 @@ import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import { logoutUser } from "../../api/auth.js";
 import Swal from "sweetalert2";
+import { useLocation } from "react-router-dom";
 import { useDataContext } from "../../components/DataLoader";
 
 import {
@@ -45,7 +46,7 @@ const COLORS = [
   "#6366F1", // Indigo
 ];
 
-// Custom Tooltip Component
+// Custom Tooltip Component for Charts
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -63,7 +64,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const Dashboard = () => {
-  // 1. Data Context
+  // 1. Safe Data Access
   const {
     user,
     transactionsData,
@@ -79,7 +80,7 @@ const Dashboard = () => {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- MEMOIZED CALCULATIONS (Performance) ---
+  // --- MEMOIZED CALCULATIONS (Performance Optimization) ---
 
   const transactions = useMemo(
     () => transactionsData?.data || [],
@@ -95,7 +96,7 @@ const Dashboard = () => {
   );
   const savingsList = useMemo(() => savingsData?.data || [], [savingsData]);
 
-  // Totals
+  // A. Financial Totals
   const stats = useMemo(() => {
     let income = 0;
     let expenses = 0;
@@ -107,7 +108,7 @@ const Dashboard = () => {
     return { income, expenses, net: income - expenses };
   }, [transactions]);
 
-  // Pie Chart Data
+  // B. Pie Chart Data (Donut)
   const pieChartData = useMemo(() => {
     const map = {};
     transactions.forEach((t) => {
@@ -126,10 +127,10 @@ const Dashboard = () => {
         value: value,
       }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
+      .slice(0, 8); // Top 8 categories only
   }, [transactions, categories]);
 
-  // Bar Chart Data
+  // C. Bar Chart Data
   const barChartData = useMemo(
     () => [
       { name: "Income", amount: stats.income, color: "#10B981" },
@@ -138,7 +139,7 @@ const Dashboard = () => {
     [stats]
   );
 
-  // Budget Progress Data
+  // D. Budget Progress Calculation
   const budgetProgressData = useMemo(() => {
     const spendingMap = {};
     transactions.forEach((t) => {
@@ -154,6 +155,7 @@ const Dashboard = () => {
       const remaining = allocated - spent;
       const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
 
+      // Status Logic
       let statusColor = "bg-emerald-500";
       let statusText = "text-emerald-600";
       let label = "On Track";
@@ -185,7 +187,7 @@ const Dashboard = () => {
     });
   }, [activeBudgets, transactions]);
 
-  // Savings Data
+  // E. Savings Progress Calculation
   const processedSavings = useMemo(() => {
     return savingsList.map((s) => {
       const current = Number(s.current_amount || 0);
@@ -228,7 +230,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
-      {/* Background */}
+      {/* Background Effect */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
@@ -264,7 +266,7 @@ const Dashboard = () => {
 
         <MainView>
           <div className="space-y-6 p-4 sm:p-6 lg:p-0">
-            {/* Header */}
+            {/* 1. Dashboard Header */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8">
@@ -287,56 +289,68 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Stats Cards */}
+            {/* 2. Summary Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between group hover:shadow-md transition-all">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Total Income
-                  </p>
-                  <p className="text-2xl font-bold text-emerald-600 mt-1">
-                    ${stats.income.toLocaleString()}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                  <TrendingUp size={24} />
-                </div>
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between group hover:shadow-md transition-all">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Total Expenses
-                  </p>
-                  <p className="text-2xl font-bold text-red-600 mt-1">
-                    ${stats.expenses.toLocaleString()}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
-                  <TrendingDown size={24} />
+              {/* Income */}
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-200 to-emerald-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
+                <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Total Income
+                    </p>
+                    <p className="text-2xl font-bold text-emerald-600 mt-1">
+                      ${stats.income.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                    <TrendingUp size={24} />
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between group hover:shadow-md transition-all">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    Net Balance
-                  </p>
-                  <p
-                    className={`text-2xl font-bold mt-1 ${
-                      stats.net >= 0 ? "text-blue-600" : "text-red-500"
-                    }`}
-                  >
-                    ${stats.net.toLocaleString()}
-                  </p>
+              {/* Expenses */}
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-red-200 to-red-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
+                <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Total Expenses
+                    </p>
+                    <p className="text-2xl font-bold text-red-600 mt-1">
+                      ${stats.expenses.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
+                    <TrendingDown size={24} />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                  <Wallet size={24} />
+              </div>
+
+              {/* Net Balance */}
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-200 to-blue-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
+                <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Net Balance
+                    </p>
+                    <p
+                      className={`text-2xl font-bold mt-1 ${
+                        stats.net >= 0 ? "text-blue-600" : "text-red-500"
+                      }`}
+                    >
+                      ${stats.net.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                    <Wallet size={24} />
+                  </div>
                 </div>
               </div>
             </section>
 
-            {/* Charts Section */}
+            {/* 3. Charts Section */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Donut Chart */}
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col">
@@ -361,7 +375,7 @@ const Dashboard = () => {
                           nameKey="name"
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
+                          innerRadius={60} // Creates the Donut effect
                           outerRadius={90}
                           paddingAngle={5}
                         >
@@ -432,7 +446,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Budget Progress */}
+            {/* 4. Budget Progress */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-100/50 p-6">
@@ -511,7 +525,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Savings Goals */}
+            {/* 5. Savings Goals */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/30 to-blue-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 p-6">
