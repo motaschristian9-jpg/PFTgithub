@@ -1,17 +1,20 @@
-import { useContext } from "react";
+import { useMemo } from "react";
 import { getToken } from "../api/axios";
 import { useUserContext } from "../context/UserContext";
 
 export const useAuth = () => {
-  const token = getToken();
   const { user, isLoading } = useUserContext();
 
-  const isAuthenticated = !!token && !!user;
+  return useMemo(() => {
+    const token = getToken();
+    // Derived state: authenticated only if we have both token and user data
+    const isAuthenticated = !!token && !!user;
 
-  return {
-    isAuthenticated,
-    isLoading, // Reflect loading state from user context
-    user,
-    error: null,
-  };
+    return {
+      isAuthenticated,
+      isLoading,
+      user,
+      error: null,
+    };
+  }, [user, isLoading]);
 };

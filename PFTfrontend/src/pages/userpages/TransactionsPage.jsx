@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ArrowUpDown,
   ArrowUp,
@@ -10,11 +10,12 @@ import {
   TrendingUp,
   TrendingDown,
   Plus,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Edit2,
   Trash2,
+  X,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
@@ -27,18 +28,23 @@ import TransactionModal from "../../components/TransactionModal.jsx";
 import { logoutUser } from "../../api/auth.js";
 import { useExampleTransactionsApi } from "../../hooks/useExampleTransactionsApi.js";
 import Swal from "sweetalert2";
-import { useLocation } from "react-router-dom";
 import { useDataContext } from "../../components/DataLoader";
 import { useDeleteTransaction } from "../../hooks/useTransactions.js";
 
 export default function TransactionsPage() {
-  const location = useLocation();
+  // --- UI State ---
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
 
+  // Local filter state for date logic
+  const [datePreset, setDatePreset] = useState("all");
+
+  // --- Data & Hooks ---
   const { user, categoriesData } = useDataContext();
   const deleteTransactionMutation = useDeleteTransaction();
 
@@ -47,7 +53,6 @@ export default function TransactionsPage() {
     totalIncome,
     totalExpenses,
     pagination,
-    page,
     setPage,
     type,
     setType,
@@ -67,16 +72,21 @@ export default function TransactionsPage() {
     isError,
   } = useExampleTransactionsApi();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [datePreset, setDatePreset] = useState("all");
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState(null);
+  // --- Optimization: Memoize Filtered Categories ---
+  // Prevents re-calculation on every render (e.g. while typing search)
+  const filteredCategories = useMemo(() => {
+    return (categoriesData?.data || []).filter(
+      (cat) => type === "all" || cat.type === type
+    );
+  }, [categoriesData, type]);
 
-  // Add useEffect to update startDate and endDate when datePreset changes
+  // --- Effects ---
+
+  // Handle Date Presets
   useEffect(() => {
+    const today = new Date();
     let start = "";
     let end = "";
-    const today = new Date();
 
     if (datePreset === "this_month") {
       start = format(startOfMonth(today), "yyyy-MM-dd");
@@ -85,29 +95,14 @@ export default function TransactionsPage() {
       const lastMonthDate = subMonths(today, 1);
       start = format(startOfMonth(lastMonthDate), "yyyy-MM-dd");
       end = format(endOfMonth(lastMonthDate), "yyyy-MM-dd");
-    } else if (datePreset === "all") {
-      start = "";
-      end = "";
     }
 
     setStartDate(start);
     setEndDate(end);
-    setPage(1); // Reset page when date changes
-  }, [datePreset]);
+    setPage(1); // Always reset to page 1 when changing filters
+  }, [datePreset, setStartDate, setEndDate, setPage]);
 
-  const filteredCategories = (categoriesData?.data || []).filter(
-    (cat) => type === "all" || cat.type === type
-  );
-
-  const toggleSidebar = () => {
-    setSidebarOpen((prev) => {
-      const newValue = !prev;
-      localStorage.setItem("sidebarOpen", JSON.stringify(newValue));
-      return newValue;
-    });
-  };
-
-  const toggleMobileMenu = () => setMobileMenuOpen((prev) => !prev);
+  // --- Handlers ---
 
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
@@ -123,47 +118,18 @@ export default function TransactionsPage() {
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#6b7280",
       confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
+      customClass: { container: "swal-z-index-fix" },
     });
 
     if (result.isConfirmed) {
       await deleteTransactionMutation.mutateAsync(transactionId);
-
       await Swal.fire({
         icon: "success",
-        title: "Transaction Deleted!",
-        text: "The transaction has been successfully removed.",
-        timer: 2000,
-        timerProgressBar: true,
+        title: "Deleted!",
+        timer: 1500,
         showConfirmButton: false,
+        customClass: { container: "swal-z-index-fix" },
       });
-    }
-  };
-
-  const handleLogout = async () => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You will be logged out of your account",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, logout",
-      cancelButtonText: "Cancel",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await logoutUser();
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "/login";
-      } catch (error) {
-        console.error("Logout failed:", error);
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "/login";
-      }
     }
   };
 
@@ -174,614 +140,502 @@ export default function TransactionsPage() {
     }
     setSortBy(key);
     setSortOrder(direction);
-    setPage(1); // Reset page when sorting changes
+    setPage(1);
   };
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: "Logout?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await logoutUser();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "/login";
+      }
+    }
+  };
+
+  // --- Render Helpers ---
 
   const getSortIcon = (key) => {
     if (sortBy !== key)
-      return <ArrowUpDown size={16} className="text-gray-400" />;
+      return <ArrowUpDown size={14} className="text-gray-400 opacity-50" />;
     return sortOrder === "asc" ? (
-      <ArrowUp size={16} className="text-green-600" />
+      <ArrowUp size={14} className="text-green-600" />
     ) : (
-      <ArrowDown size={16} className="text-green-600" />
+      <ArrowDown size={14} className="text-green-600" />
     );
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatAmount = (amount) =>
+    `$${Math.abs(amount).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+    })}`;
+
+  const formatDate = (dateString) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
-
-  const formatAmount = (amount) => {
-    const absAmount = Math.abs(amount);
-    return `$${absAmount.toFixed(2)}`;
-  };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
-      {/* Background decorations */}
+      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
+
+      {/* Decorative Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
       </div>
 
-      {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden"
-          onClick={toggleMobileMenu}
+          onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       <Sidebar
         sidebarOpen={sidebarOpen}
-        toggleSidebar={toggleSidebar}
+        toggleSidebar={() => {
+          setSidebarOpen((prev) => {
+            const newValue = !prev;
+            localStorage.setItem("sidebarOpen", JSON.stringify(newValue));
+            return newValue;
+          });
+        }}
         mobileMenuOpen={mobileMenuOpen}
-        toggleMobileMenu={toggleMobileMenu}
+        toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
       />
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col relative z-10">
         <Topbar
-          toggleMobileMenu={toggleMobileMenu}
+          toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           notifications={[]}
-          hasUnread={false}
-          setHasUnread={() => {}}
           user={user}
           handleLogout={handleLogout}
         />
 
         <MainView>
-          <div className="space-y-4 sm:space-y-6 lg:space-y-8 p-4 sm:p-6 lg:p-0">
-            {/* Header */}
+          <div className="space-y-6 p-4 sm:p-6 lg:p-0">
+            {/* 1. Header & Actions */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-4 sm:p-6 lg:p-8">
-                <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center space-x-3 sm:space-x-4">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <DollarSign className="text-white" size={20} />
-                    </div>
-                    <div>
-                      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-                        Transactions
-                      </h1>
-                      <p className="text-sm sm:text-base text-gray-600 mt-1">
-                        Track and manage your financial transactions
-                      </p>
-                    </div>
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
+                    <DollarSign className="text-white" size={28} />
                   </div>
-                  <button
-                    onClick={() => setModalOpen(true)}
-                    className="flex items-center justify-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 text-sm sm:text-base cursor-pointer"
-                  >
-                    <Plus
-                      size={16}
-                      className="text-white sm:w-[18px] sm:h-[18px]"
-                    />
-                    <span className="font-medium">Add Transaction</span>
-                  </button>
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-800">
+                      Transactions
+                    </h1>
+                    <p className="text-gray-500 mt-1">
+                      Manage and track your financial history
+                    </p>
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => {
+                    setEditingTransaction(null);
+                    setModalOpen(true);
+                  }}
+                  className="w-full md:w-auto flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 font-medium"
+                >
+                  <Plus size={18} />
+                  <span>Add Transaction</span>
+                </button>
               </div>
             </section>
 
-            {/* Summary Cards */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
-                <div className="relative bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-green-100/50 p-6 hover:shadow-xl transition-shadow">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="text-white" size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-700 text-sm">
-                        Total Income
-                      </h3>
-                      <p className="text-2xl font-bold text-green-600">
-                        ${totalIncome.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-red-200/30 to-red-300/20 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
-                <div className="relative bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-red-100/50 p-6 hover:shadow-xl transition-shadow">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-lg flex items-center justify-center">
-                      <TrendingDown className="text-white" size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-700 text-sm">
-                        Total Expenses
-                      </h3>
-                      <p className="text-2xl font-bold text-red-500">
-                        ${totalExpenses.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/30 to-blue-300/20 rounded-xl blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
-                <div className="relative bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-blue-100/50 p-6 hover:shadow-xl transition-shadow">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-                      <DollarSign className="text-white" size={20} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-700 text-sm">
-                        Net Balance
-                      </h3>
-                      <p
-                        className={`text-2xl font-bold ${
-                          totalIncome - totalExpenses >= 0
-                            ? "text-green-600"
-                            : "text-red-500"
-                        }`}
-                      >
-                        ${(totalIncome - totalExpenses).toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Filters and Search */}
-            <section className="relative">
+            {/* 2. Enhanced Filter & Control Panel */}
+            <section className="relative z-20">
               <div className="absolute -inset-1 bg-gradient-to-r from-gray-200/30 to-gray-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100/50 p-4 sm:p-6 lg:p-8">
-                <div className="flex flex-col gap-4">
-                  {/* Search and Filters Row */}
-                  <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                    {/* Left side filters */}
-                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full xl:w-auto flex-wrap">
-                      <div className="relative w-full sm:w-64">
-                        <Search
-                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                          size={18}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Search transactions..."
-                          value={search}
-                          onChange={(e) => {
-                            setSearch(e.target.value);
-                            setPage(1);
-                          }}
-                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2 w-full sm:w-auto">
-                        <Filter
-                          size={18}
-                          className="text-gray-600 hidden sm:block"
-                        />
-                        <select
-                          value={type}
-                          onChange={(e) => {
-                            setType(e.target.value);
-                            setCategoryId("");
-                            setPage(1);
-                          }}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
-                        >
-                          <option key="all" value="all">All Types</option>
-                          <option key="income" value="income">Income</option>
-                          <option key="expense" value="expense">Expenses</option>
-                        </select>
-                      </div>
-                      <select
-                        value={categoryId}
-                        onChange={(e) => setCategoryId(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
-                      >
-                        <option value="">All Categories</option>
-                        {filteredCategories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
-                      {/* Date Preset */}
-                      <div className="flex items-center space-x-2 w-full sm:w-auto">
-                        <Calendar
-                          size={18}
-                          className="text-gray-600 hidden sm:block"
-                        />
-                        <select
-                          value={datePreset}
-                          onChange={(e) => setDatePreset(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
-                        >
-                          <option key="all" value="all">All Dates</option>
-                          <option key="this_month" value="this_month">This Month</option>
-                          <option key="last_month" value="last_month">Last Month</option>
-                          <option key="custom" value="custom">Custom Range</option>
-                        </select>
-                      </div>
-                      {/* Pagination Controls */}
-                      <div className="flex items-center space-x-2 w-full sm:w-auto">
-                        <button
-                          onClick={() =>
-                            setPage(Math.max(pagination.currentPage - 1, 1))
-                          }
-                          disabled={pagination.currentPage === 1}
-                          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <ChevronLeft size={18} className="text-gray-600" />
-                        </button>
-                        <div className="px-3 py-2 border border-gray-300 rounded-lg bg-white min-w-[60px] text-center">
-                          <span className="text-sm font-medium text-gray-700">
-                            {pagination.currentPage}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() =>
-                            setPage(
-                              Math.min(
-                                pagination.currentPage + 1,
-                                pagination.lastPage
-                              )
-                            )
-                          }
-                          disabled={
-                            pagination.currentPage === pagination.lastPage
-                          }
-                          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <ChevronRight size={18} className="text-gray-600" />
-                        </button>
-                      </div>
+              <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/60 p-5">
+                {/* Top Row: Search & Pagination */}
+                <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-5">
+                  <div className="relative w-full lg:max-w-md group">
+                    <Search
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-green-500 transition-colors"
+                      size={18}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search by name or description..."
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl border border-gray-200">
+                    <button
+                      onClick={() =>
+                        setPage(Math.max(pagination.currentPage - 1, 1))
+                      }
+                      disabled={pagination.currentPage === 1}
+                      className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                    >
+                      <ChevronLeft size={18} className="text-gray-600" />
+                    </button>
+                    <span className="px-3 text-sm font-semibold text-gray-700 min-w-[3rem] text-center">
+                      {pagination.currentPage} / {pagination.lastPage || 1}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setPage(
+                          Math.min(
+                            pagination.currentPage + 1,
+                            pagination.lastPage
+                          )
+                        )
+                      }
+                      disabled={pagination.currentPage === pagination.lastPage}
+                      className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
+                    >
+                      <ChevronRight size={18} className="text-gray-600" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Bottom Row: Filters Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {/* Type Filter */}
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <SlidersHorizontal size={16} />
                     </div>
-                    {/* Transaction count */}
-                    <div className="text-sm text-gray-600 self-start xl:self-center">
-                      Showing {transactions.length} transactions
+                    <select
+                      value={type}
+                      onChange={(e) => {
+                        setType(e.target.value);
+                        setCategoryId("");
+                        setPage(1);
+                      }}
+                      className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-green-300 transition-colors"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="income">Income</option>
+                      <option value="expense">Expenses</option>
+                    </select>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <Filter size={16} />
+                    </div>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => {
+                        setCategoryId(e.target.value);
+                        setPage(1);
+                      }}
+                      className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-green-300 transition-colors"
+                    >
+                      <option value="">All Categories</option>
+                      {filteredCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Date Preset */}
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <Calendar size={16} />
+                    </div>
+                    <select
+                      value={datePreset}
+                      onChange={(e) => setDatePreset(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-green-300 transition-colors"
+                    >
+                      <option value="all">All Dates</option>
+                      <option value="this_month">This Month</option>
+                      <option value="last_month">Last Month</option>
+                      <option value="custom">Custom Range</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Filter (Mobile Only primarily, serves as quick sort) */}
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <ArrowUpDown size={16} />
+                    </div>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => {
+                        setSortBy(e.target.value);
+                        setSortOrder("desc");
+                        setPage(1);
+                      }}
+                      className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-green-300 transition-colors"
+                    >
+                      <option value="date">Sort by Date</option>
+                      <option value="amount">Sort by Amount</option>
+                      <option value="created_at">Sort by Created</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Custom Date Range Expandable */}
+                {datePreset === "custom" && (
+                  <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">
+                        From
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">
+                        To
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none"
+                      />
                     </div>
                   </div>
-                  {/* Custom date range */}
-                  {datePreset === "custom" && (
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                        <label className="text-sm text-gray-600 whitespace-nowrap">
-                          From:
-                        </label>
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => setStartDate(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
-                        />
-                      </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                        <label className="text-sm text-gray-600 whitespace-nowrap">
-                          To:
-                        </label>
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-full sm:w-auto"
-                        />
-                      </div>
-                    </div>
-                  )}
+                )}
+              </div>
+            </section>
+
+            {/* 3. Totals Summary (Mobile Optimized Grid) */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-green-100 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Income</p>
+                  <p className="text-xl font-bold text-green-600">
+                    ${totalIncome.toLocaleString()}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                  <TrendingUp size={20} />
+                </div>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Expenses</p>
+                  <p className="text-xl font-bold text-red-600">
+                    ${totalExpenses.toLocaleString()}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                  <TrendingDown size={20} />
+                </div>
+              </div>
+              <div className="hidden lg:flex bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-blue-100 items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">Net</p>
+                  <p
+                    className={`text-xl font-bold ${
+                      totalIncome - totalExpenses >= 0
+                        ? "text-blue-600"
+                        : "text-red-500"
+                    }`}
+                  >
+                    ${(totalIncome - totalExpenses).toLocaleString()}
+                  </p>
+                </div>
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                  <DollarSign size={20} />
                 </div>
               </div>
             </section>
 
-            {/* Transactions Table - Desktop View
-                NOTE: changed breakpoint so table only shows at lg (>=1024px).
-                This keeps the compact/mobile cards up through 768-1023px and
-                prevents zooming/shrinking issues on medium screens.
-            */}
-            <section className="relative hidden lg:block">
+            {/* 4. Transactions List */}
+            <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
-                <div className="p-4 sm:p-6 border-b border-green-100/50">
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-800">
-                    Transaction History
-                  </h3>
-                  <p className="text-gray-600 text-sm mt-1">
-                    {transactions.length} transaction{transactions.length !== 1 ? "s" : ""} found
-                  </p>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <div className="max-h-96 overflow-y-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-green-50 sticky top-0">
-                        <tr>
-                          <th 
-                            className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 cursor-pointer hover:bg-green-100 transition-colors"
-                            onClick={() => handleSort("date")}
-                          >
-                            <div className="flex items-center space-x-1">
-                              <span>Date</span>
-                              {getSortIcon("date")}
-                            </div>
-                          </th>
-                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
-                            Name
-                          </th>
-                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
-                            Category
-                          </th>
-                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
-                            Description
-                          </th>
-                          <th 
-                            className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 cursor-pointer hover:bg-green-100 transition-colors"
-                            onClick={() => handleSort("amount")}
-                          >
-                            <div className="flex items-center space-x-1">
-                              <span>Amount</span>
-                              {getSortIcon("amount")}
-                            </div>
-                          </th>
-                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700">
-                            Type
-                          </th>
-                          <th className="py-3 sm:py-4 px-4 sm:px-6 font-semibold text-gray-700 text-right">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {isLoading ? (
-                          <tr>
-                            <td colSpan="7" className="text-center py-12">
-                              <div className="flex flex-col items-center space-y-2">
-                                <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                                <p className="text-green-600">Loading transactions...</p>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : isError ? (
-                          <tr>
-                            <td colSpan="7" className="text-center py-12">
-                              <div className="flex flex-col items-center space-y-2">
-                                <div className="w-12 h-12 flex items-center justify-center text-red-600 text-3xl">
-                                  ⚠️
-                                </div>
-                                <p className="text-red-600">Error loading transactions. Please try again later.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : transactions.length === 0 ? (
-                          <tr>
-                            <td colSpan="7" className="text-center py-12">
-                              <div className="flex flex-col items-center space-y-3">
-                                <DollarSign className="text-gray-300" size={48} />
-                                <span className="text-gray-500 font-medium">
-                                  No transactions found
-                                </span>
-                                <p className="text-gray-400 text-sm">
-                                  Try adjusting your search or filters
-                                </p>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : (
-                          transactions.map((transaction, index) => (
-                            <tr
-                              key={transaction.id ?? `txn-${index}`}
-                              className="hover:bg-green-50/30 transition-colors border-b border-gray-100/50"
-                            >
-                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-700">
-                                {formatDate(transaction.date)}
-                              </td>
-                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-800 font-medium">
-                                {transaction.name || "Unnamed"}
-                              </td>
-                              <td className="py-3 sm:py-4 px-4 sm:px-6">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    transaction.type === "income"
-                                      ? "bg-emerald-100 text-emerald-800"
-                                      : "bg-red-100 text-red-800"
-                                  }`}
-                                >
-                                  {transaction.category_name || "Uncategorized"}
-                                </span>
-                              </td>
-                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-gray-600 max-w-xs truncate">
-                                {transaction.description || "-"}
-                              </td>
-                              <td
-                                className={`py-3 sm:py-4 px-4 sm:px-6 font-bold ${
-                                  transaction.type === "income"
-                                    ? "text-green-600"
-                                    : "text-red-500"
-                                }`}
-                              >
-                                <div className="flex items-center space-x-1">
-                                  {transaction.type === "income" ? (
-                                    <TrendingUp size={16} />
-                                  ) : (
-                                    <TrendingDown size={16} />
-                                  )}
-                                  <span>
-                                    {transaction.type === "income" ? "+" : "-"}{" "}
-                                    {formatAmount(transaction.amount)}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="py-3 sm:py-4 px-4 sm:px-6">
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    transaction.type === "income"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
-                                  }`}
-                                >
-                                  {transaction.type === "income" ? "Income" : "Expense"}
-                                </span>
-                              </td>
-                              <td className="py-3 sm:py-4 px-4 sm:px-6 text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    className="p-2 rounded-lg transition-colors text-blue-500 hover:text-blue-700 hover:bg-blue-50 cursor-pointer"
-                                    onClick={() => handleEdit(transaction)}
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button
-                                    className="p-2 rounded-lg transition-colors text-red-500 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                                    onClick={() => handleDelete(transaction.id)}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden min-h-[400px] flex flex-col">
+                {/* Desktop Table Header */}
+                <div className="hidden lg:grid grid-cols-12 gap-4 p-4 bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div
+                    onClick={() => handleSort("date")}
+                    className="col-span-2 cursor-pointer flex items-center hover:text-green-600 transition-colors"
+                  >
+                    Date {getSortIcon("date")}
                   </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Transactions Cards - Mobile View (keeps visible up to 1023px) */}
-            <section className="relative lg:hidden">
-              <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
-                <div className="p-4 border-b border-green-100/50">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Transaction History
-                  </h3>
-                  <p className="text-gray-600 text-sm mt-1">
-                    {transactions.length} transaction{transactions.length !== 1 ? "s" : ""} found
-                  </p>
+                  <div className="col-span-3">Name & Description</div>
+                  <div className="col-span-2">Category</div>
+                  <div
+                    onClick={() => handleSort("amount")}
+                    className="col-span-2 cursor-pointer flex items-center hover:text-green-600 transition-colors"
+                  >
+                    Amount {getSortIcon("amount")}
+                  </div>
+                  <div className="col-span-1">Type</div>
+                  <div className="col-span-2 text-right">Actions</div>
                 </div>
 
-                <div className="max-h-96 overflow-y-auto">
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto">
                   {isLoading ? (
-                    <div className="text-center py-12 px-4">
-                      <div className="flex flex-col items-center space-y-2">
-                        <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-green-600">Loading transactions...</p>
-                      </div>
+                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                      <div className="w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                      <p>Loading transactions...</p>
                     </div>
                   ) : isError ? (
-                    <div className="text-center py-12 px-4">
-                      <div className="flex flex-col items-center space-y-2">
-                        <div className="w-12 h-12 flex items-center justify-center text-red-600 text-3xl">
-                          ⚠️
-                        </div>
-                        <p className="text-red-600">Error loading transactions. Please try again later.</p>
-                      </div>
+                    <div className="flex flex-col items-center justify-center h-64 text-red-500">
+                      <p>Failed to load data.</p>
                     </div>
                   ) : transactions.length === 0 ? (
-                    <div className="text-center py-12 px-4">
-                      <div className="flex flex-col items-center space-y-3">
-                        <DollarSign className="text-gray-300" size={48} />
-                        <span className="text-gray-500 font-medium">
-                          No transactions found
-                        </span>
-                        <p className="text-gray-400 text-sm">
-                          Try adjusting your search or filters
-                        </p>
-                      </div>
+                    <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                      <DollarSign size={48} className="mb-4 opacity-50" />
+                      <p>No transactions found.</p>
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-100">
-                      {transactions.map((transaction, index) => (
+                      {transactions.map((tx) => (
                         <div
-                          key={transaction.id ?? `txn-${index}`}
-                          className="p-4 hover:bg-green-50/30 transition-colors"
+                          key={tx.id}
+                          className="group hover:bg-green-50/30 transition-colors"
                         >
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <div
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                    transaction.type === "income"
-                                      ? "bg-green-100"
-                                      : "bg-red-100"
-                                  }`}
-                                >
-                                  {transaction.type === "income" ? (
-                                    <TrendingUp
-                                      size={14}
-                                      className="text-green-600"
-                                    />
-                                  ) : (
-                                    <TrendingDown
-                                      size={14}
-                                      className="text-red-500"
-                                    />
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {transaction.name || "Unnamed"}
-                                  </p>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    <span
-                                      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                        transaction.type === "income"
-                                          ? "bg-green-100 text-green-800"
-                                          : "bg-red-100 text-red-800"
-                                      }`}
-                                    >
-                                      {transaction.type === "income" ? "Income" : "Expense"}
-                                    </span>
-                                    {transaction.category_name && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 truncate max-w-[120px]">
-                                        {transaction.category_name}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                          {/* Desktop Row */}
+                          <div className="hidden lg:grid grid-cols-12 gap-4 p-4 items-center">
+                            <div className="col-span-2 text-sm text-gray-600 font-medium">
+                              {formatDate(tx.date)}
+                            </div>
+                            <div className="col-span-3">
+                              <p className="text-sm font-bold text-gray-800 truncate">
+                                {tx.name || "Unnamed"}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">
+                                {tx.description}
+                              </p>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                {tx.category_name || "Uncategorized"}
+                              </span>
+                            </div>
+                            <div
+                              className={`col-span-2 text-sm font-bold ${
+                                tx.type === "income"
+                                  ? "text-green-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {tx.type === "income" ? "+" : "-"}
+                              {formatAmount(tx.amount)}
+                            </div>
+                            <div className="col-span-1">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wide ${
+                                  tx.type === "income"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {tx.type}
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => handleEdit(tx)}
+                                className="p-2 text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(tx.id)}
+                                className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
 
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-1 text-xs text-gray-500">
-                                  <Calendar size={12} />
-                                  <span>{formatDate(transaction.date)}</span>
-                                </div>
-                                <div
-                                  className={`text-lg font-bold ${
-                                    transaction.type === "income"
-                                      ? "text-green-600"
-                                      : "text-red-500"
-                                  }`}
-                                >
-                                  {transaction.type === "income" ? "+" : "-"}
-                                  {formatAmount(transaction.amount)}
+                          {/* Mobile Card */}
+                          <div className="lg:hidden p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  tx.type === "income"
+                                    ? "bg-green-100 text-green-600"
+                                    : "bg-red-100 text-red-600"
+                                }`}
+                              >
+                                {tx.type === "income" ? (
+                                  <TrendingUp size={18} />
+                                ) : (
+                                  <TrendingDown size={18} />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-800 truncate">
+                                  {tx.name || "Unnamed"}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                  <span>{formatDate(tx.date)}</span>
+                                  <span>•</span>
+                                  <span className="truncate max-w-[100px]">
+                                    {tx.category_name}
+                                  </span>
                                 </div>
                               </div>
                             </div>
-
-                            <div className="flex flex-col space-y-1 flex-shrink-0">
-                              <button
-                                className="p-2 rounded-lg transition-colors text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                onClick={() => handleEdit(transaction)}
+                            <div className="flex flex-col items-end gap-1 ml-2">
+                              <span
+                                className={`text-sm font-bold ${
+                                  tx.type === "income"
+                                    ? "text-green-600"
+                                    : "text-red-600"
+                                }`}
                               >
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                className="p-2 rounded-lg transition-colors text-red-500 hover:text-red-700 hover:bg-red-50"
-                                onClick={() => handleDelete(transaction.id)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                                {tx.type === "income" ? "+" : "-"}
+                                {formatAmount(tx.amount)}
+                              </span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleEdit(tx)}
+                                  className="p-1.5 text-gray-400 hover:text-blue-600"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(tx.id)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Mobile Footer Pagination Summary */}
+                <div className="lg:hidden p-4 bg-gray-50 border-t border-gray-200 text-center text-xs text-gray-500">
+                  Page {pagination.currentPage} of {pagination.lastPage}
                 </div>
               </div>
             </section>
@@ -791,16 +645,13 @@ export default function TransactionsPage() {
         <Footer />
       </div>
 
-      {/* Modal */}
       <TransactionModal
         isOpen={modalOpen}
         onClose={() => {
           setModalOpen(false);
           setEditingTransaction(null);
         }}
-        onTransactionAdded={() => {
-          setPage(1);
-        }}
+        onTransactionAdded={() => setPage(1)}
         editMode={!!editingTransaction}
         transactionToEdit={editingTransaction}
       />

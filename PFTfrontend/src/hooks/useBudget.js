@@ -1,19 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getBudgets, createBudget, updateBudget, deleteBudget } from '../api/budgets';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  getBudgets,
+  createBudget,
+  updateBudget,
+  deleteBudget,
+} from "../api/budgets";
 
-// Hook to fetch budgets based on status (active, history, all)
 export const useBudget = (status = "active", options = {}) => {
   return useQuery({
     queryKey: ["budgets", status],
     queryFn: () => getBudgets({ status }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
+    keepPreviousData: true, // Prevents flickering when switching tabs
     select: (data) => {
       const budgets = Array.isArray(data?.data) ? data.data : [];
       return {
         ...data,
         data: budgets,
         totals: {
-          totalAmount: budgets.reduce((sum, budget) => sum + parseFloat(budget.amount || 0), 0),
+          totalAmount: budgets.reduce(
+            (sum, budget) => sum + parseFloat(budget.amount || 0),
+            0
+          ),
         },
       };
     },
@@ -23,10 +31,11 @@ export const useBudget = (status = "active", options = {}) => {
 
 export const useCreateBudget = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: createBudget,
     onSuccess: () => {
-      // Invalidate both lists so the UI updates immediately
+      // Invalidate all budget lists (active, history, all)
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
@@ -34,9 +43,38 @@ export const useCreateBudget = () => {
 
 export const useUpdateBudget = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: ({ id, data }) => updateBudget(id, data),
-    onSuccess: () => {
+    onMutate: async ({ id, data }) => {
+      // 1. Cancel outgoing fetches
+      await queryClient.cancelQueries({ queryKey: ["budgets"] });
+
+      // 2. Snapshot previous data
+      const previousData = queryClient.getQueriesData({
+        queryKey: ["budgets"],
+      });
+
+      // 3. Optimistically update
+      queryClient.setQueriesData({ queryKey: ["budgets"] }, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((b) => (b.id === id ? { ...b, ...data } : b)),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, vars, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        context.previousData.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
@@ -44,9 +82,38 @@ export const useUpdateBudget = () => {
 
 export const useDeleteBudget = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: deleteBudget,
-    onSuccess: () => {
+    onMutate: async (deletedId) => {
+      // 1. Cancel outgoing fetches
+      await queryClient.cancelQueries({ queryKey: ["budgets"] });
+
+      // 2. Snapshot previous data
+      const previousData = queryClient.getQueriesData({
+        queryKey: ["budgets"],
+      });
+
+      // 3. Optimistically update (Remove item from list)
+      queryClient.setQueriesData({ queryKey: ["budgets"] }, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.filter((b) => b.id !== deletedId),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (err, vars, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        context.previousData.forEach(([key, data]) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
