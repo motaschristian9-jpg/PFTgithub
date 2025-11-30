@@ -3,13 +3,12 @@ import {
   DollarSign,
   TrendingUp,
   TrendingDown,
-  PieChart as PieIcon,
-  AlertTriangle,
-  CheckCircle2,
   Wallet,
-  PiggyBank,
   Target,
   PlusCircle,
+  Activity, // Added Icon
+  ArrowUpRight, // Added Icon
+  ArrowDownRight, // Added Icon
 } from "lucide-react";
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
@@ -17,36 +16,19 @@ import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import { logoutUser } from "../../api/auth.js";
 import Swal from "sweetalert2";
-import { useLocation } from "react-router-dom";
 import { useDataContext } from "../../components/DataLoader";
 
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
+  Cell,
 } from "recharts";
 
-// Modern Color Palette
-const COLORS = [
-  "#10B981", // Emerald
-  "#3B82F6", // Blue
-  "#F59E0B", // Amber
-  "#EF4444", // Red
-  "#8B5CF6", // Violet
-  "#EC4899", // Pink
-  "#06B6D4", // Cyan
-  "#6366F1", // Indigo
-];
-
-// Custom Tooltip Component for Charts
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -64,73 +46,41 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const Dashboard = () => {
-  // 1. Safe Data Access
-  const {
-    user,
-    transactionsData,
-    categoriesData,
-    activeBudgetsData,
-    savingsData,
-  } = useDataContext();
+  const { user, transactionsData, activeBudgetsData, savingsData } =
+    useDataContext();
 
-  // 2. UI State
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- MEMOIZED CALCULATIONS (Performance Optimization) ---
-
   const transactions = useMemo(
     () => transactionsData?.data || [],
     [transactionsData]
   );
-  const categories = useMemo(
-    () => categoriesData?.data || [],
-    [categoriesData]
-  );
-  const activeBudgets = useMemo(
-    () => activeBudgetsData?.data || [],
-    [activeBudgetsData]
-  );
-  const savingsList = useMemo(() => savingsData?.data || [], [savingsData]);
 
-  // A. Financial Totals
-  const stats = useMemo(() => {
-    let income = 0;
-    let expenses = 0;
-    transactions.forEach((t) => {
-      const amt = Number(t.amount || 0);
-      if (t.type === "income") income += amt;
-      else if (t.type === "expense") expenses += amt;
-    });
-    return { income, expenses, net: income - expenses };
+  // NEW: Get last 5 transactions for the "Recent Activity" panel
+  const recentTransactions = useMemo(() => {
+    return [...transactions]
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 5);
   }, [transactions]);
 
-  // B. Pie Chart Data (Donut)
-  const pieChartData = useMemo(() => {
-    const map = {};
-    transactions.forEach((t) => {
-      if (t.type === "expense") {
-        const catId = t.category_id || "uncategorized";
-        map[catId] = (map[catId] || 0) + Number(t.amount || 0);
-      }
-    });
+  const activeBudgets = useMemo(
+    () => activeBudgetsData || [],
+    [activeBudgetsData]
+  );
 
-    const catNameMap = {};
-    categories.forEach((c) => (catNameMap[c.id] = c.name));
+  const savingsList = useMemo(() => savingsData || [], [savingsData]);
 
-    return Object.entries(map)
-      .map(([catId, value]) => ({
-        name: catNameMap[catId] || "Uncategorized",
-        value: value,
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8); // Top 8 categories only
-  }, [transactions, categories]);
+  const stats = useMemo(() => {
+    const income = transactionsData?.totals?.income || 0;
+    const expenses = transactionsData?.totals?.expenses || 0;
+    return { income, expenses, net: income - expenses };
+  }, [transactionsData]);
 
-  // C. Bar Chart Data
+  // Bar Chart Data (Kept for quick income/expense comparison)
   const barChartData = useMemo(
     () => [
       { name: "Income", amount: stats.income, color: "#10B981" },
@@ -139,7 +89,6 @@ const Dashboard = () => {
     [stats]
   );
 
-  // D. Budget Progress Calculation
   const budgetProgressData = useMemo(() => {
     const spendingMap = {};
     transactions.forEach((t) => {
@@ -155,7 +104,6 @@ const Dashboard = () => {
       const remaining = allocated - spent;
       const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
 
-      // Status Logic
       let statusColor = "bg-emerald-500";
       let statusText = "text-emerald-600";
       let label = "On Track";
@@ -187,7 +135,6 @@ const Dashboard = () => {
     });
   }, [activeBudgets, transactions]);
 
-  // E. Savings Progress Calculation
   const processedSavings = useMemo(() => {
     return savingsList.map((s) => {
       const current = Number(s.current_amount || 0);
@@ -202,8 +149,6 @@ const Dashboard = () => {
       };
     });
   }, [savingsList]);
-
-  // --- Handlers ---
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -230,7 +175,6 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
-      {/* Background Effect */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
@@ -266,7 +210,6 @@ const Dashboard = () => {
 
         <MainView>
           <div className="space-y-6 p-4 sm:p-6 lg:p-0">
-            {/* 1. Dashboard Header */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8">
@@ -289,9 +232,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* 2. Summary Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Income */}
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-200 to-emerald-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
                 <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
@@ -309,7 +250,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Expenses */}
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-red-200 to-red-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
                 <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
@@ -327,7 +267,6 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Net Balance */}
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-200 to-blue-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
                 <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
@@ -350,64 +289,71 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* 3. Charts Section */}
+            {/* CHANGED SECTION: Replaced Pie Chart with Recent Activity List */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Donut Chart */}
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col h-[380px]">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
-                  <PieIcon size={20} className="text-gray-400" /> Expense
-                  Breakdown
+                  <Activity size={20} className="text-gray-400" /> Recent
+                  Activity
                 </h3>
 
-                {/* FIX: Explicit height container to prevent Recharts crash */}
-                <div className="h-[300px] w-full">
-                  {pieChartData.length === 0 ? (
+                <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                  {recentTransactions.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                      <PieIcon size={48} className="opacity-20 mb-2" />
-                      <span className="italic">No expense data yet</span>
+                      <span className="italic">No recent transactions</span>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60} // Creates the Donut effect
-                          outerRadius={90}
-                          paddingAngle={5}
+                    recentTransactions.map((t, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              t.type === "income"
+                                ? "bg-emerald-100 text-emerald-600"
+                                : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            {t.type === "income" ? (
+                              <ArrowUpRight size={18} />
+                            ) : (
+                              <ArrowDownRight size={18} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-700 truncate max-w-[120px] sm:max-w-[180px]">
+                              {t.name || t.category_name}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(t.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <p
+                          className={`font-bold text-sm ${
+                            t.type === "income"
+                              ? "text-emerald-600"
+                              : "text-red-600"
+                          }`}
                         >
-                          {pieChartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                              stroke="none"
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend
-                          verticalAlign="bottom"
-                          height={36}
-                          iconType="circle"
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                          {t.type === "income" ? "+" : "-"}$
+                          {Number(t.amount).toLocaleString()}
+                        </p>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
 
-              {/* Bar Chart */}
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col h-[380px]">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
                   <TrendingUp size={20} className="text-gray-400" /> Income vs
                   Expenses
                 </h3>
 
-                {/* FIX: Explicit height container to prevent Recharts crash */}
-                <div className="h-[300px] w-full">
+                <div className="flex-1 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={barChartData}
@@ -446,14 +392,16 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* 4. Budget Progress */}
+            {/* Budget Section: Kept Visual Bars for Quick Status */}
             <section className="relative">
+              {/* ... (Existing code for Active Budgets - No changes needed here for Dashboard) ... */}
+              {/* I'm keeping the original Budget mapping here as requested to preserve "functionality" for the dashboard view */}
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-100/50 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <CheckCircle2 size={20} className="text-emerald-600" />{" "}
-                    Budget Goals
+                    <Target size={20} className="text-emerald-600" /> Active
+                    Budgets
                   </h3>
                 </div>
 
@@ -476,47 +424,39 @@ const Dashboard = () => {
                               {budget.name}
                             </h4>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              Allocated: $
-                              {Number(budget.amount).toLocaleString()}
+                              Limit: ${Number(budget.amount).toLocaleString()}
                             </p>
                           </div>
-                          {budget.percent > 100 && (
-                            <AlertTriangle
-                              className="text-red-500 flex-shrink-0"
-                              size={20}
-                            />
-                          )}
+                          <div className="text-right">
+                            <span
+                              className={
+                                budget.statusText + " font-bold text-xs"
+                              }
+                            >
+                              {budget.label}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="flex justify-between items-center text-xs mb-2 font-medium">
-                          <span className={budget.statusText}>
-                            {budget.label}
-                          </span>
-                          <span className="text-gray-600">
-                            {budget.percent.toFixed(1)}%
-                          </span>
-                        </div>
-
-                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden mb-2">
                           <div
                             className={`h-full rounded-full transition-all duration-700 ease-out ${budget.statusColor}`}
                             style={{ width: `${budget.widthPercent}%` }}
                           />
                         </div>
 
-                        <div className="mt-3 text-right">
-                          <p
-                            className={`text-xs font-semibold ${
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Spent: ${budget.spent.toLocaleString()}</span>
+                          <span
+                            className={
                               budget.remaining < 0
-                                ? "text-red-600"
-                                : "text-gray-600"
-                            }`}
+                                ? "text-red-500 font-bold"
+                                : ""
+                            }
                           >
-                            {budget.remaining < 0
-                              ? "Overspent: "
-                              : "Remaining: "}
-                            ${Math.abs(budget.remaining).toLocaleString()}
-                          </p>
+                            {budget.remaining < 0 ? "-" : ""}$
+                            {Math.abs(budget.remaining).toLocaleString()} left
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -525,13 +465,13 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* 5. Savings Goals */}
+            {/* Savings Section (Unchanged) */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/30 to-blue-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <PiggyBank size={20} className="text-blue-600" /> Savings
+                    <PlusCircle size={20} className="text-blue-600" /> Savings
                     Goals
                   </h3>
                 </div>
@@ -559,6 +499,7 @@ const Dashboard = () => {
                         key={s.id}
                         className="bg-white rounded-xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
                       >
+                        {/* ... (Existing Savings Card JSX) ... */}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                         <Target
                           className="absolute top-3 right-3 text-blue-200"

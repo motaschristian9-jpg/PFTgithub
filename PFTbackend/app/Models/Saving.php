@@ -32,6 +32,7 @@ class Saving extends Model
         'target_amount',
         'current_amount',
         'description',
+        'status',
         'target_date',
     ];
 

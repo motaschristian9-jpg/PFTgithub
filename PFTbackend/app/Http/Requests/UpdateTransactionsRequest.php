@@ -8,13 +8,11 @@ class UpdateTransactionsRequest extends FormRequest
 {
     public function authorize()
     {
-        // Authorization is managed in controller via policies
         return true;
     }
 
     public function rules()
     {
-        // Validation rules for update - allow partial updates
         return [
             'name' => 'sometimes|string|max:255',
             'amount' => 'sometimes|numeric|min:0',

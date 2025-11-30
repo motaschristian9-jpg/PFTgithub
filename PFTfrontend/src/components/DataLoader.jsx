@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, { createContext, useContext, useMemo, useEffect } from "react";
 import LoadingScreen from "./LoadingScreen.jsx";
 import { useAuth } from "../hooks/useAuth.js";
 import { useTransactions } from "../hooks/useTransactions.js";
 import { useCategories } from "../hooks/useCategories.js";
 import { useBudget } from "../hooks/useBudget.js";
+import { useSavings } from "../hooks/useSavings.js";
 
 const DataContext = createContext(null);
 
@@ -16,7 +17,6 @@ export const useDataContext = () => {
 };
 
 const DataLoader = ({ children }) => {
-  // 1. Data Fetching
   const { user, isLoading: userLoading, error: userError } = useAuth();
 
   const {
@@ -36,60 +36,75 @@ const DataLoader = ({ children }) => {
     data: budgetsData,
     isLoading: budgetsLoading,
     error: budgetsError,
-  } = useBudget();
-  const {
-    data: activeBudgetsData,
-    isLoading: activeLoading,
-    error: activeError,
-  } = useBudget("active");
-  const {
-    data: historyBudgetsData,
-    isLoading: historyLoading,
-    error: historyError,
-  } = useBudget("history");
+  } = useBudget("all");
 
-  // 2. Logic Consolidation
+  // Savings Hooks
+  const {
+    data: savingsData,
+    isLoading: savingsLoading,
+    error: savingsError,
+  } = useSavings("all");
+
   const isLoading =
     userLoading ||
     transLoading ||
     catsLoading ||
     budgetsLoading ||
-    activeLoading ||
-    historyLoading;
+    savingsLoading;
 
-  // specificError allows us to catch the first error that occurs
   const error =
-    userError ||
-    transError ||
-    catsError ||
-    budgetsError ||
-    activeError ||
-    historyError;
+    userError || transError || catsError || budgetsError || savingsError;
 
-  // 3. Performance: Memoize the context value to prevent unnecessary re-renders
-  const contextValue = useMemo(
-    () => ({
+  const contextValue = useMemo(() => {
+    const getList = (source) => {
+      if (!source) return [];
+      if (Array.isArray(source)) return source;
+      if (source.data && Array.isArray(source.data)) return source.data;
+      return [];
+    };
+
+    const budgetsList = getList(budgetsData);
+    const savingsList = getList(savingsData);
+
+    // Filter Budgets
+    const filterActiveBudgets = (items) =>
+      items.filter((item) => item.status === "active");
+    const filterHistoryBudgets = (items) =>
+      items.filter((item) => item.status !== "active");
+
+    const activeBudgetsData = filterActiveBudgets(budgetsList);
+    const historyBudgetsData = filterHistoryBudgets(budgetsList);
+
+    // Filter Savings
+    const filterActiveSavings = (items) =>
+      items.filter((item) => item.status === "active");
+
+    // FIX: Added 'reached' to the filter so it appears in history
+    const filterHistorySavings = (items) =>
+      items.filter(
+        (item) =>
+          item.status === "completed" ||
+          item.status === "cancelled" ||
+          item.status === "reached"
+      );
+
+    const activeSavingsData = filterActiveSavings(savingsList);
+    const historySavingsData = filterHistorySavings(savingsList);
+
+    return {
       user,
       transactionsData,
       categoriesData,
-      budgetsData,
+      budgetsData: budgetsList,
       activeBudgetsData,
       historyBudgetsData,
-    }),
-    [
-      user,
-      transactionsData,
-      categoriesData,
-      budgetsData,
-      activeBudgetsData,
-      historyBudgetsData,
-    ]
-  );
+      savingsData: savingsList,
+      activeSavingsData,
+      historySavingsData,
+    };
+  }, [user, transactionsData, categoriesData, budgetsData, savingsData]);
 
-  // 4. Render Views
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+  if (isLoading) return <LoadingScreen />;
 
   if (error) {
     return (

@@ -20,6 +20,7 @@ class SavingResource extends JsonResource
             'name' => $this->name,
             'target_amount' => $this->target_amount,
             'current_amount' => $this->current_amount,
+            'status' => $this->status, // <--- ✅ Added this line
             'description' => $this->description,
             'target_date' => $this->target_date?->format('Y-m-d'),
             'created_at' => $this->created_at,

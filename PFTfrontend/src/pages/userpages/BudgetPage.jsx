@@ -20,9 +20,9 @@ import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import Swal from "sweetalert2";
-import { useDataContext } from "../../components/DataLoader";
-import { createBudget, updateBudget, deleteBudget } from "../../api/budgets";
-import { deleteTransaction } from "../../api/transactions";
+import { useDataContext } from "../../components/DataLoader.jsx";
+import { createBudget, updateBudget, deleteBudget } from "../../api/budgets.js";
+import { deleteTransaction } from "../../api/transactions.js";
 import BudgetModal from "../../components/BudgetModal.jsx";
 import BudgetCardModal from "../../components/BudgetCardModal.jsx";
 
@@ -49,14 +49,17 @@ export default function BudgetPage() {
     historyBudgetsData,
   } = useDataContext();
 
+  // FIX: Access arrays directly since DataLoader already extracted/filtered them
   const activeBudgets = useMemo(
-    () => activeBudgetsData?.data || [],
+    () => activeBudgetsData || [],
     [activeBudgetsData]
   );
+
   const historyBudgets = useMemo(
-    () => historyBudgetsData?.data || [],
+    () => historyBudgetsData || [],
     [historyBudgetsData]
   );
+
   const allTransactions = useMemo(
     () => transactionsData?.data || [],
     [transactionsData]

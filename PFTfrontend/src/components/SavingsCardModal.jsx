@@ -5,74 +5,64 @@ import Swal from "sweetalert2";
 import {
   Edit2,
   X,
-  Calendar,
-  DollarSign,
-  TrendingDown,
+  Target,
+  TrendingUp,
   Trash2,
   Loader2,
-  AlertTriangle,
   Check,
-  PieChart,
+  PiggyBank,
   Clock,
   ArrowRight,
+  Trophy,
+  Plus,
 } from "lucide-react";
 
-export default function BudgetCardModal({
+export default function SavingsCardModal({
   isOpen,
-  budget,
+  saving,
   transactions = [],
   onClose,
-  onEditBudget,
-  onDeleteTransaction,
-  onDeleteBudget,
-  getCategoryName,
+  onEditSaving,
+  onDeleteSaving,
 }) {
-  const [localBudget, setLocalBudget] = useState(budget || {});
+  const [localSaving, setLocalSaving] = useState(saving || {});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Read-only check
-  const isReadOnly = localBudget.status !== "active";
 
   const {
     register,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      amount: "",
+      name: "",
+      target_amount: "",
+      current_amount: "",
       description: "",
-      start_date: "",
-      end_date: "",
     },
     mode: "onChange",
   });
 
-  const startDateValue = watch("start_date");
-
-  // --- EFFECTS ---
   useEffect(() => {
-    if (isOpen && budget) {
-      setLocalBudget(budget);
+    if (isOpen && saving) {
+      setLocalSaving(saving);
       reset({
-        amount: budget.amount?.toString() || "",
-        description: budget.description || "",
-        start_date: budget.start_date || "",
-        end_date: budget.end_date || "",
+        name: saving.name || "",
+        target_amount: saving.target_amount?.toString() || "",
+        current_amount: saving.current_amount?.toString() || "",
+        description: saving.description || "",
       });
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
-      setIsEditing(false); // Reset edit mode on close
+      setIsEditing(false);
     }
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen, budget, reset]);
+  }, [isOpen, saving, reset]);
 
-  // Handle Escape
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape" && isOpen && !isSaving) onClose();
@@ -81,76 +71,139 @@ export default function BudgetCardModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose, isSaving]);
 
-  // --- CALCULATIONS ---
   const stats = useMemo(() => {
-    const allocated = Number(localBudget.amount || 0);
-    const spent = Number(localBudget.spent || 0);
-    const remaining = allocated - spent;
-    const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
-    const isOverspent = rawPercent > 100;
+    const target = Number(localSaving.target_amount || 0);
+    const current = Number(localSaving.current_amount || 0);
+    const remaining = Math.max(target - current, 0);
+    const rawPercent = target > 0 ? (current / target) * 100 : 0;
+    const isCompleted = current >= target;
 
-    // Theme logic
-    let theme = "blue";
-    if (isOverspent) theme = "red";
-    else if (rawPercent > 85) theme = "orange";
-    else theme = "emerald";
+    let theme = "emerald";
+    if (isCompleted) theme = "green";
+    else if (rawPercent > 50) theme = "teal";
 
     return {
-      allocated,
-      spent,
+      target,
+      current,
       remaining,
       percentage: rawPercent,
       displayPercent: Math.min(rawPercent, 100),
-      isOverspent,
-      theme, // 'emerald', 'orange', 'red'
+      isCompleted,
+      theme,
     };
-  }, [localBudget]);
+  }, [localSaving]);
 
-  // --- ACTIONS ---
   const handleSaveChanges = async (data) => {
     setIsSaving(true);
     try {
-      await onEditBudget({
-        ...localBudget,
-        amount: parseFloat(data.amount),
+      await onEditSaving({
+        ...localSaving,
+        name: data.name,
+        target_amount: parseFloat(data.target_amount),
+        current_amount: parseFloat(data.current_amount),
         description: data.description || "",
-        start_date: data.start_date,
-        end_date: data.end_date,
       });
 
       Swal.fire({
         icon: "success",
         title: "Saved!",
-        text: "Budget updated successfully.",
+        text: "Goal updated successfully.",
         timer: 1500,
         showConfirmButton: false,
         customClass: { container: "swal-z-index-fix" },
       });
       setIsEditing(false);
     } catch (error) {
-      console.error("Error updating budget", error);
+      console.error("Error updating saving", error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteTx = (tx) => {
+  const handleQuickContribute = () => {
     Swal.fire({
-      title: "Delete Transaction?",
-      text: "This will remove it from your budget history.",
+      title: "Add Contribution",
+      html: `
+        <input id="swal-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to add (e.g., 50.00)">
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Contribute",
+      customClass: {
+        container: "swal-z-index-fix",
+        confirmButton:
+          "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-colors",
+        cancelButton:
+          "text-gray-600 hover:bg-gray-100 font-medium py-2 px-4 rounded-xl transition-colors",
+        popup: "rounded-3xl shadow-2xl",
+        input: "custom-swal-input",
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        const amount = parseFloat(document.getElementById("swal-amount").value);
+        if (isNaN(amount) || amount <= 0) {
+          Swal.showValidationMessage(
+            "Please enter a valid amount greater than zero."
+          );
+          return false;
+        }
+        return amount;
+      },
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const amountToAdd = result.value;
+        setIsSaving(true);
+        try {
+          const newCurrentAmount = stats.current + amountToAdd;
+
+          await onEditSaving({
+            ...localSaving,
+            current_amount: newCurrentAmount,
+          });
+
+          Swal.fire({
+            icon: "success",
+            title: "Contribution Added!",
+            text: `$${amountToAdd.toFixed(2)} added to ${localSaving.name}.`,
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { container: "swal-z-index-fix" },
+          });
+          setLocalSaving((prev) => ({
+            ...prev,
+            current_amount: newCurrentAmount.toString(),
+          }));
+        } catch (error) {
+          console.error("Error adding contribution", error);
+          Swal.fire({
+            icon: "error",
+            title: "Failed to Contribute",
+            text: "An error occurred while updating the goal.",
+            customClass: { container: "swal-z-index-fix" },
+          });
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    });
+  };
+
+  const handleDelete = () => {
+    Swal.fire({
+      title: "Delete Goal?",
+      text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
       confirmButtonText: "Delete",
       customClass: { container: "swal-z-index-fix" },
     }).then((result) => {
-      if (result.isConfirmed) onDeleteTransaction(tx);
+      if (result.isConfirmed) onDeleteSaving(localSaving.id);
     });
   };
 
   if (!isOpen) return null;
 
-  // Dynamic Theme Colors
   const themeColors = {
     emerald: {
       bg: "bg-emerald-50",
@@ -159,19 +212,19 @@ export default function BudgetCardModal({
       icon: "bg-emerald-100",
       bar: "bg-emerald-500",
     },
-    orange: {
-      bg: "bg-orange-50",
-      text: "text-orange-700",
-      border: "border-orange-200",
-      icon: "bg-orange-100",
-      bar: "bg-orange-500",
+    teal: {
+      bg: "bg-teal-50",
+      text: "text-teal-700",
+      border: "border-teal-200",
+      icon: "bg-teal-100",
+      bar: "bg-teal-500",
     },
-    red: {
-      bg: "bg-red-50",
-      text: "text-red-700",
-      border: "border-red-200",
-      icon: "bg-red-100",
-      bar: "bg-red-500",
+    green: {
+      bg: "bg-green-50",
+      text: "text-green-800",
+      border: "border-green-200",
+      icon: "bg-green-100",
+      bar: "bg-green-600",
     },
     blue: {
       bg: "bg-blue-50",
@@ -179,25 +232,38 @@ export default function BudgetCardModal({
       border: "border-blue-200",
       icon: "bg-blue-100",
       bar: "bg-blue-500",
-    }, // Default/Edit
+    },
   };
 
-  const currentTheme = isEditing ? themeColors.blue : themeColors[stats.theme];
+  const currentTheme = isEditing
+    ? themeColors.blue
+    : themeColors[stats.theme] || themeColors.emerald;
 
   const modalContent = (
     <div
       className="fixed inset-0 z-[50] flex justify-center items-center p-4"
       onClick={!isSaving ? onClose : undefined}
     >
-      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
+      <style>{`
+        .swal-z-index-fix { z-index: 10000 !important; } 
+        .custom-swal-input { 
+          height: 40px; 
+          margin: 5px 0 10px 0; 
+          border-radius: 8px; 
+          border: 1px solid #ccc; 
+          font-size: 16px; 
+          padding: 0 10px; 
+          box-shadow: none; 
+          width: calc(100% - 20px); 
+          box-sizing: border-box; 
+        } 
+      `}</style>
+      <div className="absolute inset-0 bg-emerald-950/60 backdrop-blur-sm transition-opacity" />
 
-      {/* Main Card */}
       <div
         className="relative z-50 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div
           className={`px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white`}
         >
@@ -205,41 +271,51 @@ export default function BudgetCardModal({
             <div
               className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${currentTheme.icon} ${currentTheme.text}`}
             >
-              <PieChart size={24} />
+              {stats.isCompleted ? (
+                <Trophy size={24} />
+              ) : (
+                <PiggyBank size={24} />
+              )}
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                {getCategoryName
-                  ? getCategoryName(localBudget.category_id)
-                  : localBudget.category}
-                {isReadOnly && (
-                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                    Expired
+                {localSaving.name}
+                {stats.isCompleted && (
+                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                    Completed
                   </span>
                 )}
               </h2>
               <p className="text-sm text-gray-500 flex items-center gap-1">
-                <Calendar size={12} />
-                {new Date(localBudget.start_date).toLocaleDateString()} -{" "}
-                {new Date(localBudget.end_date).toLocaleDateString()}
+                <Target size={12} />
+                Target: ${Number(localSaving.target_amount).toLocaleString()}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {!isReadOnly && !isEditing && (
+            {!isEditing && (
               <>
+                <button
+                  onClick={handleQuickContribute}
+                  className="px-3 py-2 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                  title="Quick Contribute"
+                >
+                  <Plus size={18} />
+                  <span>Add Contribution</span>
+                </button>
+
                 <button
                   onClick={() => setIsEditing(true)}
                   className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                  title="Edit Budget"
+                  title="Edit Goal"
                 >
                   <Edit2 size={20} />
                 </button>
                 <button
-                  onClick={() => onDeleteBudget(localBudget)}
+                  onClick={handleDelete}
                   className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                  title="Delete Budget"
+                  title="Delete Goal"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -262,20 +338,16 @@ export default function BudgetCardModal({
           </div>
         </div>
 
-        {/* CONTENT SPLIT */}
         <div className="flex flex-col lg:flex-row h-full overflow-hidden">
-          {/* LEFT PANEL: STATS / EDIT FORM */}
           <div className="w-full lg:w-[450px] bg-gray-50/50 flex flex-col border-r border-gray-100 overflow-y-auto">
             {isEditing ? (
-              // --- EDIT MODE ---
               <form
                 onSubmit={handleSubmit(handleSaveChanges)}
                 className="p-6 space-y-6 flex-1"
               >
-                {/* Hero Input */}
                 <div className="flex flex-col items-center justify-center py-4">
                   <label className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
-                    Total Budget Limit
+                    Current Saved
                   </label>
                   <div className="flex items-baseline justify-center relative w-full">
                     <span className="text-3xl font-medium text-blue-400 absolute left-[15%] top-2">
@@ -283,7 +355,10 @@ export default function BudgetCardModal({
                     </span>
                     <input
                       type="number"
-                      {...register("amount", { required: true, min: 0.01 })}
+                      {...register("current_amount", {
+                        required: true,
+                        min: 0,
+                      })}
                       className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 text-gray-800 placeholder-gray-300"
                       autoFocus
                     />
@@ -293,16 +368,23 @@ export default function BudgetCardModal({
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-gray-500 uppercase">
-                      End Date
+                      Goal Name
                     </label>
                     <input
-                      type="date"
-                      {...register("end_date", {
+                      type="text"
+                      {...register("name", { required: true })}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-gray-500 uppercase">
+                      Target Amount
+                    </label>
+                    <input
+                      type="number"
+                      {...register("target_amount", {
                         required: true,
-                        validate: (val) =>
-                          !startDateValue ||
-                          new Date(val) >= new Date(startDateValue) ||
-                          "Invalid date",
+                        min: 0.01,
                       })}
                       className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
                     />
@@ -334,38 +416,31 @@ export default function BudgetCardModal({
                 </button>
               </form>
             ) : (
-              // --- VIEW MODE ---
               <div className="p-6 space-y-8">
-                {/* Hero Stats */}
                 <div className="text-center space-y-2">
                   <p
                     className={`text-sm font-bold uppercase tracking-wider ${currentTheme.text}`}
                   >
-                    {stats.isOverspent ? "Over Budget By" : "Remaining Budget"}
+                    Total Saved
                   </p>
                   <div
                     className={`text-5xl font-black ${currentTheme.text} tracking-tight`}
                   >
-                    ${Math.abs(stats.remaining).toLocaleString()}
+                    ${stats.current.toLocaleString()}
                   </div>
-                  {stats.isOverspent && (
-                    <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold">
-                      <AlertTriangle size={12} /> Critical
+                  {stats.isCompleted && (
+                    <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold animate-pulse">
+                      <Trophy size={12} /> Goal Reached!
                     </div>
                   )}
                 </div>
 
-                {/* Progress Bar */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-medium text-gray-500">
-                    <span>0%</span>
-                    <span>{stats.percentage.toFixed(0)}% used</span>
+                    <span>$0</span>
+                    <span>{stats.percentage.toFixed(0)}% reached</span>
                   </div>
                   <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner relative">
-                    {/* Threshold Marker at 100% */}
-                    {stats.isOverspent && (
-                      <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white z-10"></div>
-                    )}
                     <div
                       className={`h-full transition-all duration-700 ease-out rounded-full ${currentTheme.bar}`}
                       style={{ width: `${stats.displayPercent}%` }}
@@ -373,56 +448,50 @@ export default function BudgetCardModal({
                   </div>
                 </div>
 
-                {/* Detailed Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
-                      <DollarSign size={14} />
+                      <Target size={14} />
                       <span className="text-xs font-bold uppercase">
-                        Allocated
+                        Target
                       </span>
                     </div>
                     <p className="text-xl font-bold text-gray-800">
-                      ${stats.allocated.toLocaleString()}
+                      ${stats.target.toLocaleString()}
                     </p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
-                      <TrendingDown size={14} />
-                      <span className="text-xs font-bold uppercase">Spent</span>
+                      <TrendingUp size={14} />
+                      <span className="text-xs font-bold uppercase">To Go</span>
                     </div>
-                    <p
-                      className={`text-xl font-bold ${
-                        stats.spent > stats.allocated
-                          ? "text-red-500"
-                          : "text-gray-800"
-                      }`}
-                    >
-                      ${stats.spent.toLocaleString()}
+                    <p className="text-xl font-bold text-gray-500">
+                      ${stats.remaining.toLocaleString()}
                     </p>
                   </div>
                 </div>
 
-                {localBudget.description && (
-                  <div className="p-4 rounded-xl bg-blue-50/50 text-blue-800 text-sm border border-blue-100">
+                {localSaving.description && (
+                  <div className="p-4 rounded-xl bg-emerald-50/50 text-emerald-800 text-sm border border-emerald-100">
                     <span className="font-semibold block mb-1 text-xs uppercase opacity-70">
-                      Note
+                      Motivation
                     </span>
-                    {localBudget.description}
+                    {localSaving.description}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* RIGHT PANEL: TRANSACTIONS */}
           <div className="flex-1 bg-white flex flex-col h-full overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
               <h3 className="font-bold text-gray-700 flex items-center gap-2">
-                Transaction History
-                <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 text-xs">
-                  {transactions.length}
-                </span>
+                Recent Contributions
+                {transactions.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 text-xs">
+                    {transactions.length}
+                  </span>
+                )}
               </h3>
             </div>
 
@@ -432,7 +501,7 @@ export default function BudgetCardModal({
                   <div className="p-4 rounded-full bg-gray-100">
                     <Clock size={32} />
                   </div>
-                  <p className="text-sm font-medium">No transactions yet</p>
+                  <p className="text-sm font-medium">No history available</p>
                 </div>
               ) : (
                 transactions.map((tx) => (
@@ -441,7 +510,7 @@ export default function BudgetCardModal({
                     className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
                         <ArrowRight size={16} className="-rotate-45" />
                       </div>
                       <div>
@@ -451,27 +520,11 @@ export default function BudgetCardModal({
                             : "-"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {tx.transaction_date
-                            ? new Date(tx.transaction_date).toLocaleDateString()
+                          {tx.date
+                            ? new Date(tx.date).toLocaleDateString()
                             : "No Date"}
                         </p>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      {tx.name && (
-                        <span className="text-sm text-gray-500 hidden sm:block truncate max-w-[100px]">
-                          {tx.name}
-                        </span>
-                      )}
-                      {!isReadOnly && (
-                        <button
-                          onClick={() => handleDeleteTx(tx)}
-                          className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
                     </div>
                   </div>
                 ))

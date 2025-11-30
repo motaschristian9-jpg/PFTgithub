@@ -8,6 +8,12 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\SavingController;
 
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
 // Public test route without auth or throttle for CORS test
 Route::get('/cors-test', function () {
     return response()->json(['success' => true, 'message' => 'CORS test endpoint']);
@@ -24,11 +30,21 @@ Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])-
 Route::get('/auth/google/login', [GoogleAuthController::class, 'loginWithGoogle']);
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 
-// Transaction routes
+// Protected User Routes
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('transactions', TransactionController::class);
+
+    // 1. Specific routes FIRST (to avoid conflicts with wildcards)
     Route::get('transactions/search', [TransactionController::class, 'search']);
+
+    // 2. Resource routes
+    Route::apiResource('transactions', TransactionController::class);
+
+    // Categories are usually read-only for users
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
-    Route::apiResource('budgets', BudgetController::class); 
-    Route::apiResource('savings', SavingController::class)->only(['index', 'show']);
+
+    // Budgets - Full CRUD
+    Route::apiResource('budgets', BudgetController::class);
+
+    // Savings - Full CRUD (Removed ->only restriction so store/update/delete works)
+    Route::apiResource('savings', SavingController::class);
 });

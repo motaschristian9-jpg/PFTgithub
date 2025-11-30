@@ -7,11 +7,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class TransactionResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
@@ -19,7 +14,7 @@ class TransactionResource extends JsonResource
             'user_id' => $this->user_id,
             'name' => $this->name,
             'type' => $this->type,
-            'amount' => $this->amount,
+            'amount' => (float) $this->amount,
             'description' => $this->description,
             'date' => $this->date?->format('Y-m-d'),
             'category_id' => $this->category_id,

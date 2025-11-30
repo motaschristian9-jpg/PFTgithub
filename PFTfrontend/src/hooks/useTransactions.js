@@ -8,7 +8,6 @@ import {
 } from "../api/transactions";
 
 export const useTransactions = (params = {}, options = {}) => {
-  // 1. Memoize params to prevent infinite re-fetching loops
   const queryParams = useMemo(() => {
     const curr = { ...params };
     if (options.fetchAll) {
@@ -23,8 +22,8 @@ export const useTransactions = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ["transactions", queryParams],
     queryFn: () => fetchTransactions(queryParams),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    keepPreviousData: true, // Prevents UI flickering when changing pages
+    staleTime: 5 * 60 * 1000,
+    keepPreviousData: true,
     select: (data) => ({
       ...data,
       totals: {
@@ -42,9 +41,9 @@ export const useCreateTransaction = () => {
   return useMutation({
     mutationFn: createTransaction,
     onSuccess: () => {
-      // Invalidate both transactions and budgets to sync UI
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["savings"] });
     },
   });
 };
@@ -55,29 +54,23 @@ export const useUpdateTransaction = () => {
   return useMutation({
     mutationFn: ({ id, data }) => updateTransaction(id, data),
     onMutate: async ({ id, data }) => {
-      // 1. Cancel outgoing fetches
       await queryClient.cancelQueries({ queryKey: ["transactions"] });
 
-      // 2. Snapshot previous data from all transaction queries
       const previousData = queryClient.getQueriesData({
         queryKey: ["transactions"],
       });
 
-      // 3. Optimistically update all matching caches
       queryClient.setQueriesData({ queryKey: ["transactions"] }, (old) => {
         if (!old?.data) return old;
         return {
           ...old,
           data: old.data.map((t) => (t.id === id ? { ...t, ...data } : t)),
-          // Note: Recalculating totals optimistically on Edit is complex/risky
-          // We rely on invalidation (onSettled) for exact math
         };
       });
 
       return { previousData };
     },
     onError: (err, vars, context) => {
-      // Rollback
       if (context?.previousData) {
         context.previousData.forEach(([key, data]) => {
           queryClient.setQueryData(key, data);
@@ -87,6 +80,7 @@ export const useUpdateTransaction = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["savings"] });
     },
   });
 };
@@ -139,6 +133,7 @@ export const useDeleteTransaction = () => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["savings"] });
     },
   });
 };

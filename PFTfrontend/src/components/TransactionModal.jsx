@@ -1,29 +1,247 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import {
   X,
   Loader2,
   Calendar,
   FileText,
-  DollarSign,
   CreditCard,
   PieChart,
-  AlertCircle,
-  CheckCircle2,
+  TrendingUp,
+  Wallet,
+  Check,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useModalFormHooks } from "../hooks/useModalFormHooks.js";
 import { useDataContext } from "./DataLoader.jsx";
-import {
-  fetchSavings,
-  updateSaving,
-  updateTransaction,
-} from "../api/transactions.js";
+import { useUpdateSaving } from "../hooks/useSavings.js";
 import {
   useCreateTransaction,
   useUpdateTransaction,
 } from "../hooks/useTransactions.js";
+
+const TypeSwitcher = ({ type, setType }) => (
+  <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-6 relative">
+    <button
+      type="button"
+      onClick={() => setType("income")}
+      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+        type === "income"
+          ? "bg-white text-emerald-700 shadow-sm ring-1 ring-black/5"
+          : "text-gray-500 hover:text-gray-700"
+      }`}
+    >
+      <TrendingUp size={16} />
+      Income
+    </button>
+    <button
+      type="button"
+      onClick={() => setType("expense")}
+      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
+        type === "expense"
+          ? "bg-white text-rose-700 shadow-sm ring-1 ring-black/5"
+          : "text-gray-500 hover:text-gray-700"
+      }`}
+    >
+      <CreditCard size={16} />
+      Expense
+    </button>
+  </div>
+);
+
+const BudgetStatusCard = ({ budget }) => {
+  if (!budget) return null;
+
+  const percentage = Math.min(
+    (budget.spent / parseFloat(budget.amount)) * 100,
+    100
+  );
+  const isOver = budget.remaining < 0;
+
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+      <div
+        className={`absolute top-0 left-0 w-1 h-full ${
+          isOver ? "bg-red-500" : "bg-green-500"
+        }`}
+      ></div>
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-2">
+          <PieChart size={16} className="text-gray-500" />
+          <span className="font-semibold text-gray-700 text-sm">
+            {budget.name}
+          </span>
+        </div>
+        <span
+          className={`text-xs px-2 py-1 rounded-full font-medium ${
+            isOver ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+          }`}
+        >
+          {isOver ? "Over Budget" : "On Track"}
+        </span>
+      </div>
+      <div className="flex justify-between items-end text-sm mb-2">
+        <span className="text-gray-500">
+          Spent:{" "}
+          <span className="text-gray-800 font-medium">
+            ${budget.spent.toLocaleString()}
+          </span>
+        </span>
+        <span className="text-gray-500">
+          Limit:{" "}
+          <span className="text-gray-800 font-medium">
+            ${parseFloat(budget.amount).toLocaleString()}
+          </span>
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+        <div
+          className={`h-1.5 rounded-full transition-all duration-500 ${
+            percentage > 90 ? "bg-red-500" : "bg-emerald-500"
+          }`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <div className="text-right text-xs text-gray-500">
+        Remaining:{" "}
+        <span
+          className={`font-bold ${
+            isOver ? "text-red-600" : "text-emerald-600"
+          }`}
+        >
+          ${Math.max(budget.remaining, 0).toLocaleString()}
+        </span>
+      </div>
+    </div>
+  );
+};
+
+const SavingsSection = ({
+  register,
+  saveToSavings,
+  setSaveToSavings,
+  savingsGoals,
+  watch,
+}) => {
+  const selectedGoalId = watch("savingsGoalId");
+  const selectedGoal = savingsGoals.find((g) => g.id == selectedGoalId);
+
+  return (
+    <div
+      className={`border rounded-xl transition-all duration-300 ${
+        saveToSavings
+          ? "border-emerald-200 bg-emerald-50/50"
+          : "border-gray-200 bg-gray-50"
+      }`}
+    >
+      <label className="flex items-center justify-between p-4 cursor-pointer">
+        <div className="flex items-center gap-3">
+          <div
+            className={`p-2 rounded-lg ${
+              saveToSavings
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-gray-200 text-gray-500"
+            }`}
+          >
+            <Wallet size={18} />
+          </div>
+          <div>
+            <p className="font-medium text-sm text-gray-700">
+              Allocate to Savings
+            </p>
+            <p className="text-xs text-gray-500">Auto-transfer a portion</p>
+          </div>
+        </div>
+        <div
+          className={`w-11 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out ${
+            saveToSavings ? "bg-emerald-500" : "bg-gray-300"
+          }`}
+        >
+          <div
+            className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
+              saveToSavings ? "translate-x-5" : ""
+            }`}
+          ></div>
+        </div>
+        <input
+          type="checkbox"
+          checked={saveToSavings}
+          onChange={(e) => setSaveToSavings(e.target.checked)}
+          className="hidden"
+        />
+      </label>
+
+      {saveToSavings && (
+        <div className="px-4 pb-4 pt-0 space-y-3 border-t border-emerald-100/50 animate-in slide-in-from-top-2">
+          <div className="mt-3">
+            <label className="text-xs font-semibold text-emerald-700 uppercase">
+              Select Savings Goal
+            </label>
+            <select
+              {...register("savingsGoalId", {
+                required: saveToSavings ? "Please select a goal" : false,
+              })}
+              className="mt-1 block w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 outline-none"
+            >
+              <option value="">Choose a goal...</option>
+              {savingsGoals.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+
+            {selectedGoal && (
+              <div className="mt-2 text-xs text-emerald-800 bg-emerald-100/50 p-2 rounded">
+                Current Saved:{" "}
+                <span className="font-bold">
+                  ${Number(selectedGoal.current_amount).toLocaleString()}
+                </span>
+                <span className="mx-1">/</span>
+                Target:{" "}
+                <span className="font-bold">
+                  ${Number(selectedGoal.target_amount).toLocaleString()}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-emerald-700 uppercase">
+                Fixed Amount ($)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                {...register("savingsAmount")}
+                placeholder="0.00"
+                className="mt-1 w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-emerald-700 uppercase">
+                Or Percent (%)
+              </label>
+              <input
+                type="number"
+                step="1"
+                {...register("savingsPercentage")}
+                placeholder="10%"
+                className="mt-1 w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+          </div>
+          <p className="text-[10px] text-emerald-600 italic mt-1">
+            *Money will be added to the selected goal.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
 
 export default function TransactionModal({
   isOpen,
@@ -32,106 +250,100 @@ export default function TransactionModal({
   editMode = false,
   transactionToEdit = null,
 }) {
-  const { activeBudgetsData, transactionsData } = useDataContext();
-  const [type, setType] = useState("income");
-  const [loading, setLoading] = useState(false);
-  const [loadingSavings, setLoadingSavings] = useState(false);
-  const [modalKey, setModalKey] = useState(0);
-  const [saveToSavings, setSaveToSavings] = useState(false);
-  const [selectedSavingsGoal, setSelectedSavingsGoal] = useState("");
-  const [savingsAmount, setSavingsAmount] = useState("");
-  const [savingsPercentage, setSavingsPercentage] = useState("");
-  const [linkedBudget, setLinkedBudget] = useState(null);
-  const [savingsGoals, setSavingsGoals] = useState([]);
-
-  console.log(linkedBudget);
+  const { activeBudgetsData, transactionsData, activeSavingsData } =
+    useDataContext();
 
   const addTransactionMutation = useCreateTransaction();
   const updateTransactionMutation = useUpdateTransaction();
+
+  const updateSavingMutation = useUpdateSaving();
+
+  const [type, setType] = useState("income");
+  const [loading, setLoading] = useState(false);
+  const [saveToSavings, setSaveToSavings] = useState(false);
+
+  const todayString = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   const {
     register,
     handleSubmit,
     reset,
-    watch,
     control,
     trigger,
-    getValues,
     setError,
+    watch,
     formState: { errors },
   } = useForm({
-    key: modalKey,
     defaultValues: {
       name: "",
       category: "",
       amount: "",
-      transaction_date: new Date().toISOString().split("T")[0],
+      transaction_date: todayString, // Use safe computed value
       description: "",
+      savingsGoalId: "",
+      savingsAmount: "",
+      savingsPercentage: "",
     },
     mode: "onChange",
   });
 
-  const { config, IconComponent, expenseCategories, incomeCategories } =
-    useModalFormHooks(type);
+  const watchedCategory = useWatch({ control, name: "category" });
 
-  console.log(transactionsData);
+  const { expenseCategories, incomeCategories } = useModalFormHooks(type);
 
-  // --- HELPERS ---
-  const getBudgetTransactions = (budget) => {
-    if (!budget || !transactionsData?.data) return [];
-    return transactionsData.data
-      .filter((t) => {
-        // Use the direct budget_id relationship instead of category/date matching
-        return t.budget_id == budget.id && t.type === "expense";
-      })
-      .sort(
-        (a, b) => new Date(b.transaction_date) - new Date(a.transaction_date)
-      );
-  };
+  const savingsGoals = useMemo(() => {
+    if (Array.isArray(activeSavingsData)) {
+      return activeSavingsData;
+    }
+    if (activeSavingsData?.data && Array.isArray(activeSavingsData.data)) {
+      return activeSavingsData.data;
+    }
+    return [];
+  }, [activeSavingsData]);
 
-  const budgetSpent = (budget) => {
-    if (!budget) return 0;
-    const relevantTransactions = getBudgetTransactions(budget);
-    return relevantTransactions.reduce(
-      (total, t) => total + parseFloat(t.amount || 0),
+  const sortedCategories = useMemo(() => {
+    const cats = type === "income" ? incomeCategories : expenseCategories;
+    return [...cats].sort((a, b) =>
+      a.name === "Other"
+        ? 1
+        : b.name === "Other"
+        ? -1
+        : a.name.localeCompare(b.name)
+    );
+  }, [type, incomeCategories, expenseCategories]);
+
+  const budgetStatus = useMemo(() => {
+    const budgets = Array.isArray(activeBudgetsData)
+      ? activeBudgetsData
+      : activeBudgetsData?.data || [];
+
+    if (type !== "expense" || !watchedCategory || budgets.length === 0)
+      return null;
+
+    const budget = budgets.find((b) => b.category_id == watchedCategory);
+    if (!budget) return null;
+
+    const relevantTransactions =
+      transactionsData?.data?.filter(
+        (t) => t.budget_id == budget.id && t.type === "expense"
+      ) || [];
+
+    const spent = relevantTransactions.reduce(
+      (sum, t) => sum + parseFloat(t.amount || 0),
       0
     );
-  };
 
-  // --- UPDATED LINK BUDGET FUNCTION ---
-  const linkBudget = (categoryId) => {
-
-    if (type === "expense") {
-      // Find active budget
-      const budget = activeBudgetsData.data?.find((b) => {
-        return b.category_id == categoryId;
-      });
-
-      if (budget) {
-        const spent = budgetSpent(budget);
-
-        setLinkedBudget({
-          ...budget,
-          spent,
-          remaining: parseFloat(budget.amount) - spent,
-        });
-      } else {
-        setLinkedBudget(null);
-      }
-    } else {
-      setLinkedBudget(null);
-    }
-  };
+    return {
+      ...budget,
+      spent,
+      remaining: parseFloat(budget.amount) - spent,
+    };
+  }, [type, watchedCategory, activeBudgetsData, transactionsData]);
 
   useEffect(() => {
     if (isOpen) {
-      setModalKey((prev) => prev + 1);
-      setSaveToSavings(false);
-      setSelectedSavingsGoal("");
-      setSavingsAmount("");
-      setSavingsPercentage("");
-      setLinkedBudget(null);
       document.body.style.overflow = "hidden";
+      setSaveToSavings(false);
 
       if (editMode && transactionToEdit) {
         setType(transactionToEdit.type);
@@ -142,160 +354,143 @@ export default function TransactionModal({
           transaction_date: transactionToEdit.date,
           description: transactionToEdit.description || "",
         });
-        if (transactionToEdit.category_id) {
-          linkBudget(transactionToEdit.category_id.toString());
-        }
       } else {
         setType("income");
         reset({
           name: "",
           category: "",
           amount: "",
-          transaction_date: new Date().toISOString().split("T")[0],
+          transaction_date: todayString,
           description: "",
+          savingsGoalId: "",
+          savingsAmount: "",
+          savingsPercentage: "",
         });
       }
-
-      const loadData = async () => {
-        setLoadingSavings(true);
-        try {
-          const savingsResponse = await fetchSavings();
-          setSavingsGoals(savingsResponse.data || []);
-        } catch (error) {
-          console.error("Error fetching savings:", error);
-        } finally {
-          setLoadingSavings(false);
-        }
-      };
-      loadData();
-    } else {
-      document.body.style.overflow = "unset";
     }
+
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, editMode, transactionToEdit, reset]);
+  }, [isOpen, editMode, transactionToEdit, reset, todayString]);
 
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-    }
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
+    const handleEscape = (e) => e.key === "Escape" && isOpen && onClose();
+    if (isOpen) document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
   const onSubmit = async (data) => {
     setLoading(true);
-    let response;
-
     try {
-      // 1. Determine Budget ID to send (Strict Linking)
       let budgetIdToSend = null;
+      if (budgetStatus) {
+        const txDate = new Date(data.transaction_date);
+        const start = new Date(budgetStatus.start_date);
+        const end = new Date(budgetStatus.end_date);
+        txDate.setHours(0, 0, 0, 0);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
 
-      if (type === "expense" && data.category) {
-        const activeBudget = activeBudgetsData?.data?.find(
-          (b) => b.category_id == data.category
-        );
-
-        // Only link if date fits strictly within budget range
-        if (activeBudget) {
-          const txDate = new Date(data.transaction_date);
-          const start = new Date(activeBudget.start_date);
-          const end = new Date(activeBudget.end_date);
-          // Normalize time
-          txDate.setHours(0, 0, 0, 0);
-          start.setHours(0, 0, 0, 0);
-          end.setHours(23, 59, 59, 999);
-
-          if (txDate >= start && txDate <= end) {
-            budgetIdToSend = activeBudget.id;
-          }
+        if (txDate >= start && txDate <= end) {
+          budgetIdToSend = budgetStatus.id;
         }
       }
 
-      const transactionData = {
+      const payload = {
         name: data.name,
         type,
         amount: parseFloat(data.amount),
         description: data.description || null,
         date: data.transaction_date,
         category_id: data.category ? parseInt(data.category) : null,
-        budget_id: budgetIdToSend, // <--- CRITICAL: Sending the specific ID
+        budget_id: budgetIdToSend,
       };
 
+      let response;
       if (editMode && transactionToEdit) {
         response = await updateTransactionMutation.mutateAsync({
           id: transactionToEdit.id,
-          data: transactionData,
+          data: payload,
         });
       } else {
-        response = await addTransactionMutation.mutateAsync(transactionData);
+        response = await addTransactionMutation.mutateAsync(payload);
 
-        if (type === "income" && saveToSavings && selectedSavingsGoal) {
-          const savingsGoal = savingsGoals.find(
-            (goal) => goal.name === selectedSavingsGoal
-          );
-          if (savingsGoal) {
-            const savingsAmountValue = savingsAmount
-              ? parseFloat(savingsAmount)
-              : parseFloat(data.amount) * (parseFloat(savingsPercentage) / 100);
-            await updateSaving(savingsGoal.id, {
-              current_amount: savingsGoal.current_amount + savingsAmountValue,
-            });
+        if (type === "income" && saveToSavings && data.savingsGoalId) {
+          const goal = savingsGoals.find((g) => g.id == data.savingsGoalId);
+
+          if (goal) {
+            let amountToAdd = 0;
+            const totalIncome = parseFloat(data.amount);
+
+            if (data.savingsAmount && parseFloat(data.savingsAmount) > 0) {
+              amountToAdd = parseFloat(data.savingsAmount);
+            } else if (
+              data.savingsPercentage &&
+              parseFloat(data.savingsPercentage) > 0
+            ) {
+              amountToAdd =
+                totalIncome * (parseFloat(data.savingsPercentage) / 100);
+            }
+
+            if (amountToAdd > 0) {
+              const goalPayload = {
+                name: goal.name,
+                target_amount: parseFloat(goal.target_amount),
+                current_amount:
+                  parseFloat(goal.current_amount || 0) + amountToAdd,
+                description: goal.description,
+              };
+
+              await updateSavingMutation.mutateAsync({
+                id: goal.id,
+                data: goalPayload,
+              });
+
+              Swal.fire({
+                icon: "success",
+                title: "Success!",
+                text: `Transaction added and $${amountToAdd.toFixed(
+                  2
+                )} allocated to "${goal.name}".`,
+                timer: 2000,
+                showConfirmButton: false,
+              });
+              if (onTransactionAdded) onTransactionAdded(response);
+              onClose();
+              return;
+            }
           }
         }
       }
 
-      await Swal.fire({
+      Swal.fire({
         icon: "success",
-        title: editMode ? "Transaction Updated!" : "Transaction Added!",
-        text: editMode
-          ? "Your transaction has been successfully updated."
-          : "Your transaction has been successfully recorded.",
-        timer: 2000,
-        timerProgressBar: true,
+        title: editMode ? "Updated!" : "Added!",
+        timer: 1500,
         showConfirmButton: false,
+        timerProgressBar: true,
       });
 
-      if (onTransactionAdded) {
-        onTransactionAdded(response);
-      }
-
-      reset();
+      if (onTransactionAdded) onTransactionAdded(response);
       onClose();
     } catch (error) {
-      console.error("Error submitting transaction:", error);
-
-      if (error.response && error.response.status === 422) {
-        const serverErrors = error.response.data.errors;
-        if (serverErrors) {
-          Object.keys(serverErrors).forEach((key) => {
-            let fieldName = key;
-            if (key === "category_id") fieldName = "category";
-            if (key === "date") fieldName = "transaction_date";
-            setError(fieldName, {
-              type: "server",
-              message: serverErrors[key][0],
-            });
-          });
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Validation Error",
-            text: error.response.data.message || "Please check your inputs.",
-          });
-        }
+      console.error(error);
+      if (error.response?.status === 422) {
+        Object.entries(error.response.data.errors).forEach(([key, val]) => {
+          const fieldName =
+            key === "category_id"
+              ? "category"
+              : key === "date"
+              ? "transaction_date"
+              : key;
+          setError(fieldName, { type: "server", message: val[0] });
+        });
       } else {
         Swal.fire({
           icon: "error",
           title: "Error",
-          text: "Something went wrong. Please try again.",
+          text: "Something went wrong.",
         });
       }
     } finally {
@@ -303,438 +498,225 @@ export default function TransactionModal({
     }
   };
 
-  const getProgressColor = (percent) => {
-    if (percent >= 100) return "bg-red-500";
-    if (percent >= 75) return "bg-orange-500";
-    return "bg-emerald-500";
-  };
-
   if (!isOpen) return null;
 
-  const modalContent = (
+  const accentColor = type === "income" ? "emerald" : "rose";
+  const AccentIcon = type === "income" ? TrendingUp : CreditCard;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[10] flex justify-center items-center p-4"
+      className="fixed inset-0 z-[50] flex justify-center items-center p-4 sm:p-6"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
 
       <div
-        className="relative z-10 w-full max-w-md max-h-[90vh] overflow-hidden"
+        className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className={`absolute -inset-1 bg-gradient-to-r ${config.bgGradient} rounded-2xl blur opacity-40`}
-        ></div>
-
-        <div
-          className={`relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl border ${config.borderColor} overflow-hidden`}
-        >
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden ring-1 ring-black/5">
           <div
-            className={`p-4 sm:p-6 border-b border-gray-100/50 bg-gradient-to-r ${config.bgGradient}`}
+            className={`px-6 pt-6 pb-8 bg-gradient-to-b ${
+              type === "income"
+                ? "from-emerald-50 to-white"
+                : "from-rose-50 to-white"
+            }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <div
-                  className={`w-12 h-12 bg-gradient-to-r ${config.gradient} rounded-xl flex items-center justify-center shadow-lg`}
+                  className={`p-2 rounded-xl bg-${accentColor}-100 text-${accentColor}-600`}
                 >
-                  <IconComponent className="text-white" size={20} />
+                  <AccentIcon size={20} />
                 </div>
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                    {editMode ? "Edit Transaction" : config.title}
-                  </h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {editMode
-                      ? "Update your transaction details"
-                      : `Record your ${type} transaction`}
-                  </p>
-                </div>
-              </div>
-
+                {editMode ? "Edit Transaction" : "New Transaction"}
+              </h2>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-all duration-200 cursor-pointer"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <X size={20} />
               </button>
+            </div>
+
+            <TypeSwitcher type={type} setType={setType} />
+
+            <div className="relative flex flex-col items-center justify-center">
+              <label
+                className={`text-xs font-semibold uppercase tracking-wider mb-1 text-${accentColor}-600/80`}
+              >
+                Enter Amount
+              </label>
+              <div className="flex items-baseline justify-center relative w-full">
+                <span
+                  className={`text-3xl font-medium text-${accentColor}-500 absolute left-[15%] sm:left-[20%] top-2`}
+                >
+                  $
+                </span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  {...register("amount", {
+                    required: "Required",
+                    min: { value: 0.01, message: "> 0" },
+                  })}
+                  className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 text-gray-800"
+                />
+              </div>
+              {errors.amount && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.amount.message}
+                </p>
+              )}
             </div>
           </div>
 
           <form
             onSubmit={handleSubmit(onSubmit)}
-            className="p-4 sm:p-6 max-h-[70vh] overflow-y-auto"
+            className="px-6 pb-6 space-y-5"
           >
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Transaction Type <span className="text-red-500">*</span>
-                </label>
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setType("income")}
-                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                      type === "income"
-                        ? "bg-green-100 text-green-800 border-2 border-green-300"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <DollarSign size={18} />
-                      <span>Income</span>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setType("expense")}
-                    className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                      type === "expense"
-                        ? "bg-red-100 text-red-800 border-2 border-red-300"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center justify-center space-x-2">
-                      <CreditCard size={18} />
-                      <span>Expense</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter transaction name"
-                  {...register("name", { required: "Name is required" })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                />
-                {errors.name && (
-                  <p className="text-red-500 text-sm">{errors.name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Category <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Controller
-                    name="category"
-                    control={control}
-                    rules={{ required: "Category is required" }}
-                    render={({ field }) => (
-                      <select
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          linkBudget(e.target.value);
-                          trigger("transaction_date");
-                        }}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
-                      >
-                        <option value="" disabled>
-                          Select category
-                        </option>
-                        {(type === "income"
-                          ? incomeCategories
-                          : expenseCategories
-                        )
-                          .sort((a, b) => {
-                            if (a.name === "Other") return 1;
-                            if (b.name === "Other") return -1;
-                            return a.name.localeCompare(b.name);
-                          })
-                          .map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </option>
-                          ))}
-                      </select>
-                    )}
-                  />
-                </div>
-                {errors.category && (
-                  <p className="text-red-500 text-sm">
-                    {errors.category.message}
-                  </p>
-                )}
-              </div>
-
-              {type === "expense" && linkedBudget && (
-                <div className="mt-2 p-4 bg-white/60 border border-gray-200 rounded-xl shadow-sm backdrop-blur-sm">
-                  <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-2">
-                    <div className="flex items-center space-x-2">
-                      <PieChart size={16} className="text-gray-500" />
-                      <span className="text-sm font-semibold text-gray-700">
-                        {linkedBudget.name} Budget
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                      <CheckCircle2 size={12} />
-                      <span className="text-xs font-medium">Active</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-4 mb-4 text-xs text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <Calendar size={12} />
-                      <span>
-                        {linkedBudget.start_date
-                          ? new Date(linkedBudget.start_date).toLocaleDateString()
-                          : "-"}
-                      </span>
-                    </div>
-                    <span>to</span>
-                    <div className="flex items-center space-x-1">
-                      <Calendar size={12} />
-                      <span>
-                        {linkedBudget.end_date
-                          ? new Date(linkedBudget.end_date).toLocaleDateString()
-                          : "-"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Allocated:</span>
-                      <span className="font-semibold text-green-600">
-                        ${parseFloat(linkedBudget.amount).toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Spent:</span>
-                      <span className="font-semibold text-red-600">
-                        ${linkedBudget.spent.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Remaining:</span>
-                      <span className={`font-semibold ${
-                        linkedBudget.remaining < 0 ? "text-red-600" : "text-orange-600"
-                      }`}>
-                        ${Math.max(linkedBudget.remaining, 0).toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs text-gray-500">Progress</span>
-                      <span className="text-xs font-medium text-gray-700">
-                        {((linkedBudget.spent / parseFloat(linkedBudget.amount)) * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          (linkedBudget.spent / parseFloat(linkedBudget.amount)) * 100 > 90
-                            ? "bg-red-500"
-                            : "bg-green-500"
-                        }`}
-                        style={{
-                          width: `${Math.min(
-                            (linkedBudget.spent / parseFloat(linkedBudget.amount)) * 100,
-                            100
-                          )}%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-
-                  {linkedBudget.remaining < 0 && (
-                    <div className="flex items-center space-x-1 text-red-600 bg-red-50 px-2 py-1 rounded-lg">
-                      <AlertCircle size={14} />
-                      <span className="text-xs font-medium">This transaction will exceed your budget limit</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Amount <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    placeholder="0.00"
-                    step="0.01"
-                    {...register("amount", {
-                      required: "Amount is required",
-                      min: {
-                        value: 0.01,
-                        message: "Amount must be greater than 0",
-                      },
-                    })}
-                    className="w-full pl-8 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  />
-                </div>
-                {errors.amount && (
-                  <p className="text-red-500 text-sm">
-                    {errors.amount.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Date <span className="text-red-500">*</span>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Date
                 </label>
                 <div className="relative">
                   <Calendar
-                    size={18}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    size={16}
+                    className="absolute left-3 top-3.5 text-gray-400 pointer-events-none"
                   />
                   <input
                     type="date"
+                    max={todayString}
                     {...register("transaction_date", {
-                      required: "Date is required",
+                      required: "Required",
                       validate: (value) => {
-                        if (type !== "expense") return true;
-                        const categoryId = getValues("category");
-                        if (!categoryId) return true;
-
-                        const budget = activeBudgetsData?.data?.find(
-                          (b) =>
-                            b.category_id == categoryId
-                        );
-
-                        if (budget) {
-                          const txDate = new Date(value);
-                          txDate.setHours(0, 0, 0, 0);
-                          const budgetStart = new Date(budget.start_date);
-                          budgetStart.setHours(0, 0, 0, 0);
-
-                          if (txDate < budgetStart) {
-                            return `Date must be after budget start (${new Date(
-                              budget.start_date
-                            ).toLocaleDateString()})`;
-                          }
+                        if (budgetStatus) {
+                          const d = new Date(value);
+                          d.setHours(0, 0, 0, 0);
+                          const start = new Date(budgetStatus.start_date);
+                          start.setHours(0, 0, 0, 0);
+                          return d >= start || "Date before budget start";
                         }
                         return true;
                       },
                     })}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all cursor-pointer"
+                    className="block w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
                   />
                 </div>
                 {errors.transaction_date && (
-                  <p className="text-red-500 text-sm">
+                  <p className="text-red-500 text-xs">
                     {errors.transaction_date.message}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Description
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Category
                 </label>
                 <div className="relative">
-                  <FileText
-                    size={18}
-                    className="absolute left-3 top-3 text-gray-400"
+                  <Controller
+                    name="category"
+                    control={control}
+                    rules={{ required: "Required" }}
+                    render={({ field }) => (
+                      <select
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          trigger("transaction_date");
+                        }}
+                        className="block w-full pl-3 pr-8 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="" disabled>
+                          Select
+                        </option>
+                        {sortedCategories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   />
-                  <textarea
-                    placeholder="Add a note (optional)"
-                    rows={3}
-                    {...register("description")}
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
-                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <div className="h-4 w-4 border-l border-b border-gray-400 transform -rotate-45 translate-y-[-2px]" />
+                  </div>
                 </div>
-              </div>
-
-              {type === "income" && (
-                <div className="space-y-2">
-                  <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={saveToSavings}
-                      onChange={(e) => setSaveToSavings(e.target.checked)}
-                      className="rounded"
-                    />
-                    <span className="text-sm font-medium text-gray-700">
-                      Save part of this income
-                    </span>
-                  </label>
-                  {saveToSavings && (
-                    <div className="space-y-3 pl-6 border-l-2 border-green-200">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Savings Goal
-                        </label>
-                        <select
-                          value={selectedSavingsGoal}
-                          onChange={(e) =>
-                            setSelectedSavingsGoal(e.target.value)
-                          }
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
-                        >
-                          <option value="">Select goal</option>
-                          {savingsGoals.map((goal) => (
-                            <option key={goal.id} value={goal.name}>
-                              {goal.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Savings Amount
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={savingsAmount}
-                          onChange={(e) => setSavingsAmount(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Percentage (%)
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="10"
-                          value={savingsPercentage}
-                          onChange={(e) => setSavingsPercentage(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`w-full py-3 px-4 rounded-lg text-white font-semibold mt-4 transition-all duration-200 cursor-pointer ${
-                  loading
-                    ? "bg-gray-300 cursor-not-allowed opacity-60"
-                    : `bg-gradient-to-r ${config.gradient} hover:opacity-90 shadow-lg hover:shadow-xl`
-                }`}
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin mx-auto" size={20} />
-                ) : editMode ? (
-                  "Update Transaction"
-                ) : (
-                  "Add Transaction"
+                {errors.category && (
+                  <p className="text-red-500 text-xs">
+                    {errors.category.message}
+                  </p>
                 )}
-              </button>
+              </div>
             </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Name
+              </label>
+              <input
+                type="text"
+                placeholder="What is this for?"
+                {...register("name", { required: "Name is required" })}
+                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+              />
+              {errors.name && (
+                <p className="text-red-500 text-xs">{errors.name.message}</p>
+              )}
+            </div>
+
+            <div className="relative">
+              <FileText
+                size={16}
+                className="absolute left-4 top-3.5 text-gray-400"
+              />
+              <textarea
+                placeholder="Add a note (optional)"
+                rows={2}
+                {...register("description")}
+                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none resize-none"
+              />
+            </div>
+
+            <BudgetStatusCard budget={budgetStatus} />
+
+            {type === "income" && (
+              <SavingsSection
+                register={register}
+                saveToSavings={saveToSavings}
+                setSaveToSavings={setSaveToSavings}
+                savingsGoals={savingsGoals}
+                watch={watch}
+              />
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : type === "income"
+                  ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-200"
+                  : "bg-rose-600 hover:bg-rose-500 shadow-rose-200"
+              }`}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  <Check size={20} strokeWidth={3} />
+                  {editMode ? "Save Changes" : "Add Transaction"}
+                </>
+              )}
+            </button>
           </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
-
-  return createPortal(modalContent, document.body);
 }
