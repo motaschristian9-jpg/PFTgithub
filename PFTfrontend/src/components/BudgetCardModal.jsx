@@ -451,8 +451,10 @@ export default function BudgetCardModal({
                             : "-"}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {tx.transaction_date
-                            ? new Date(tx.transaction_date).toLocaleDateString()
+                          {tx.date || tx.transaction_date
+                            ? new Date(
+                                tx.date || tx.transaction_date
+                              ).toLocaleDateString()
                             : "No Date"}
                         </p>
                       </div>

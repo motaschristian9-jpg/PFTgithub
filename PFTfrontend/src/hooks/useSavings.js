@@ -1,128 +1,79 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getSavings,
-  createSaving,
-  updateSaving,
-  deleteSaving,
-} from "../api/savings";
+import axios from "../api/axios";
 
-// 1. FETCH HOOK (Reading Data)
-export const useSavings = (status = "active", options = {}) => {
+// API Functions
+const getActiveSavings = () => {
+  return axios
+    .get("/savings", { params: { status: "active" } })
+    .then((res) => res.data);
+};
+
+const getSavingsHistory = (page = 1, filters = {}) => {
+  const params = {
+    status: "history",
+    page,
+    search: filters.search,
+    sort_by: filters.sortBy,
+    sort_dir: filters.sortDir,
+  };
+  return axios.get("/savings", { params }).then((res) => res.data);
+};
+
+export const createSaving = (data) =>
+  axios.post("/savings", data).then((res) => res.data);
+export const updateSaving = (id, data) =>
+  axios.put(`/savings/${id}`, data).then((res) => res.data);
+export const deleteSaving = (id) =>
+  axios.delete(`/savings/${id}`).then((res) => res.data);
+
+// Hooks
+export const useActiveSavings = () => {
   return useQuery({
-    queryKey: ["savings", status],
-    queryFn: () => getSavings({ status }),
+    queryKey: ["savings", "active"],
+    queryFn: getActiveSavings,
     staleTime: 5 * 60 * 1000,
-    keepPreviousData: true, // Prevents flickering when switching tabs
     select: (data) => {
-      const savings = Array.isArray(data?.data) ? data.data : [];
-      return {
-        ...data,
-        data: savings,
-        totals: {
-          totalTarget: savings.reduce(
-            (sum, saving) => sum + parseFloat(saving.target_amount || 0),
-            0
-          ),
-          totalCurrent: savings.reduce(
-            (sum, saving) => sum + parseFloat(saving.current_amount || 0),
-            0
-          ),
-        },
-      };
+      const items = Array.isArray(data?.data) ? data.data : [];
+      return { data: items };
     },
-    ...options,
   });
 };
 
-// 2. CREATE HOOK
+export const useSavingsHistory = (page, filters) => {
+  return useQuery({
+    queryKey: ["savings", "history", page, filters],
+    queryFn: () => getSavingsHistory(page, filters),
+    keepPreviousData: true,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Mutations
 export const useCreateSaving = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: createSaving,
     onSuccess: () => {
-      // Invalidate all savings lists (active, history, etc.)
-      queryClient.invalidateQueries({ queryKey: ["savings"] });
+      queryClient.invalidateQueries({ queryKey: ["savings", "active"] });
     },
   });
 };
 
-// 3. UPDATE HOOK (With Optimistic UI)
 export const useUpdateSaving = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ id, data }) => updateSaving(id, data),
-    onMutate: async ({ id, data }) => {
-      // A. Cancel outgoing fetches
-      await queryClient.cancelQueries({ queryKey: ["savings"] });
-
-      // B. Snapshot previous data
-      const previousData = queryClient.getQueriesData({
-        queryKey: ["savings"],
-      });
-
-      // C. Optimistically update
-      queryClient.setQueriesData({ queryKey: ["savings"] }, (old) => {
-        if (!old?.data) return old;
-        return {
-          ...old,
-          data: old.data.map((s) => (s.id === id ? { ...s, ...data } : s)),
-        };
-      });
-
-      return { previousData };
-    },
-    onError: (err, vars, context) => {
-      // D. Rollback on error
-      if (context?.previousData) {
-        context.previousData.forEach(([key, data]) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-    },
-    onSettled: () => {
-      // E. Refetch to ensure data is in sync
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["savings"] });
     },
   });
 };
 
-// 4. DELETE HOOK (With Optimistic UI)
 export const useDeleteSaving = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: deleteSaving,
-    onMutate: async (deletedId) => {
-      // A. Cancel outgoing fetches
-      await queryClient.cancelQueries({ queryKey: ["savings"] });
-
-      // B. Snapshot previous data
-      const previousData = queryClient.getQueriesData({
-        queryKey: ["savings"],
-      });
-
-      // C. Optimistically update (Remove item from list)
-      queryClient.setQueriesData({ queryKey: ["savings"] }, (old) => {
-        if (!old?.data) return old;
-        return {
-          ...old,
-          data: old.data.filter((s) => s.id !== deletedId),
-        };
-      });
-
-      return { previousData };
-    },
-    onError: (err, vars, context) => {
-      // D. Rollback on error
-      if (context?.previousData) {
-        context.previousData.forEach(([key, data]) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["savings"] });
     },
   });

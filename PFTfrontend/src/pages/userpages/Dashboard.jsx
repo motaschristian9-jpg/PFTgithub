@@ -9,6 +9,7 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
+  PiggyBank, // Added Icon
 } from "lucide-react";
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
@@ -44,7 +45,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const Dashboard = () => {
-  const { user, transactionsData, activeBudgetsData, savingsData } =
+  const { user, transactionsData, activeBudgetsData, activeSavingsData } =
     useDataContext();
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -58,7 +59,6 @@ const Dashboard = () => {
     [transactionsData]
   );
 
-  // NEW: Get last 5 transactions for the "Recent Activity" panel
   const recentTransactions = useMemo(() => {
     return [...transactions]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -70,19 +70,34 @@ const Dashboard = () => {
     [activeBudgetsData]
   );
 
-  const savingsList = useMemo(() => savingsData || [], [savingsData]);
+  const savingsList = useMemo(
+    () => activeSavingsData || [],
+    [activeSavingsData]
+  );
 
   const stats = useMemo(() => {
     const income = transactionsData?.totals?.income || 0;
     const expenses = transactionsData?.totals?.expenses || 0;
-    return { income, expenses, net: income - expenses };
-  }, [transactionsData]);
 
-  // Bar Chart Data (Kept for quick income/expense comparison)
+    // Calculate Total Savings from the savings list provided by DataLoader (which is Active Savings)
+    const totalSavings = savingsList.reduce(
+      (sum, s) => sum + Number(s.current_amount || 0),
+      0
+    );
+
+    return {
+      income,
+      expenses,
+      net: income - expenses,
+      totalSavings,
+    };
+  }, [transactionsData, savingsList]);
+
   const barChartData = useMemo(
     () => [
       { name: "Income", amount: stats.income, color: "#10B981" },
       { name: "Expense", amount: stats.expenses, color: "#EF4444" },
+      { name: "Saved", amount: stats.totalSavings, color: "#3B82F6" }, // Added Savings to Chart
     ],
     [stats]
   );
@@ -176,7 +191,6 @@ const Dashboard = () => {
       />
 
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Updated Topbar without handleLogout prop */}
         <Topbar
           toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           notifications={[]}
@@ -207,7 +221,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-200 to-emerald-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
                 <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-emerald-100 flex items-center justify-between">
@@ -215,12 +229,12 @@ const Dashboard = () => {
                     <p className="text-sm font-medium text-gray-500">
                       Total Income
                     </p>
-                    <p className="text-2xl font-bold text-emerald-600 mt-1">
+                    <p className="text-xl font-bold text-emerald-600 mt-1">
                       ${stats.income.toLocaleString()}
                     </p>
                   </div>
-                  <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-                    <TrendingUp size={24} />
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                    <TrendingUp size={20} />
                   </div>
                 </div>
               </div>
@@ -232,12 +246,12 @@ const Dashboard = () => {
                     <p className="text-sm font-medium text-gray-500">
                       Total Expenses
                     </p>
-                    <p className="text-2xl font-bold text-red-600 mt-1">
+                    <p className="text-xl font-bold text-red-600 mt-1">
                       ${stats.expenses.toLocaleString()}
                     </p>
                   </div>
-                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
-                    <TrendingDown size={24} />
+                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
+                    <TrendingDown size={20} />
                   </div>
                 </div>
               </div>
@@ -250,21 +264,38 @@ const Dashboard = () => {
                       Net Balance
                     </p>
                     <p
-                      className={`text-2xl font-bold mt-1 ${
+                      className={`text-xl font-bold mt-1 ${
                         stats.net >= 0 ? "text-blue-600" : "text-red-500"
                       }`}
                     >
                       ${stats.net.toLocaleString()}
                     </p>
                   </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                    <Wallet size={24} />
+                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                    <Wallet size={20} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Total Savings Card */}
+              <div className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-200 to-indigo-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-300"></div>
+                <div className="relative bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-indigo-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">
+                      Total Savings
+                    </p>
+                    <p className="text-xl font-bold text-indigo-600 mt-1">
+                      ${stats.totalSavings.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
+                    <PiggyBank size={20} />
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* CHANGED SECTION: Replaced Pie Chart with Recent Activity List */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col h-[380px]">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
@@ -324,8 +355,8 @@ const Dashboard = () => {
 
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 flex flex-col h-[380px]">
                 <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-6">
-                  <TrendingUp size={20} className="text-gray-400" /> Income vs
-                  Expenses
+                  <TrendingUp size={20} className="text-gray-400" /> Financial
+                  Overview
                 </h3>
 
                 <div className="flex-1 w-full">
@@ -333,7 +364,7 @@ const Dashboard = () => {
                     <BarChart
                       data={barChartData}
                       margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
-                      barSize={60}
+                      barSize={50}
                     >
                       <CartesianGrid
                         strokeDasharray="3 3"
@@ -367,9 +398,8 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Budget Section */}
             <section className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-emerald-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-100/50 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -440,7 +470,7 @@ const Dashboard = () => {
 
             {/* Savings Section */}
             <section className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/30 to-blue-300/20 rounded-2xl blur opacity-40"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-200/30 to-blue-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">

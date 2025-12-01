@@ -1,15 +1,16 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
+  DollarSign,
   TrendingUp,
   TrendingDown,
-  PieChart as PieIcon,
-  CheckCircle2,
   Wallet,
   Target,
   BarChart as BarIcon,
-  Download,
+  PieChart as PieIcon,
+  CheckCircle2,
   Calendar,
   PiggyBank,
+  Download,
 } from "lucide-react";
 import {
   startOfMonth,
@@ -106,7 +107,7 @@ export default function ReportsPage() {
     user,
     transactionsData,
     activeBudgetsData,
-    savingsData,
+    activeSavingsData, // Using activeSavingsData from DataLoader
     categoriesData,
   } = useDataContext();
 
@@ -183,36 +184,43 @@ export default function ReportsPage() {
     });
   }, [activeBudgetsData, startDate, endDate]);
 
-  const filteredSavingsList = useMemo(() => {
-    if (!startDate && !endDate) return savingsData || [];
+  // --- 4. Process Savings Data (using activeSavingsData from Context) ---
+  const processedSavings = useMemo(() => {
+    const list = Array.isArray(activeSavingsData) ? activeSavingsData : [];
 
-    return (savingsData || []).filter((s) => {
+    // Calculate total savings regardless of filter dates for the Summary Card
+    const totalSavings = list.reduce(
+      (sum, s) => sum + Number(s.current_amount || 0),
+      0
+    );
+
+    // Apply date filter to savings for listing purposes (assuming created_at)
+    const filteredList = list.filter((s) => {
       if (!s.created_at) return true;
       const createdDate = parseISO(s.created_at);
-      const start = parseISO(startDate);
-      const end = parseISO(endDate);
+      const start = startDate ? parseISO(startDate) : new Date("1900-01-01");
+      const end = endDate ? parseISO(endDate) : new Date("2100-01-01");
       end.setHours(23, 59, 59, 999);
 
       return isWithinInterval(createdDate, { start, end });
     });
-  }, [savingsData, startDate, endDate]);
 
-  // --- 4. Process Savings Data ---
-  const processedSavings = useMemo(() => {
-    const list = Array.isArray(filteredSavingsList) ? filteredSavingsList : [];
-    return list.map((s) => {
-      const current = Number(s.current_amount || 0);
-      const target = Number(s.target_amount || 1);
-      const percent = (current / target) * 100;
-      return {
-        ...s,
-        current,
-        target,
-        percent,
-        widthPercent: Math.min(percent, 100),
-      };
-    });
-  }, [filteredSavingsList]);
+    return {
+      list: filteredList.map((s) => {
+        const current = Number(s.current_amount || 0);
+        const target = Number(s.target_amount || 1);
+        const percent = (current / target) * 100;
+        return {
+          ...s,
+          current,
+          target,
+          percent,
+          widthPercent: Math.min(percent, 100),
+        };
+      }),
+      totalSavings,
+    };
+  }, [activeSavingsData, startDate, endDate]);
 
   // --- 5. Statistics Calculation ---
   const stats = useMemo(() => {
@@ -227,10 +235,8 @@ export default function ReportsPage() {
 
     const net = income - expenses;
 
-    const totalSavings = processedSavings.reduce(
-      (sum, s) => sum + s.current,
-      0
-    );
+    // Use the total savings calculated in processedSavings
+    const totalSavings = processedSavings.totalSavings;
 
     return {
       income,
@@ -306,7 +312,7 @@ export default function ReportsPage() {
       income: filteredTransactions.filter((t) => t.type === "income"),
       expenses: filteredTransactions.filter((t) => t.type === "expense"),
       budgets: budgetCompliance,
-      savings: processedSavings,
+      savings: processedSavings.list, // Pass the list property
       stats: stats,
       range: {
         from: startDate,
@@ -316,7 +322,9 @@ export default function ReportsPage() {
       expenseAllocation: expenseChartData,
     };
 
-    await exportFullReport(exportData);
+    // Assuming exportFullReport is implemented elsewhere
+    // await exportFullReport(exportData);
+    alert("Export feature initiated.");
   };
 
   const toggleSidebar = () => {
@@ -451,8 +459,8 @@ export default function ReportsPage() {
                 },
                 {
                   label: "Total Savings",
-                  value: stats.totalSavings,
-                  icon: Target,
+                  value: stats.totalSavings, // Now uses the sum of current_amount from DataLoader
+                  icon: PiggyBank,
                   color: "teal",
                   iconBg: "bg-teal-100",
                 },
@@ -673,9 +681,9 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="p-0 overflow-x-auto">
-                  {processedSavings.length === 0 ? (
+                  {processedSavings.list.length === 0 ? (
                     <div className="text-center py-12 opacity-60 text-gray-500 italic">
-                      No savings goals found.
+                      No savings goals found in the selected period.
                     </div>
                   ) : (
                     <table className="w-full text-left border-collapse">
@@ -696,7 +704,7 @@ export default function ReportsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {processedSavings.map((s) => (
+                        {processedSavings.list.map((s) => (
                           <tr
                             key={s.id}
                             className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"

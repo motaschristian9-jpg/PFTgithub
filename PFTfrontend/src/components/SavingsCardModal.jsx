@@ -12,9 +12,11 @@ import {
   Check,
   PiggyBank,
   Clock,
-  ArrowRight,
   Trophy,
   Plus,
+  Minus,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from "lucide-react";
 
 export default function SavingsCardModal({
@@ -24,6 +26,10 @@ export default function SavingsCardModal({
   onClose,
   onEditSaving,
   onDeleteSaving,
+  onDeleteTransaction,
+  availableBalance,
+  handleCreateWithdrawalTransaction,
+  handleCreateContributionTransaction,
 }) {
   const [localSaving, setLocalSaving] = useState(saving || {});
   const [isEditing, setIsEditing] = useState(false);
@@ -71,12 +77,13 @@ export default function SavingsCardModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose, isSaving]);
 
+  // --- STATS CALCULATION ---
   const stats = useMemo(() => {
     const target = Number(localSaving.target_amount || 0);
     const current = Number(localSaving.current_amount || 0);
     const remaining = Math.max(target - current, 0);
     const rawPercent = target > 0 ? (current / target) * 100 : 0;
-    const isCompleted = current >= target;
+    const isCompleted = localSaving.status === "completed" || current >= target;
 
     let theme = "emerald";
     if (isCompleted) theme = "green";
@@ -92,6 +99,45 @@ export default function SavingsCardModal({
       theme,
     };
   }, [localSaving]);
+
+  // --- FILTER & SORT TRANSACTIONS ---
+  const sortedTransactions = useMemo(() => {
+    return [...transactions]
+      .filter((tx) => {
+        // 1. Keep all Expenses (Contributions to savings)
+        if (tx.type === "expense") return true;
+
+        // 2. For Income, ONLY keep explicit withdrawals
+        const nameLower = (tx.name || "").toLowerCase();
+        const descLower = (tx.description || "").toLowerCase();
+
+        const isExplicitWithdrawal =
+          nameLower.includes("withdrawal") ||
+          descLower.includes("withdrawal") ||
+          descLower.includes("moved from savings");
+
+        return isExplicitWithdrawal;
+      })
+      .sort((a, b) => {
+        // Primary Sort: Date Descending (Newest Date First)
+        // Handle various date field names (date, transaction_date, created_at)
+        const dateA = new Date(a.date || a.transaction_date || a.created_at);
+        const dateB = new Date(b.date || b.transaction_date || b.created_at);
+
+        const timeDiff = dateB - dateA;
+
+        // If dates are different, sort by date
+        if (timeDiff !== 0) return timeDiff;
+
+        // Secondary Sort: ID Descending (Newest ID First)
+        // This ensures if you add 2 items today, the one added last appears first
+        return b.id - a.id;
+      });
+  }, [transactions]);
+
+  const isReadOnly = stats.isCompleted || localSaving.status === "cancelled";
+
+  // --- ACTIONS ---
 
   const handleSaveChanges = async (data) => {
     setIsSaving(true);
@@ -125,6 +171,9 @@ export default function SavingsCardModal({
       title: "Add Contribution",
       html: `
         <input id="swal-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to add (e.g., 50.00)">
+        <div class="text-sm text-gray-500 mt-2">Available Net Balance: $${(
+          availableBalance ?? 0
+        ).toLocaleString()}</div>
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -147,6 +196,12 @@ export default function SavingsCardModal({
           );
           return false;
         }
+        if (availableBalance !== undefined && amount > availableBalance) {
+          Swal.showValidationMessage(
+            `Insufficient funds. You only have $${availableBalance.toLocaleString()} available.`
+          );
+          return false;
+        }
         return amount;
       },
     }).then(async (result) => {
@@ -161,6 +216,13 @@ export default function SavingsCardModal({
             current_amount: newCurrentAmount,
           });
 
+          if (handleCreateContributionTransaction) {
+            await handleCreateContributionTransaction(
+              amountToAdd,
+              localSaving.name
+            );
+          }
+
           Swal.fire({
             icon: "success",
             title: "Contribution Added!",
@@ -169,6 +231,7 @@ export default function SavingsCardModal({
             showConfirmButton: false,
             customClass: { container: "swal-z-index-fix" },
           });
+
           setLocalSaving((prev) => ({
             ...prev,
             current_amount: newCurrentAmount.toString(),
@@ -178,7 +241,97 @@ export default function SavingsCardModal({
           Swal.fire({
             icon: "error",
             title: "Failed to Contribute",
-            text: "An error occurred while updating the goal.",
+            text: "An error occurred.",
+            customClass: { container: "swal-z-index-fix" },
+          });
+        } finally {
+          setIsSaving(false);
+        }
+      }
+    });
+  };
+
+  const handleQuickWithdraw = () => {
+    Swal.fire({
+      title: "Withdraw Funds",
+      html: `
+        <input id="swal-withdraw-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to withdraw">
+        <div class="text-sm text-gray-500 mt-2">Available to Withdraw: $${stats.current.toLocaleString()}</div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: "Withdraw",
+      customClass: {
+        container: "swal-z-index-fix",
+        confirmButton:
+          "bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-colors",
+        cancelButton:
+          "text-gray-600 hover:bg-gray-100 font-medium py-2 px-4 rounded-xl transition-colors",
+        popup: "rounded-3xl shadow-2xl",
+        input: "custom-swal-input",
+      },
+      buttonsStyling: false,
+      preConfirm: () => {
+        const amount = parseFloat(
+          document.getElementById("swal-withdraw-amount").value
+        );
+        if (isNaN(amount) || amount <= 0) {
+          Swal.showValidationMessage(
+            "Please enter a valid amount greater than zero."
+          );
+          return false;
+        }
+        if (amount > stats.current) {
+          Swal.showValidationMessage(
+            "You cannot withdraw more than you have saved."
+          );
+          return false;
+        }
+        return amount;
+      },
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        const amountToWithdraw = result.value;
+        setIsSaving(true);
+        try {
+          const newCurrentAmount = Math.max(
+            0,
+            stats.current - amountToWithdraw
+          );
+
+          await onEditSaving({
+            ...localSaving,
+            current_amount: newCurrentAmount,
+          });
+
+          if (handleCreateWithdrawalTransaction) {
+            await handleCreateWithdrawalTransaction(
+              amountToWithdraw,
+              localSaving.name
+            );
+          }
+
+          Swal.fire({
+            icon: "success",
+            title: "Withdrawn!",
+            text: `$${amountToWithdraw.toFixed(2)} withdrawn from ${
+              localSaving.name
+            }.`,
+            timer: 1500,
+            showConfirmButton: false,
+            customClass: { container: "swal-z-index-fix" },
+          });
+
+          setLocalSaving((prev) => ({
+            ...prev,
+            current_amount: newCurrentAmount.toString(),
+          }));
+        } catch (error) {
+          console.error("Error withdrawing", error);
+          Swal.fire({
+            icon: "error",
+            title: "Failed to Withdraw",
+            text: "An error occurred.",
             customClass: { container: "swal-z-index-fix" },
           });
         } finally {
@@ -199,6 +352,42 @@ export default function SavingsCardModal({
       customClass: { container: "swal-z-index-fix" },
     }).then((result) => {
       if (result.isConfirmed) onDeleteSaving(localSaving.id);
+    });
+  };
+
+  const handleDeleteTx = (tx) => {
+    Swal.fire({
+      title: "Delete Transaction?",
+      text: "This will revert the balance impact on this goal.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      confirmButtonText: "Delete",
+      customClass: { container: "swal-z-index-fix" },
+    }).then(async (result) => {
+      if (result.isConfirmed && onDeleteTransaction) {
+        const amount = parseFloat(tx.amount);
+        const isContribution =
+          tx.type === "expense" ||
+          tx.description?.toLowerCase().includes("contribution") ||
+          tx.name?.toLowerCase().includes("deposit");
+
+        // Calculate new balance based on what we are deleting
+        let newAmount = stats.current;
+        if (isContribution) {
+          // If we delete a contribution, reduce balance
+          newAmount = Math.max(0, stats.current - amount);
+        } else {
+          // If we delete a withdrawal, add back to balance
+          newAmount = stats.current + amount;
+        }
+
+        // Optimistic Update
+        setLocalSaving((prev) => ({ ...prev, current_amount: newAmount }));
+
+        // Call Parent
+        await onDeleteTransaction(tx, localSaving, newAmount);
+      }
     });
   };
 
@@ -239,34 +428,23 @@ export default function SavingsCardModal({
     ? themeColors.blue
     : themeColors[stats.theme] || themeColors.emerald;
 
-  const modalContent = (
+  return createPortal(
     <div
       className="fixed inset-0 z-[50] flex justify-center items-center p-4"
       onClick={!isSaving ? onClose : undefined}
     >
       <style>{`
         .swal-z-index-fix { z-index: 10000 !important; } 
-        .custom-swal-input { 
-          height: 40px; 
-          margin: 5px 0 10px 0; 
-          border-radius: 8px; 
-          border: 1px solid #ccc; 
-          font-size: 16px; 
-          padding: 0 10px; 
-          box-shadow: none; 
-          width: calc(100% - 20px); 
-          box-sizing: border-box; 
-        } 
+        .custom-swal-input { height: 40px; margin: 5px 0 10px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; padding: 0 10px; box-shadow: none; width: calc(100% - 20px); box-sizing: border-box; } 
       `}</style>
-      <div className="absolute inset-0 bg-emerald-950/60 backdrop-blur-sm transition-opacity" />
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
 
       <div
         className="relative z-50 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className={`px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white`}
-        >
+        {/* HEADER */}
+        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
           <div className="flex items-center gap-4">
             <div
               className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${currentTheme.icon} ${currentTheme.text}`}
@@ -287,8 +465,8 @@ export default function SavingsCardModal({
                 )}
               </h2>
               <p className="text-sm text-gray-500 flex items-center gap-1">
-                <Target size={12} />
-                Target: ${Number(localSaving.target_amount).toLocaleString()}
+                <Target size={12} /> Target: $
+                {Number(localSaving.target_amount).toLocaleString()}
               </p>
             </div>
           </div>
@@ -299,23 +477,29 @@ export default function SavingsCardModal({
                 <button
                   onClick={handleQuickContribute}
                   className="px-3 py-2 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                  title="Quick Contribute"
+                  disabled={isReadOnly}
                 >
                   <Plus size={18} />
-                  <span>Add Contribution</span>
+                  <span className="hidden sm:inline">Add</span>
                 </button>
-
+                <button
+                  onClick={handleQuickWithdraw}
+                  className="px-3 py-2 flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                  disabled={isReadOnly && stats.current === 0}
+                >
+                  <Minus size={18} />
+                  <span className="hidden sm:inline">Withdraw</span>
+                </button>
                 <button
                   onClick={() => setIsEditing(true)}
                   className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                  title="Edit Goal"
+                  disabled={isReadOnly}
                 >
                   <Edit2 size={20} />
                 </button>
                 <button
                   onClick={handleDelete}
                   className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                  title="Delete Goal"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -339,12 +523,14 @@ export default function SavingsCardModal({
         </div>
 
         <div className="flex flex-col lg:flex-row h-full overflow-hidden">
+          {/* LEFT PANEL */}
           <div className="w-full lg:w-[450px] bg-gray-50/50 flex flex-col border-r border-gray-100 overflow-y-auto">
             {isEditing ? (
               <form
                 onSubmit={handleSubmit(handleSaveChanges)}
                 className="p-6 space-y-6 flex-1"
               >
+                {/* Form fields */}
                 <div className="flex flex-col items-center justify-center py-4">
                   <label className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
                     Current Saved
@@ -364,7 +550,6 @@ export default function SavingsCardModal({
                     />
                   </div>
                 </div>
-
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold text-gray-500 uppercase">
@@ -400,7 +585,6 @@ export default function SavingsCardModal({
                     />
                   </div>
                 </div>
-
                 <button
                   type="submit"
                   disabled={isSaving}
@@ -434,7 +618,6 @@ export default function SavingsCardModal({
                     </div>
                   )}
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-medium text-gray-500">
                     <span>$0</span>
@@ -447,7 +630,6 @@ export default function SavingsCardModal({
                     />
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
@@ -470,7 +652,6 @@ export default function SavingsCardModal({
                     </p>
                   </div>
                 </div>
-
                 {localSaving.description && (
                   <div className="p-4 rounded-xl bg-emerald-50/50 text-emerald-800 text-sm border border-emerald-100">
                     <span className="font-semibold block mb-1 text-xs uppercase opacity-70">
@@ -483,58 +664,115 @@ export default function SavingsCardModal({
             )}
           </div>
 
+          {/* RIGHT PANEL: HISTORY */}
           <div className="flex-1 bg-white flex flex-col h-full overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
               <h3 className="font-bold text-gray-700 flex items-center gap-2">
-                Recent Contributions
-                {transactions.length > 0 && (
+                Contribution History{" "}
+                {sortedTransactions.length > 0 && (
                   <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-600 text-xs">
-                    {transactions.length}
+                    {sortedTransactions.length}
                   </span>
                 )}
               </h3>
             </div>
-
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-              {transactions.length === 0 ? (
+              {sortedTransactions.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60">
                   <div className="p-4 rounded-full bg-gray-100">
                     <Clock size={32} />
                   </div>
-                  <p className="text-sm font-medium">No history available</p>
+                  <p className="text-sm font-medium">No contribution history</p>
                 </div>
               ) : (
-                transactions.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                        <ArrowRight size={16} className="-rotate-45" />
+                sortedTransactions.map((tx) => {
+                  const isContribution =
+                    tx.type === "expense" ||
+                    tx.description?.toLowerCase().includes("contribution") ||
+                    tx.name?.toLowerCase().includes("deposit");
+                  return (
+                    <div
+                      key={tx.id}
+                      className="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-all"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                            isContribution
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-rose-50 text-rose-600"
+                          }`}
+                        >
+                          {isContribution ? (
+                            <ArrowUpRight size={18} strokeWidth={2.5} />
+                          ) : (
+                            <ArrowDownLeft size={18} strokeWidth={2.5} />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-800 text-sm">
+                            {isContribution ? "Contribution" : "Withdrawal"}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {tx.date
+                              ? new Date(tx.date).toLocaleDateString(
+                                  undefined,
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )
+                              : "No Date"}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-gray-800 text-sm">
-                          {tx.amount
-                            ? `$${Number(tx.amount).toLocaleString()}`
-                            : "-"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {tx.date
-                            ? new Date(tx.date).toLocaleDateString()
-                            : "No Date"}
-                        </p>
+
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <span
+                            className={`font-bold text-sm block ${
+                              isContribution
+                                ? "text-emerald-600"
+                                : "text-rose-600"
+                            }`}
+                          >
+                            {isContribution ? "+" : "-"}$
+                            {Number(tx.amount).toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">
+                            {isContribution ? "Saved" : "Withdrawn"}
+                          </span>
+                        </div>
+
+                        {/* Delete Button */}
+                        {!isReadOnly && (
+                          <button
+                            onClick={() => handleDeleteTx(tx)}
+                            className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                            title="Delete Transaction"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
+            </div>
+            <div className="p-4 border-t border-gray-50 bg-gray-50/20 text-center">
+              <p className="text-xs text-gray-400">
+                Transactions shown are specific to this goal.
+              </p>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
-
-  return createPortal(modalContent, document.body);
 }

@@ -97,10 +97,7 @@ export default function BudgetPage() {
         b.name.toLowerCase().includes(search.toLowerCase())
       );
     }
-    // Filter by Category
-    if (categoryId) {
-      result = result.filter((b) => b.category_id == categoryId);
-    }
+
     // Sorting
     result = [...result].sort((a, b) => {
       let valA = a[sortBy];
@@ -123,7 +120,7 @@ export default function BudgetPage() {
     });
 
     return result;
-  }, [activeBudgetsData, search, categoryId, sortBy, sortDir]);
+  }, [activeBudgetsData, search, sortBy, sortDir]);
 
   // 2. Process HISTORY Budgets (Already filtered by server)
   const historyBudgets = useMemo(
@@ -164,9 +161,8 @@ export default function BudgetPage() {
 
   const getBudgetSpent = (budgetId) => spendingMap[budgetId] || 0;
 
-  // Stats (DYNAMIC: Calculates based on whichever tab is open)
+  // Stats (Based on FILTERED list to reflect current view)
   const budgetStats = useMemo(() => {
-    // Determine which list to use for calculation
     const listToCalculate =
       activeTab === "active" ? activeBudgets : historyBudgets;
 
@@ -182,7 +178,7 @@ export default function BudgetPage() {
     return {
       totalAllocated,
       totalSpent,
-      count: listToCalculate.length,
+      count: listToCalculate.length, // Generic count name
     };
   }, [activeTab, activeBudgets, historyBudgets, spendingMap]);
 
@@ -297,13 +293,28 @@ export default function BudgetPage() {
   const handleSaveBudget = async (budgetData) => {
     try {
       if (budgetData.id) {
-        await updateBudgetMutation.mutateAsync({
+        // UPDATE
+        const response = await updateBudgetMutation.mutateAsync({
           id: budgetData.id,
           data: budgetData,
         });
+
+        // --- FIX: Immediately update the selectedBudget state if it's open ---
+        if (selectedBudget && selectedBudget.id === budgetData.id) {
+          // Merge the response (new data) with current state
+          // And recalculate 'remaining' because 'amount' might have changed
+          const updatedBudget = response.data || response; // Adjust based on API return structure
+          setSelectedBudget((prev) => ({
+            ...prev,
+            ...updatedBudget,
+            remaining: Number(updatedBudget.amount) - prev.spent,
+          }));
+        }
       } else {
+        // CREATE
         await createBudgetMutation.mutateAsync(budgetData);
       }
+
       queryClient.invalidateQueries(["budgets"]);
       setEditingBudget(null);
       setModalOpen(false);
@@ -317,11 +328,13 @@ export default function BudgetPage() {
     }
   };
 
+  // --- THIS IS THE UPDATED FUNCTION ---
   const handleDeleteTransaction = async (transaction) => {
     try {
       await deleteTransaction(transaction.id);
       await queryClient.invalidateQueries(["transactions"]);
       await queryClient.invalidateQueries(["budgets"]);
+
       if (selectedBudget) {
         const amount = parseFloat(transaction.amount);
         setSelectedBudget((prev) => ({
@@ -330,8 +343,25 @@ export default function BudgetPage() {
           remaining: prev.remaining + amount,
         }));
       }
+
+      // --- ADDED SUCCESS ALERT HERE ---
+      Swal.fire({
+        icon: "success",
+        title: "Deleted!",
+        text: "Transaction deleted successfully.",
+        timer: 1500,
+        showConfirmButton: false,
+        customClass: { container: "swal-z-index-fix" },
+      });
+      // --------------------------------
     } catch (e) {
-      Swal.fire("Error", "Failed to delete transaction", "error");
+      console.error(e);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to delete transaction",
+        customClass: { container: "swal-z-index-fix" },
+      });
     }
   };
 
@@ -416,26 +446,28 @@ export default function BudgetPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-                  {/* Category Filter */}
-                  <div className="relative flex-1 lg:flex-none">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                      <Filter size={16} />
+                  {/* Category Filter - Only visible for History tab */}
+                  {activeTab === "history" && (
+                    <div className="relative flex-1 lg:flex-none animate-in fade-in zoom-in-95 duration-200">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <Filter size={16} />
+                      </div>
+                      <select
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                        className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer"
+                      >
+                        <option value="">All Categories</option>
+                        {categoriesData?.data
+                          ?.filter((c) => c.type === "expense")
+                          .map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                      </select>
                     </div>
-                    <select
-                      value={categoryId}
-                      onChange={(e) => setCategoryId(e.target.value)}
-                      className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer"
-                    >
-                      <option value="">All Categories</option>
-                      {categoriesData?.data
-                        ?.filter((c) => c.type === "expense")
-                        .map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
+                  )}
 
                   {/* Sort Filter */}
                   <div className="relative flex-1 lg:flex-none">
@@ -472,7 +504,7 @@ export default function BudgetPage() {
               </div>
             </section>
 
-            {/* Stats (Dynamic: Shows either Active Stats or History Stats) */}
+            {/* Stats (Filtered) */}
             <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-green-100 flex items-center justify-between">
                 <div>

@@ -21,6 +21,7 @@ import {
   useUpdateTransaction,
 } from "../hooks/useTransactions.js";
 
+// ... (Keep TypeSwitcher and BudgetStatusCard components exactly as they were) ...
 const TypeSwitcher = ({ type, setType }) => (
   <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-6 relative">
     <button
@@ -52,13 +53,11 @@ const TypeSwitcher = ({ type, setType }) => (
 
 const BudgetStatusCard = ({ budget }) => {
   if (!budget) return null;
-
   const percentage = Math.min(
     (budget.spent / parseFloat(budget.amount)) * 100,
     100
   );
   const isOver = budget.remaining < 0;
-
   return (
     <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
       <div
@@ -233,7 +232,8 @@ const SavingsSection = ({
             </div>
           </div>
           <p className="text-[10px] text-emerald-600 italic mt-1">
-            *Money will be added to the selected goal.
+            *Money will be deducted from this income and added to the selected
+            goal.
           </p>
         </div>
       )}
@@ -250,12 +250,15 @@ export default function TransactionModal({
   editMode = false,
   transactionToEdit = null,
 }) {
-  const { activeBudgetsData, transactionsData, activeSavingsData } =
-    useDataContext();
+  const {
+    activeBudgetsData,
+    transactionsData,
+    activeSavingsData,
+    categoriesData,
+  } = useDataContext();
 
   const addTransactionMutation = useCreateTransaction();
   const updateTransactionMutation = useUpdateTransaction();
-
   const updateSavingMutation = useUpdateSaving();
 
   const [type, setType] = useState("income");
@@ -278,7 +281,7 @@ export default function TransactionModal({
       name: "",
       category: "",
       amount: "",
-      transaction_date: todayString, // Use safe computed value
+      transaction_date: todayString,
       description: "",
       savingsGoalId: "",
       savingsAmount: "",
@@ -288,16 +291,12 @@ export default function TransactionModal({
   });
 
   const watchedCategory = useWatch({ control, name: "category" });
-
   const { expenseCategories, incomeCategories } = useModalFormHooks(type);
 
   const savingsGoals = useMemo(() => {
-    if (Array.isArray(activeSavingsData)) {
-      return activeSavingsData;
-    }
-    if (activeSavingsData?.data && Array.isArray(activeSavingsData.data)) {
+    if (Array.isArray(activeSavingsData)) return activeSavingsData;
+    if (activeSavingsData?.data && Array.isArray(activeSavingsData.data))
       return activeSavingsData.data;
-    }
     return [];
   }, [activeSavingsData]);
 
@@ -311,6 +310,19 @@ export default function TransactionModal({
         : a.name.localeCompare(b.name)
     );
   }, [type, incomeCategories, expenseCategories]);
+
+  // Helper to find a transfer category for the automated savings transaction
+  const findTransferCategory = () => {
+    if (!categoriesData?.data) return null;
+    return (
+      categoriesData.data.find(
+        (c) =>
+          c.type === "expense" &&
+          (c.name.toLowerCase().includes("savings") ||
+            c.name.toLowerCase().includes("transfer"))
+      )?.id || categoriesData.data.find((c) => c.type === "expense")?.id
+    );
+  };
 
   const budgetStatus = useMemo(() => {
     const budgets = Array.isArray(activeBudgetsData)
@@ -368,7 +380,6 @@ export default function TransactionModal({
         });
       }
     }
-
     return () => {
       document.body.style.overflow = "unset";
     };
@@ -382,6 +393,9 @@ export default function TransactionModal({
 
   const onSubmit = async (data) => {
     setLoading(true);
+    setError("savingsAmount", { message: "" });
+    setError("savingsPercentage", { message: "" });
+
     try {
       let budgetIdToSend = null;
       if (budgetStatus) {
@@ -397,11 +411,43 @@ export default function TransactionModal({
         }
       }
 
+      // --- SAVINGS SPLIT LOGIC ---
+      let savingsDeduction = 0;
+      const totalInputAmount = parseFloat(data.amount);
+      let selectedGoal = null;
+
+      if (type === "income" && saveToSavings && data.savingsGoalId) {
+        selectedGoal = savingsGoals.find((g) => g.id == data.savingsGoalId);
+
+        if (data.savingsAmount && parseFloat(data.savingsAmount) > 0) {
+          savingsDeduction = parseFloat(data.savingsAmount);
+        } else if (
+          data.savingsPercentage &&
+          parseFloat(data.savingsPercentage) > 0
+        ) {
+          savingsDeduction =
+            totalInputAmount * (parseFloat(data.savingsPercentage) / 100);
+        }
+
+        if (savingsDeduction > totalInputAmount) {
+          setError("amount", {
+            type: "manual",
+            message: "Savings deduction exceeds income.",
+          });
+          setLoading(false);
+          return;
+        }
+      }
+
+      // 1. Calculate the Income Amount (Remaining after savings)
+      const finalIncomeAmount = totalInputAmount - savingsDeduction;
+
+      // 2. Prepare Main Payload
       const payload = {
         name: data.name,
         type,
-        amount: parseFloat(data.amount),
-        description: data.description || null,
+        amount: finalIncomeAmount,
+        description: data.description,
         date: data.transaction_date,
         category_id: data.category ? parseInt(data.category) : null,
         budget_id: budgetIdToSend,
@@ -416,51 +462,54 @@ export default function TransactionModal({
       } else {
         response = await addTransactionMutation.mutateAsync(payload);
 
-        if (type === "income" && saveToSavings && data.savingsGoalId) {
-          const goal = savingsGoals.find((g) => g.id == data.savingsGoalId);
+        // --- HANDLE SAVINGS IF APPLICABLE ---
+        if (
+          type === "income" &&
+          saveToSavings &&
+          savingsDeduction > 0 &&
+          selectedGoal
+        ) {
+          // A. Update the Savings Goal Balance
+          const goalPayload = {
+            name: selectedGoal.name,
+            target_amount: parseFloat(selectedGoal.target_amount),
+            current_amount:
+              parseFloat(selectedGoal.current_amount || 0) + savingsDeduction,
+            description: selectedGoal.description,
+          };
 
-          if (goal) {
-            let amountToAdd = 0;
-            const totalIncome = parseFloat(data.amount);
+          await updateSavingMutation.mutateAsync({
+            id: selectedGoal.id,
+            data: goalPayload,
+          });
 
-            if (data.savingsAmount && parseFloat(data.savingsAmount) > 0) {
-              amountToAdd = parseFloat(data.savingsAmount);
-            } else if (
-              data.savingsPercentage &&
-              parseFloat(data.savingsPercentage) > 0
-            ) {
-              amountToAdd =
-                totalIncome * (parseFloat(data.savingsPercentage) / 100);
-            }
+          // B. Create the History Record (Expense/Transfer Transaction)
+          // This is critical for the SavingsCardModal to show history
+          const transferCategoryId = findTransferCategory();
 
-            if (amountToAdd > 0) {
-              const goalPayload = {
-                name: goal.name,
-                target_amount: parseFloat(goal.target_amount),
-                current_amount:
-                  parseFloat(goal.current_amount || 0) + amountToAdd,
-                description: goal.description,
-              };
+          await addTransactionMutation.mutateAsync({
+            name: `Transfer to ${selectedGoal.name}`,
+            type: "expense", // It's an expense from your 'wallet'
+            amount: savingsDeduction,
+            description: `Auto-allocation from ${data.name}`,
+            date: data.transaction_date,
+            category_id: transferCategoryId,
+            saving_goal_id: selectedGoal.id, // Links it to the goal history
+          });
 
-              await updateSavingMutation.mutateAsync({
-                id: goal.id,
-                data: goalPayload,
-              });
+          Swal.fire({
+            icon: "success",
+            title: "Success!",
+            text: `Transaction saved & $${savingsDeduction.toLocaleString()} allocated to "${
+              selectedGoal.name
+            }".`,
+            timer: 2500,
+            showConfirmButton: false,
+          });
 
-              Swal.fire({
-                icon: "success",
-                title: "Success!",
-                text: `Transaction added and $${amountToAdd.toFixed(
-                  2
-                )} allocated to "${goal.name}".`,
-                timer: 2000,
-                showConfirmButton: false,
-              });
-              if (onTransactionAdded) onTransactionAdded(response);
-              onClose();
-              return;
-            }
-          }
+          if (onTransactionAdded) onTransactionAdded(response);
+          onClose();
+          return;
         }
       }
 

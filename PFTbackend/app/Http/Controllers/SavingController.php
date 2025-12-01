@@ -16,35 +16,41 @@ class SavingController extends Controller
 
     public function index(Request $request)
     {
-        // 1. Run the sync check to ensure data integrity
         $this->syncStatuses();
 
-        // 2. Start query
         $query = Saving::where('user_id', Auth::id());
+        $status = $request->get('status', 'active');
 
-        // 3. ✅ FIXED LOGIC:
-        // Only filter by status if the frontend explicitly asks for it.
-        // If 'status' is NOT in the request, we return EVERYTHING (Active + Completed).
-        if ($request->has('status')) {
-            $status = $request->get('status');
-
-            if ($status === 'history') {
-                $query->whereIn('status', ['completed', 'cancelled']);
-            } elseif ($status === 'active') {
-                $query->where('status', 'active');
-            }
+        // --- Filtering ---
+        if ($request->has('search') && $request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // 4. Search logic
-        if ($request->has('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
+        // --- Sorting ---
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
+
+        $allowedSorts = ['name', 'target_amount', 'current_amount', 'target_date', 'created_at', 'updated_at'];
+
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('created_at', 'desc');
         }
 
-        // 5. Sort by newest
-        $query->orderBy('created_at', 'desc');
+        // --- Response Logic ---
+        if ($status === 'history') {
+            $query->whereIn('status', ['completed', 'cancelled']);
+            return new SavingCollection($query->paginate(10));
+        }
 
-        // 6. Return paginated results (increased to 50 to ensure we get enough history items on one page)
-        return new SavingCollection($query->paginate(50));
+        if ($status === 'active') {
+            $query->where('status', 'active');
+            return new SavingCollection($query->get());
+        }
+
+        // Fallback
+        return new SavingCollection($query->get());
     }
 
     public function store(CreateSavingsRequest $request)
@@ -52,7 +58,6 @@ class SavingController extends Controller
         $data = $request->validated();
         $data['status'] = 'active';
 
-        // Check if created with full amount
         if (isset($data['current_amount']) && $data['current_amount'] >= $data['target_amount']) {
             $data['status'] = 'completed';
         }
@@ -68,11 +73,9 @@ class SavingController extends Controller
 
         $saving->fill($request->validated());
 
-        // LOGIC: Check if 100% reached
         if ($saving->current_amount >= $saving->target_amount) {
             $saving->status = 'completed';
         } else {
-            // If they withdraw money, flip it back to active
             $saving->status = 'active';
         }
 
@@ -81,14 +84,10 @@ class SavingController extends Controller
         return new SavingResource($saving->fresh());
     }
 
-    /**
-     * Helper to ensure all database rows have correct status
-     */
     private function syncStatuses()
     {
         $userId = Auth::id();
 
-        // Find 'active' savings that should be 'completed'
         Saving::where('user_id', $userId)
             ->where('status', 'active')
             ->whereColumn('current_amount', '>=', 'target_amount')

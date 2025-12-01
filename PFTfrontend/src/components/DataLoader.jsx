@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { useTransactions } from "../hooks/useTransactions.js";
 import { useCategories } from "../hooks/useCategories.js";
 import { useActiveBudgets } from "../hooks/useBudget.js";
-import { useSavings } from "../hooks/useSavings.js";
+import { useActiveSavings } from "../hooks/useSavings.js";
 
 const DataContext = createContext(null);
 
@@ -31,18 +31,18 @@ const DataLoader = ({ children }) => {
     error: catsError,
   } = useCategories();
 
-  // Changed to only fetch active budgets globally
   const {
     data: activeBudgetsDataRaw,
     isLoading: budgetsLoading,
     error: budgetsError,
   } = useActiveBudgets();
 
+  // Changed to only fetch active savings globally
   const {
-    data: savingsData,
+    data: activeSavingsDataRaw,
     isLoading: savingsLoading,
     error: savingsError,
-  } = useSavings("all");
+  } = useActiveSavings();
 
   const isLoading =
     userLoading ||
@@ -63,34 +63,20 @@ const DataLoader = ({ children }) => {
     };
 
     const budgetsList = getList(activeBudgetsDataRaw);
-    const savingsList = getList(savingsData);
+    const savingsList = getList(activeSavingsDataRaw);
 
     const activeBudgetsData = budgetsList;
-    // History is now handled locally in pages via pagination
     const historyBudgetsData = [];
 
-    const filterActiveSavings = (items) =>
-      items.filter((item) => item.status === "active");
-
-    const filterHistorySavings = (items) =>
-      items.filter(
-        (item) =>
-          item.status === "completed" ||
-          item.status === "cancelled" ||
-          item.status === "reached"
-      );
-
-    const activeSavingsData = filterActiveSavings(savingsList);
-    const historySavingsData = filterHistorySavings(savingsList);
+    const activeSavingsData = savingsList;
+    const historySavingsData = [];
 
     return {
       user,
       transactionsData,
       categoriesData,
-      budgetsData: budgetsList,
       activeBudgetsData,
       historyBudgetsData,
-      savingsData: savingsList,
       activeSavingsData,
       historySavingsData,
     };
@@ -99,7 +85,7 @@ const DataLoader = ({ children }) => {
     transactionsData,
     categoriesData,
     activeBudgetsDataRaw,
-    savingsData,
+    activeSavingsDataRaw,
   ]);
 
   if (isLoading) return <LoadingScreen />;
