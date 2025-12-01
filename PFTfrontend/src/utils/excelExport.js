@@ -2,304 +2,338 @@ import ExcelJS from "exceljs";
 
 /**
  * Export Full Report to Excel
- * Generates a comprehensive report with both income and expenses
+ * Generates a comprehensive report with Income, Expenses, Budgets, and Savings.
+ * Uses ExcelJS to apply specific styling matching the application theme.
  */
-export const exportFullReport = async (
-  incomeData,
-  expenseData,
-  incomeSummary,
-  expenseSummary,
-  appliedRange,
-  symbol = "$"
-) => {
+export const exportFullReport = async (data) => {
+  const {
+    income,
+    expenses,
+    budgets,
+    savings,
+    stats,
+    range,
+    expenseAllocation,
+  } = data;
+
+  const symbol = "$";
   const workbook = new ExcelJS.Workbook();
-  const netSavings = incomeSummary.totalIncome - expenseSummary.totalExpenses;
+  workbook.creator = "Finance App";
+  workbook.created = new Date();
+
+  // --- THEME COLORS (ARGB format for ExcelJS) ---
+  // Matches Tailwind classes: emerald-600, red-600, blue-600, teal-600
+  const THEME = {
+    emerald: { text: "FF059669", bg: "FFD1FAE5", header: "FF10B981" },
+    red: { text: "FFDC2626", bg: "FFFEE2E2", header: "FFEF4444" },
+    blue: { text: "FF2563EB", bg: "FFDBEAFE", header: "FF3B82F6" },
+    teal: { text: "FF0D9488", bg: "FFCCFBF1", header: "FF14B8A6" },
+    gray: { text: "FF374151", bg: "FFF3F4F6", header: "FF6B7280" },
+    white: "FFFFFFFF",
+  };
+
+  // Helper to style header rows
+  const styleHeader = (row, colorKey) => {
+    row.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: THEME.white }, size: 11 };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: THEME[colorKey].header },
+      };
+      cell.alignment = { horizontal: "center", vertical: "center" };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FFCCCCCC" } },
+        left: { style: "thin", color: { argb: "FFCCCCCC" } },
+        bottom: { style: "thin", color: { argb: "FFCCCCCC" } },
+        right: { style: "thin", color: { argb: "FFCCCCCC" } },
+      };
+    });
+  };
 
   // ============================================================================
-  // FINANCIAL OVERVIEW SHEET (Beautiful Violet Theme)
+  // 1. FINANCIAL OVERVIEW SHEET
   // ============================================================================
   const overviewSheet = workbook.addWorksheet("Financial Overview");
 
-  // --- TITLE ROW ---
+  // Title
   overviewSheet.mergeCells("A1:E1");
-  const overviewTitle = overviewSheet.getCell("A1");
-  overviewTitle.value = "Financial Overview";
-  overviewTitle.font = { size: 18, bold: true, color: { argb: "FF7B1FA2" } };
-  overviewTitle.alignment = { horizontal: "center", vertical: "center" };
-  overviewSheet.getRow(1).height = 25;
+  const titleCell = overviewSheet.getCell("A1");
+  titleCell.value = "Financial Overview";
+  titleCell.font = { size: 18, bold: true, color: { argb: "FF1F2937" } };
+  titleCell.alignment = { horizontal: "center" };
+  overviewSheet.getRow(1).height = 30;
 
-  // --- DATE RANGE INFO ---
-  const overviewDateRow = overviewSheet.addRow([]);
-  overviewDateRow.getCell(1).value = `Report Period: ${
-    appliedRange?.from
-      ? new Date(appliedRange.from).toLocaleDateString()
-      : "All Time"
-  } - ${
-    appliedRange?.to
-      ? new Date(appliedRange.to).toLocaleDateString()
-      : "Present"
-  }`;
-  overviewDateRow.getCell(1).font = {
-    italic: true,
-    color: { argb: "FF666666" },
-  };
+  // Period Info
+  const fromDate = range?.from
+    ? new Date(range.from).toLocaleDateString()
+    : "Start";
+  const toDate = range?.to ? new Date(range.to).toLocaleDateString() : "End";
+  const periodText =
+    range?.preset === "custom"
+      ? `${fromDate} - ${toDate}`
+      : (range?.preset || "All Time").replace("_", " ").toUpperCase();
 
-  overviewSheet.addRow([]);
+  overviewSheet.mergeCells("A2:E2");
+  const dateCell = overviewSheet.getCell("A2");
+  dateCell.value = `Report Period: ${periodText}`;
+  dateCell.font = { italic: true, color: { argb: "FF6B7280" } };
+  dateCell.alignment = { horizontal: "center" };
 
-  // --- KEY METRICS SECTION ---
-  overviewSheet.addRow(["KEY METRICS", "", "", "", ""]);
-  overviewSheet.getRow(4).getCell(1).font = {
-    bold: true,
-    size: 14,
-    color: { argb: "FF7B1FA2" },
-  };
+  overviewSheet.addRow([]); // Spacer
 
-  overviewSheet.addRow([]);
-
-  // Headers for metrics table
-  const metricsHeaderRow = overviewSheet.addRow([
+  // --- KEY METRICS TABLE ---
+  const metricsHeader = overviewSheet.addRow([
     "Metric",
-    "Symbol",
     "Amount",
     "Status",
     "Notes",
   ]);
-  metricsHeaderRow.eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF9C27B0" },
-    };
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "center",
-      wrapText: true,
-    };
-    cell.border = {
-      top: { style: "thin" },
-      left: { style: "thin" },
-      bottom: { style: "thin" },
-      right: { style: "thin" },
-    };
-  });
+  styleHeader(metricsHeader, "gray");
 
-  // Total Income Row
-  const incomeRow = overviewSheet.addRow([
-    "Total Income",
-    symbol,
-    incomeSummary.totalIncome,
-    "Received",
-    "All income sources combined",
-  ]);
-  incomeRow.getCell(1).font = { bold: true, color: { argb: "FF1B5E20" } };
-  incomeRow.getCell(3).font = { bold: true, color: { argb: "FF2E7D32" } };
-  incomeRow.getCell(3).numFmt = '"$"#,##0.00';
-  incomeRow.getCell(3).alignment = { horizontal: "right" };
-  incomeRow.eachCell((cell) => {
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFF1F8E9" },
-    };
-  });
+  const metricsData = [
+    {
+      label: "Total Income",
+      amount: stats.income,
+      theme: "emerald",
+      note: "Total earnings",
+    },
+    {
+      label: "Total Expenses",
+      amount: stats.expenses,
+      theme: "red",
+      note: "Total spending",
+    },
+    {
+      label: "Net Flow",
+      amount: stats.net,
+      theme: stats.net >= 0 ? "blue" : "red",
+      note: stats.net >= 0 ? "Surplus" : "Deficit",
+    },
+    {
+      label: "Total Savings",
+      amount: stats.totalSavings,
+      theme: "teal",
+      note: "Current savings balance",
+    },
+  ];
 
-  // Total Expenses Row
-  const expenseRow = overviewSheet.addRow([
-    "Total Expenses",
-    symbol,
-    expenseSummary.totalExpenses,
-    "Paid",
-    "All expense categories combined",
-  ]);
-  expenseRow.getCell(1).font = { bold: true, color: { argb: "FFC62828" } };
-  expenseRow.getCell(3).font = { bold: true, color: { argb: "FFC62828" } };
-  expenseRow.getCell(3).numFmt = '"$"#,##0.00';
-  expenseRow.getCell(3).alignment = { horizontal: "right" };
-  expenseRow.eachCell((cell) => {
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFFFF3E0" },
-    };
-  });
+  metricsData.forEach((m) => {
+    const row = overviewSheet.addRow([
+      m.label,
+      m.amount,
+      m.amount >= 0 ? "Positive" : "Negative",
+      m.note,
+    ]);
 
-  // Net Savings Row
-  const savingsRow = overviewSheet.addRow([
-    "Net Savings",
-    symbol,
-    netSavings,
-    netSavings >= 0 ? "Surplus" : "Deficit",
-    netSavings >= 0 ? "Positive cash flow" : "Negative cash flow",
-  ]);
-  savingsRow.getCell(1).font = { bold: true, color: { argb: "FF7B1FA2" } };
-  savingsRow.getCell(3).font = {
-    bold: true,
-    size: 12,
-    color: { argb: netSavings >= 0 ? "FF2E7D32" : "FFC62828" },
-  };
-  savingsRow.getCell(3).numFmt = '"$"#,##0.00';
-  savingsRow.getCell(3).alignment = { horizontal: "right" };
-  savingsRow.eachCell((cell) => {
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: netSavings >= 0 ? "FFE1BEE7" : "FFFFCCBC" },
-    };
+    // Style Amount
+    row.getCell(2).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(2).font = { bold: true, color: { argb: THEME[m.theme].text } };
+
+    // Row Background
+    row.eachCell((cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: THEME[m.theme].bg },
+      };
+      cell.border = {
+        bottom: { style: "dotted", color: { argb: "FFDDDDDD" } },
+      };
+    });
   });
 
   overviewSheet.addRow([]);
 
-  // --- COLUMN WIDTHS ---
+  // --- EXPENSE ALLOCATION ---
+  overviewSheet.addRow(["Top Expense Categories"]).getCell(1).font = {
+    bold: true,
+    size: 12,
+  };
+  const expHeader = overviewSheet.addRow(["Category", "Amount", "% of Total"]);
+  styleHeader(expHeader, "red");
+
+  expenseAllocation.forEach((item) => {
+    const pct = stats.expenses > 0 ? item.value / stats.expenses : 0;
+    const r = overviewSheet.addRow([item.name, item.value, pct]);
+    r.getCell(2).numFmt = `"${symbol}"#,##0.00`;
+    r.getCell(3).numFmt = "0.00%";
+  });
+
   overviewSheet.columns = [
+    { width: 25 },
     { width: 20 },
-    { width: 8 },
-    { width: 18 },
     { width: 15 },
-    { width: 30 },
+    { width: 35 },
+    { width: 10 },
   ];
 
   // ============================================================================
-  // INCOME SHEET (Green Theme)
+  // 2. BUDGETS SHEET (Blue Theme)
   // ============================================================================
-  const incomeSheet = workbook.addWorksheet("Income Report");
+  const budgetSheet = workbook.addWorksheet("Budgets");
 
-  // --- TITLE ROW ---
-  incomeSheet.mergeCells("A1:E1");
-  const incomeTitle = incomeSheet.getCell("A1");
-  incomeTitle.value = "Income Report";
-  incomeTitle.font = { size: 18, bold: true, color: { argb: "FF1B5E20" } };
-  incomeTitle.alignment = { horizontal: "center", vertical: "center" };
-  incomeSheet.getRow(1).height = 25;
+  const bHeader = budgetSheet.addRow([
+    "Budget Name",
+    "Category",
+    "Allocated",
+    "Spent (Period)",
+    "Remaining",
+    "Status",
+    "% Used",
+  ]);
+  styleHeader(bHeader, "blue");
 
-  // --- HEADER ROW ---
-  const incomeHeaders = ["Date", "Category", "Description", "Amount", "Status"];
-  const incomeHeaderRow = incomeSheet.addRow(incomeHeaders);
-  incomeHeaderRow.eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF4CAF50" },
-    };
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "center",
-      wrapText: true,
-    };
-  });
-
-  // --- DATA ROWS ---
-  incomeData.forEach((tx) => {
-    const row = incomeSheet.addRow([
-      new Date(tx.date).toLocaleDateString(),
-      tx.category_name || "Uncategorized",
-      tx.description || "-",
-      parseFloat(tx.amount),
-      "Completed",
+  budgets.forEach((b) => {
+    const row = budgetSheet.addRow([
+      b.name,
+      b.category,
+      b.allocated,
+      b.spent,
+      b.remaining,
+      b.isOver ? "OVERSPENT" : "Under Budget",
+      b.percent / 100,
     ]);
 
-    const amountCell = row.getCell(4);
-    amountCell.font = { color: { argb: "FF2E7D32" }, bold: true };
-    amountCell.numFmt = '"$"#,##0.00';
-    amountCell.alignment = { horizontal: "right" };
+    // Formatting
+    row.getCell(3).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(4).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(5).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(7).numFmt = "0.0%";
 
-    if (row.number % 2 === 0) {
+    // Conditional Styling for Overspent
+    if (b.isOver) {
       row.eachCell((cell) => {
         cell.fill = {
           type: "pattern",
           pattern: "solid",
-          fgColor: { argb: "FFF1F8E9" },
+          fgColor: { argb: THEME.red.bg },
         };
+        cell.font = { color: { argb: THEME.red.text } };
       });
+      row.getCell(6).font = { bold: true, color: { argb: THEME.red.text } };
     }
   });
 
+  budgetSheet.columns = [
+    { width: 20 },
+    { width: 20 },
+    { width: 15 },
+    { width: 18 },
+    { width: 15 },
+    { width: 15 },
+    { width: 10 },
+  ];
+
+  // ============================================================================
+  // 3. SAVINGS SHEET (Teal Theme)
+  // ============================================================================
+  const savingsSheet = workbook.addWorksheet("Savings");
+
+  const sHeader = savingsSheet.addRow([
+    "Goal Name",
+    "Target Amount",
+    "Current Amount",
+    "Remaining",
+    "Progress",
+  ]);
+  styleHeader(sHeader, "teal");
+
+  savings.forEach((s) => {
+    const row = savingsSheet.addRow([
+      s.name,
+      s.target,
+      s.current,
+      s.target - s.current,
+      s.percent / 100,
+    ]);
+
+    row.getCell(2).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(3).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(4).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(5).numFmt = "0.0%";
+
+    // Highlight completed goals
+    if (s.percent >= 100) {
+      row.getCell(5).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: THEME.teal.bg },
+      };
+      row.getCell(5).font = { bold: true, color: { argb: THEME.teal.text } };
+    }
+  });
+
+  savingsSheet.columns = [
+    { width: 25 },
+    { width: 18 },
+    { width: 18 },
+    { width: 18 },
+    { width: 12 },
+  ];
+
+  // ============================================================================
+  // 4. INCOME & EXPENSES (Detailed Sheets)
+  // ============================================================================
+
+  // --- INCOME ---
+  const incomeSheet = workbook.addWorksheet("Income Details");
+  const incHeader = incomeSheet.addRow(["Date", "Category", "Name", "Amount"]);
+  styleHeader(incHeader, "emerald");
+
+  income.forEach((t) => {
+    const row = incomeSheet.addRow([
+      new Date(t.date).toLocaleDateString(),
+      t.category_name || "Uncategorized",
+      t.name,
+      Number(t.amount),
+    ]);
+    row.getCell(4).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(4).font = { color: { argb: THEME.emerald.text } };
+  });
   incomeSheet.columns = [
     { width: 15 },
     { width: 20 },
-    { width: 35 },
+    { width: 25 },
     { width: 15 },
-    { width: 12 },
   ];
 
-  // ============================================================================
-  // EXPENSE SHEET (Red Theme)
-  // ============================================================================
-  const expenseSheet = workbook.addWorksheet("Expense Report");
-
-  // --- TITLE ROW ---
-  expenseSheet.mergeCells("A1:E1");
-  const expenseTitle = expenseSheet.getCell("A1");
-  expenseTitle.value = "Expense Report";
-  expenseTitle.font = { size: 18, bold: true, color: { argb: "FFC62828" } };
-  expenseTitle.alignment = { horizontal: "center", vertical: "center" };
-  expenseSheet.getRow(1).height = 25;
-
-  // --- HEADER ROW ---
-  const expenseHeaders = [
+  // --- EXPENSES ---
+  const expenseSheet = workbook.addWorksheet("Expense Details");
+  const expSheetHeader = expenseSheet.addRow([
     "Date",
     "Category",
-    "Description",
+    "Name",
     "Amount",
-    "Status",
-  ];
-  const expenseHeaderRow = expenseSheet.addRow(expenseHeaders);
-  expenseHeaderRow.eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FFEF5350" },
-    };
-    cell.alignment = {
-      horizontal: "center",
-      vertical: "center",
-      wrapText: true,
-    };
-  });
+  ]);
+  styleHeader(expSheetHeader, "red");
 
-  // --- DATA ROWS ---
-  expenseData.forEach((tx) => {
+  expenses.forEach((t) => {
     const row = expenseSheet.addRow([
-      new Date(tx.date).toLocaleDateString(),
-      tx.category_name || "Uncategorized",
-      tx.description || "-",
-      parseFloat(tx.amount),
-      "Completed",
+      new Date(t.date).toLocaleDateString(),
+      t.category_name || "Uncategorized",
+      t.name,
+      Number(t.amount),
     ]);
-
-    const amountCell = row.getCell(4);
-    amountCell.font = { color: { argb: "FFC62828" }, bold: true };
-    amountCell.numFmt = '"$"#,##0.00';
-    amountCell.alignment = { horizontal: "right" };
-
-    if (row.number % 2 === 0) {
-      row.eachCell((cell) => {
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFFFF3E0" },
-        };
-      });
-    }
+    row.getCell(4).numFmt = `"${symbol}"#,##0.00`;
+    row.getCell(4).font = { color: { argb: THEME.red.text } };
   });
-
   expenseSheet.columns = [
     { width: 15 },
     { width: 20 },
-    { width: 35 },
+    { width: 25 },
     { width: 15 },
-    { width: 12 },
   ];
 
-  // --- EXPORT FILE ---
+  // ============================================================================
+  // DOWNLOAD
+  // ============================================================================
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/octet-stream" });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `Financial_Report_${
+  link.download = `Financial_Report_${range?.preset || "custom"}_${
     new Date().toISOString().split("T")[0]
   }.xlsx`;
   link.click();

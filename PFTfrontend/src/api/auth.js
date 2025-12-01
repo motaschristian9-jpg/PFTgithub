@@ -31,10 +31,20 @@ export const resendVerificationEmail = async (data) => {
   return response.data;
 };
 
+// Update Profile (Renamed from updateAvatar and endpoint updated)
+export const updateProfile = async (formData) => {
+  const response = await api.post("/update-profile", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
 // Get Google OAuth URL
 export const getGoogleOAuthUrl = async (state, redirectUri) => {
   const response = await api.get("/auth/google/login", {
-    params: { state, redirect_uri: redirectUri }
+    params: { state, redirect_uri: redirectUri },
   });
   return response.data;
 };

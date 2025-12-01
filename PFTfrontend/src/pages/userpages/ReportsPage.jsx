@@ -9,7 +9,7 @@ import {
   BarChart as BarIcon,
   Download,
   Calendar,
-  PiggyBank, // Added Icon
+  PiggyBank,
 } from "lucide-react";
 import {
   startOfMonth,
@@ -41,14 +41,14 @@ import {
 } from "recharts";
 
 const COLORS = [
-  "#10B981",
-  "#3B82F6",
-  "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#EC4899",
-  "#06B6D4",
-  "#6366F1",
+  "#10B981", // Emerald
+  "#3B82F6", // Blue
+  "#F59E0B", // Amber
+  "#EF4444", // Red
+  "#8B5CF6", // Violet
+  "#EC4899", // Pink
+  "#06B6D4", // Cyan
+  "#6366F1", // Indigo
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -96,13 +96,19 @@ export default function ReportsPage() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Filter State
+  // --- Filter State ---
   const [datePreset, setDatePreset] = useState("this_month");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const { user, transactionsData, activeBudgetsData, savingsData } =
-    useDataContext();
+  // --- Data Access ---
+  const {
+    user,
+    transactionsData,
+    activeBudgetsData,
+    savingsData,
+    categoriesData,
+  } = useDataContext();
 
   // --- Date Logic ---
   useEffect(() => {
@@ -128,17 +134,32 @@ export default function ReportsPage() {
     }
   }, [datePreset]);
 
-  // --- Data Filtering ---
+  // --- 1. Category Lookup Map ---
+  const categoryLookup = useMemo(() => {
+    const map = {};
+    if (categoriesData?.data && Array.isArray(categoriesData.data)) {
+      categoriesData.data.forEach((cat) => {
+        map[cat.id] = cat.name;
+      });
+    }
+    return map;
+  }, [categoriesData]);
+
+  // --- 2. Filter Transactions ---
   const allTransactions = useMemo(
     () => transactionsData?.data || [],
     [transactionsData]
   );
 
   const filteredTransactions = useMemo(() => {
+    // If "All Time" (empty strings), return everything
     if (!startDate && !endDate) return allTransactions;
 
     return allTransactions.filter((t) => {
-      const txDate = parseISO(t.date);
+      if (!t.date && !t.transaction_date) return false;
+      const dateStr = t.date || t.transaction_date;
+
+      const txDate = parseISO(dateStr);
       const start = startDate ? parseISO(startDate) : new Date("1900-01-01");
       const end = endDate ? parseISO(endDate) : new Date("2100-01-01");
       end.setHours(23, 59, 59, 999);
@@ -147,16 +168,39 @@ export default function ReportsPage() {
     });
   }, [allTransactions, startDate, endDate]);
 
-  const activeBudgets = useMemo(
-    () => activeBudgetsData || [],
-    [activeBudgetsData]
-  );
+  // --- 3. Filter Budgets & Savings based on Creation Date ---
+  const filteredBudgets = useMemo(() => {
+    if (!startDate && !endDate) return activeBudgetsData || [];
 
-  // Savings Data Preparation
-  const allSavings = useMemo(() => savingsData || [], [savingsData]);
+    return (activeBudgetsData || []).filter((b) => {
+      if (!b.created_at) return true;
+      const createdDate = parseISO(b.created_at);
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      end.setHours(23, 59, 59, 999);
 
+      return isWithinInterval(createdDate, { start, end });
+    });
+  }, [activeBudgetsData, startDate, endDate]);
+
+  const filteredSavingsList = useMemo(() => {
+    if (!startDate && !endDate) return savingsData || [];
+
+    return (savingsData || []).filter((s) => {
+      if (!s.created_at) return true;
+      const createdDate = parseISO(s.created_at);
+      const start = parseISO(startDate);
+      const end = parseISO(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      return isWithinInterval(createdDate, { start, end });
+    });
+  }, [savingsData, startDate, endDate]);
+
+  // --- 4. Process Savings Data ---
   const processedSavings = useMemo(() => {
-    return allSavings.map((s) => {
+    const list = Array.isArray(filteredSavingsList) ? filteredSavingsList : [];
+    return list.map((s) => {
       const current = Number(s.current_amount || 0);
       const target = Number(s.target_amount || 1);
       const percent = (current / target) * 100;
@@ -168,35 +212,41 @@ export default function ReportsPage() {
         widthPercent: Math.min(percent, 100),
       };
     });
-  }, [allSavings]);
+  }, [filteredSavingsList]);
 
-  // --- Stats Calculation ---
+  // --- 5. Statistics Calculation ---
   const stats = useMemo(() => {
     let income = 0;
     let expenses = 0;
 
     filteredTransactions.forEach((t) => {
-      if (t.type === "income") income += parseFloat(t.amount);
-      if (t.type === "expense") expenses += parseFloat(t.amount);
+      const amt = Number(t.amount || 0);
+      if (t.type === "income") income += amt;
+      if (t.type === "expense") expenses += amt;
     });
 
     const net = income - expenses;
 
-    const totalSavings = allSavings.reduce(
-      (sum, s) => sum + Number(s.current_amount || 0),
+    const totalSavings = processedSavings.reduce(
+      (sum, s) => sum + s.current,
       0
     );
 
-    return { income, expenses, net, totalSavings };
-  }, [filteredTransactions, allSavings]);
+    return {
+      income,
+      expenses,
+      net,
+      totalSavings,
+    };
+  }, [filteredTransactions, processedSavings]);
 
-  // --- Chart Data ---
+  // --- 6. Chart Data Preparation ---
   const expenseChartData = useMemo(() => {
     const map = {};
     filteredTransactions.forEach((t) => {
       if (t.type === "expense") {
-        const catName = t.category_name || "Uncategorized";
-        map[catName] = (map[catName] || 0) + parseFloat(t.amount);
+        const catName = categoryLookup[t.category_id] || "Uncategorized";
+        map[catName] = (map[catName] || 0) + Number(t.amount || 0);
       }
     });
 
@@ -204,7 +254,7 @@ export default function ReportsPage() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
-  }, [filteredTransactions]);
+  }, [filteredTransactions, categoryLookup]);
 
   const barChartData = useMemo(
     () => [
@@ -214,26 +264,31 @@ export default function ReportsPage() {
     [stats]
   );
 
+  // --- 7. Budget Compliance ---
   const budgetCompliance = useMemo(() => {
     const spendingMap = {};
-    filteredTransactions.forEach((t) => {
+
+    // Spending is calculated from ALL transactions (Total Spending)
+    allTransactions.forEach((t) => {
       if (t.type === "expense" && t.budget_id) {
         spendingMap[t.budget_id] =
           (spendingMap[t.budget_id] || 0) + Number(t.amount || 0);
       }
     });
 
-    return activeBudgets
+    // Display list is filtered by creation date
+    return filteredBudgets
       .map((b) => {
         const allocated = Number(b.amount || 0);
         const spent = spendingMap[b.id] || 0;
         const remaining = allocated - spent;
         const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
         const isOver = spent > allocated;
+        const catName = categoryLookup[b.category_id] || "Uncategorized";
 
         return {
           ...b,
-          category: b.category_name || "N/A",
+          category: catName,
           spent: spent,
           allocated: allocated,
           remaining: remaining,
@@ -242,36 +297,26 @@ export default function ReportsPage() {
         };
       })
       .sort((a, b) => a.remaining - b.remaining);
-  }, [activeBudgets, filteredTransactions]);
+  }, [filteredBudgets, allTransactions, categoryLookup]);
 
+  // --- Handlers ---
   const handleExport = async () => {
-    const incomeData = filteredTransactions.filter((t) => t.type === "income");
-    const expenseData = filteredTransactions.filter(
-      (t) => t.type === "expense"
-    );
-
-    const incomeSummary = {
-      totalIncome: stats.income,
-      highestSource:
-        incomeData.sort((a, b) => b.amount - a.amount)[0]?.name || "N/A",
-      avgMonthlyIncome: 0,
+    // Create the unified object expected by exportFullReport
+    const exportData = {
+      income: filteredTransactions.filter((t) => t.type === "income"),
+      expenses: filteredTransactions.filter((t) => t.type === "expense"),
+      budgets: budgetCompliance,
+      savings: processedSavings,
+      stats: stats,
+      range: {
+        from: startDate,
+        to: endDate,
+        preset: datePreset,
+      },
+      expenseAllocation: expenseChartData,
     };
 
-    const expenseSummary = {
-      totalExpenses: stats.expenses,
-      largestCategory: expenseChartData[0]?.name || "N/A",
-      avgMonthlyExpenses: 0,
-    };
-
-    const appliedRange = { from: startDate, to: endDate };
-
-    await exportFullReport(
-      incomeData,
-      expenseData,
-      incomeSummary,
-      expenseSummary,
-      appliedRange
-    );
+    await exportFullReport(exportData);
   };
 
   const toggleSidebar = () => {
@@ -440,6 +485,7 @@ export default function ReportsPage() {
 
             {/* 3. Charts Section */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Expense Allocation Pie Chart */}
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col">
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-6">
                   <PieIcon size={20} className="text-rose-400" /> Expense
@@ -487,6 +533,7 @@ export default function ReportsPage() {
                 </div>
               </div>
 
+              {/* Income vs Expenses Bar Chart */}
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col">
                 <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-6">
                   <BarIcon size={20} className="text-emerald-400" /> Income vs
@@ -542,7 +589,7 @@ export default function ReportsPage() {
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-50/30">
                   <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                     <CheckCircle2 size={20} className="text-blue-600" /> Budget
-                    Compliance Table
+                    Compliance (Selected Period)
                   </h3>
                 </div>
 
@@ -614,7 +661,7 @@ export default function ReportsPage() {
               </div>
             </section>
 
-            {/* 5. NEW: Savings Goals Summary (Table Format) */}
+            {/* 5. Savings Goals Summary */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-300/30 to-indigo-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 overflow-hidden">

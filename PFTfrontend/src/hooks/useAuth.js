@@ -3,7 +3,8 @@ import { getToken } from "../api/axios";
 import { useUserContext } from "../context/UserContext";
 
 export const useAuth = () => {
-  const { user, isLoading } = useUserContext();
+  // Extract setUser from context
+  const { user, setUser, isLoading } = useUserContext();
 
   return useMemo(() => {
     const token = getToken();
@@ -14,7 +15,8 @@ export const useAuth = () => {
       isAuthenticated,
       isLoading,
       user,
+      setUser, // Expose setUser for optimistic updates
       error: null,
     };
-  }, [user, isLoading]);
+  }, [user, setUser, isLoading]);
 };

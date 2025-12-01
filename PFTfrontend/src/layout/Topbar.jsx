@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Bell, User, LogOut, Menu } from "lucide-react";
-import Swal from "sweetalert2";
+import Swal from "sweetalert2"; // Import SweetAlert
+import { logoutUser } from "../api/auth"; // Import API handler
 
 export default function Topbar({
   toggleMobileMenu,
@@ -9,7 +10,7 @@ export default function Topbar({
   hasUnread,
   setHasUnread,
   user,
-  handleLogout
+  // handleLogout prop is no longer needed from parent
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -32,6 +33,51 @@ export default function Topbar({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Helper to get avatar URL or fallback
+  const getAvatarSrc = () => {
+    if (user?.avatar_url) {
+      return user.avatar_url;
+    }
+    // Fallback to UI Avatars using the user's name
+    const name = user?.name || "User";
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      name
+    )}&background=10b981&color=fff&bold=true`;
+  };
+
+  // Self-contained Logout Logic
+  const handleInternalLogout = async () => {
+    const result = await Swal.fire({
+      title: "Logout?",
+      text: "Are you sure you want to log out?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, Logout",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await logoutUser();
+      } catch (e) {
+        console.error("Logout error:", e);
+      } finally {
+        // Clear storage and redirect
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "/login";
+      }
+    }
+  };
+
+  // Click Handler
+  const onLogoutClick = (e) => {
+    e.stopPropagation();
+    setDropdownOpen(false);
+    handleInternalLogout();
+  };
 
   return (
     <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-green-100/50 shadow-sm">
@@ -69,9 +115,7 @@ export default function Topbar({
             {notificationOpen && (
               <div className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-sm border border-green-100 rounded-xl shadow-xl py-2 z-50 max-h-96 overflow-y-auto">
                 <div className="px-4 py-2 border-b border-green-100">
-                  <h3 className="font-semibold text-gray-800">
-                    Notifications
-                  </h3>
+                  <h3 className="font-semibold text-gray-800">Notifications</h3>
                 </div>
                 <div className="p-2">
                   {notifications.length === 0 ? (
@@ -112,17 +156,34 @@ export default function Topbar({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 cursor-pointer"
+              className="flex items-center space-x-2 p-1 pr-2 rounded-lg hover:bg-green-50 transition-colors duration-200 cursor-pointer"
             >
               <img
-                src="https://picsum.photos/40"
-                alt="User"
-                className="w-10 h-10 rounded-full object-cover shadow-md"
+                src={getAvatarSrc()}
+                alt={user?.name || "User"}
+                className="w-9 h-9 rounded-full object-cover shadow-sm border border-green-100"
+                onError={(e) => {
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    user?.name || "User"
+                  )}&background=10b981&color=fff&bold=true`;
+                }}
               />
+              <span className="hidden sm:block text-sm font-medium text-gray-700 truncate max-w-[100px]">
+                {user?.name?.split(" ")[0]}
+              </span>
             </button>
 
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-sm border border-green-100 rounded-xl shadow-xl py-2 z-50">
+                <div className="px-4 py-3 border-b border-green-50 bg-green-50/30">
+                  <p className="text-sm font-semibold text-gray-800 truncate">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {user?.email}
+                  </p>
+                </div>
+
                 <Link
                   to="/profile"
                   className="flex items-center space-x-3 px-4 py-3 hover:bg-green-50 transition-colors duration-200 text-gray-700 hover:text-green-600"
@@ -132,8 +193,11 @@ export default function Topbar({
                   <span className="font-medium">Profile Settings</span>
                 </Link>
                 <div className="border-t border-green-100 my-1"></div>
+
+                {/* Updated Logout Button */}
                 <button
-                  onClick={handleLogout}
+                  type="button"
+                  onClick={onLogoutClick}
                   className="flex items-center space-x-3 px-4 py-3 hover:bg-red-50 transition-colors duration-200 text-red-600 hover:text-red-700 w-full text-left cursor-pointer"
                 >
                   <LogOut size={16} />

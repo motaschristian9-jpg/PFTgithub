@@ -8,17 +8,21 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use OpenApi\Annotations as OA;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @OA\Schema(
- *     schema="User",
- *     required={"name", "email"},
- *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="name", type="string", example="John Doe"),
- *     @OA\Property(property="email", type="string", format="email", example="john@example.com"),
- *     @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
- *     @OA\Property(property="created_at", type="string", format="date-time"),
- *     @OA\Property(property="updated_at", type="string", format="date-time")
+ * schema="User",
+ * required={"name", "email"},
+ * @OA\Property(property="id", type="integer", example=1),
+ * @OA\Property(property="name", type="string", example="John Doe"),
+ * @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+ * @OA\Property(property="avatar", type="string", nullable=true, example="avatars/filename.jpg"),
+ * @OA\Property(property="avatar_url", type="string", nullable=true, example="http://localhost:8000/storage/avatars/filename.jpg"),
+ * @OA\Property(property="bio", type="string", nullable=true, example="Software Developer"),
+ * @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
+ * @OA\Property(property="created_at", type="string", format="date-time"),
+ * @OA\Property(property="updated_at", type="string", format="date-time")
  * )
  */
 class User extends Authenticatable implements MustVerifyEmail
@@ -35,6 +39,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'email_verified_at',
+        'avatar',
+        'bio', // <--- Added bio here
     ];
 
     /**
@@ -58,45 +64,42 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Get the transactions for the user.
+     * The accessors to append to the model's array form.
+     *
+     * @var array
      */
+    protected $appends = ['avatar_url'];
+
+    /**
+     * Get the full URL of the avatar.
+     */
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar
+            ? asset('storage/' . $this->avatar)
+            : null;
+    }
+
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
     }
 
-    /**
-     * Get the budgets for the user.
-     */
     public function budgets()
     {
         return $this->hasMany(Budget::class);
     }
 
-    /**
-     * Get the savings for the user.
-     */
     public function savings()
     {
         return $this->hasMany(Saving::class);
     }
 
-    /**
-     * Send the email verification notification.
-     *
-     * @return void
-     */
     public function sendEmailVerificationNotification()
     {
         $this->notify(new \App\Notifications\VerifyEmail);
     }
 
-    /**
-     * Send the password reset notification.
-     *
-     * @param  string  $token
-     * @return void
-     */
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new \App\Notifications\ResetPasswordNotificationCustom($token));

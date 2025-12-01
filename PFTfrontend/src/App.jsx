@@ -9,6 +9,7 @@ import TransactionsPage from "./pages/userpages/TransactionsPage.jsx";
 import BudgetPage from "./pages/userpages/BudgetPage.jsx";
 import SavingsPage from "./pages/userpages/SavingsPage.jsx";
 import ReportsPage from "./pages/userpages/ReportsPage.jsx";
+import SettingsPage from "./pages/userpages/SettingsPage.jsx";
 import EmailVerificationPage from "./pages/authpages/EmailVerificationPage.jsx";
 import ResetPasswordPage from "./pages/authpages/ResetPasswordPage.jsx";
 import ForgotPasswordPage from "./pages/authpages/ForgotPasswordPage.jsx";
@@ -81,6 +82,14 @@ function App() {
               element={
                 <DataLoader>
                   <ReportsPage />
+                </DataLoader>
+              }
+            />
+            <Route
+              path="setting"
+              element={
+                <DataLoader>
+                  <SettingsPage />
                 </DataLoader>
               }
             />

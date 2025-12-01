@@ -7,15 +7,14 @@ import {
   Search,
   Calendar,
   DollarSign,
-  TrendingUp,
-  TrendingDown,
   Plus,
   ChevronLeft,
   ChevronRight,
   Edit2,
   Trash2,
-  X,
   SlidersHorizontal,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
@@ -25,7 +24,6 @@ import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import TransactionModal from "../../components/TransactionModal.jsx";
-import { logoutUser } from "../../api/auth.js";
 import { useExampleTransactionsApi } from "../../hooks/useExampleTransactionsApi.js";
 import Swal from "sweetalert2";
 import { useDataContext } from "../../components/DataLoader";
@@ -73,7 +71,6 @@ export default function TransactionsPage() {
   } = useExampleTransactionsApi();
 
   // --- Optimization: Memoize Filtered Categories ---
-  // Prevents re-calculation on every render (e.g. while typing search)
   const filteredCategories = useMemo(() => {
     return (categoriesData?.data || []).filter(
       (cat) => type === "all" || cat.type === type
@@ -143,29 +140,6 @@ export default function TransactionsPage() {
     setPage(1);
   };
 
-  const handleLogout = async () => {
-    const result = await Swal.fire({
-      title: "Logout?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await logoutUser();
-      } catch (e) {
-        console.error(e);
-      } finally {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "/login";
-      }
-    }
-  };
-
   // --- Render Helpers ---
 
   const getSortIcon = (key) => {
@@ -221,11 +195,11 @@ export default function TransactionsPage() {
       />
 
       <div className="flex-1 flex flex-col relative z-10">
+        {/* Updated Topbar without handleLogout prop */}
         <Topbar
           toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           notifications={[]}
           user={user}
-          handleLogout={handleLogout}
         />
 
         <MainView>

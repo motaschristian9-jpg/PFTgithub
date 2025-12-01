@@ -21,21 +21,42 @@ class BudgetController extends Controller
         $this->updateBudgetStatuses();
 
         $query = Budget::where('user_id', Auth::id());
-
         $status = $request->get('status', 'active');
 
-        if ($status === 'history') {
-            $query->whereIn('status', ['completed', 'expired', 'reached']);
-        } elseif ($status === 'active') {
-            $query->where('status', 'active');
+        // --- Common Filtering (Name & Category) ---
+        if ($request->has('search') && $request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $query->orderBy('created_at', 'desc');
-
-        if ($request->has('name'))
-            $query->where('name', 'like', '%' . $request->name . '%');
-        if ($request->has('category_id'))
+        if ($request->has('category_id') && $request->category_id) {
             $query->where('category_id', $request->category_id);
+        }
+
+        // --- Sorting Logic ---
+        $sortBy = $request->get('sort_by', 'created_at'); // Default sort
+        $sortDir = $request->get('sort_dir', 'desc');     // Default direction
+
+        // Allowed sort columns to prevent SQL injection or errors
+        $allowedSorts = ['name', 'amount', 'start_date', 'end_date', 'created_at', 'updated_at'];
+
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        // --- Response Logic ---
+        if ($status === 'history') {
+            $query->whereIn('status', ['completed', 'expired', 'reached']);
+            // History is paginated
+            return new BudgetCollection($query->paginate(10));
+        }
+
+        if ($status === 'active') {
+            $query->where('status', 'active');
+            // Active is just a list (filtered by search/sort above)
+            return new BudgetCollection($query->get());
+        }
 
         return new BudgetCollection($query->get());
     }
@@ -45,19 +66,16 @@ class BudgetController extends Controller
         $userId = Auth::id();
         $today = Carbon::now()->format('Y-m-d');
 
-        // 1. Time Expiration
         Budget::where('user_id', $userId)
             ->where('status', 'active')
             ->where('end_date', '<', $today)
             ->update(['status' => 'expired']);
 
-        // 2. Limit Reached (STRICT ID LINKING)
         $activeBudgets = Budget::where('user_id', $userId)
             ->where('status', 'active')
             ->get();
 
         foreach ($activeBudgets as $budget) {
-            // FIX: We ONLY sum transactions that are explicitly linked to this budget ID.
             $totalSpent = Transaction::where('budget_id', $budget->id)->sum('amount');
 
             if ($totalSpent >= $budget->amount) {
@@ -68,7 +86,6 @@ class BudgetController extends Controller
 
     public function store(CreateBudgetRequest $request)
     {
-        // Check for existing ACTIVE budget
         if ($request->category_id) {
             $exists = Budget::where('user_id', Auth::id())
                 ->where('status', 'active')
@@ -83,12 +100,7 @@ class BudgetController extends Controller
         $data = $request->validated();
         $data['status'] = 'active';
 
-        // 1. Create the Budget
         $budget = Auth::user()->budgets()->create($data);
-
-        // NOTE: Retroactive linking block has been removed here.
-        // Old transactions will NOT be automatically linked to this new budget.
-        // They will remain with budget_id = null (or whatever they had before).
 
         return new BudgetResource($budget->fresh());
     }
@@ -103,11 +115,6 @@ class BudgetController extends Controller
     {
         $this->authorize('update', $budget);
         $budget->update($request->validated());
-
-        // Also ensure linked transactions are still valid or check if more need to be added?
-        // For now, simpler to just re-calc status. 
-        // Note: Changing dates on update might orphan transactions, 
-        // but that's complex logic. We stick to status update.
         $this->updateBudgetStatuses();
 
         return new BudgetResource($budget->fresh());
@@ -116,12 +123,7 @@ class BudgetController extends Controller
     public function destroy(Budget $budget)
     {
         $this->authorize('delete', $budget);
-
-        // CASCADING DELETE
-        // Delete all transactions tied to this budget first
         $budget->transactions()->delete();
-
-        // Then delete the budget
         $budget->delete();
 
         return response()->json(['success' => true]);

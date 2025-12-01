@@ -14,7 +14,7 @@ use App\Http\Controllers\SavingController;
 |--------------------------------------------------------------------------
 */
 
-// Public test route without auth or throttle for CORS test
+// Public test route
 Route::get('/cors-test', function () {
     return response()->json(['success' => true, 'message' => 'CORS test endpoint']);
 })->middleware(['cors']);
@@ -22,8 +22,6 @@ Route::get('/cors-test', function () {
 // Auth routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])->middleware('auth:sanctum');
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
 
 // Google OAuth routes
@@ -33,18 +31,25 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 // Protected User Routes
 Route::middleware('auth:sanctum')->group(function () {
 
-    // 1. Specific routes FIRST (to avoid conflicts with wildcards)
+    // Auth-related protected routes
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail']);
+
+    // NEW: Update Profile Route (Changed from update-avatar)
+    Route::post('/update-profile', [AuthController::class, 'updateProfile']);
+
+    // 1. Specific routes FIRST
     Route::get('transactions/search', [TransactionController::class, 'search']);
 
     // 2. Resource routes
     Route::apiResource('transactions', TransactionController::class);
 
-    // Categories are usually read-only for users
+    // Categories
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);
 
-    // Budgets - Full CRUD
+    // Budgets
     Route::apiResource('budgets', BudgetController::class);
 
-    // Savings - Full CRUD (Removed ->only restriction so store/update/delete works)
+    // Savings
     Route::apiResource('savings', SavingController::class);
 });

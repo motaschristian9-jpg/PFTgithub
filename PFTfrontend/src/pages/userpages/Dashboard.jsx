@@ -6,16 +6,14 @@ import {
   Wallet,
   Target,
   PlusCircle,
-  Activity, // Added Icon
-  ArrowUpRight, // Added Icon
-  ArrowDownRight, // Added Icon
+  Activity,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
-import { logoutUser } from "../../api/auth.js";
-import Swal from "sweetalert2";
 import { useDataContext } from "../../components/DataLoader";
 
 import {
@@ -150,29 +148,6 @@ const Dashboard = () => {
     });
   }, [savingsList]);
 
-  const handleLogout = async () => {
-    const result = await Swal.fire({
-      title: "Logout?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes",
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await logoutUser();
-      } catch (e) {
-        console.error(e);
-      } finally {
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.href = "/login";
-      }
-    }
-  };
-
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
@@ -201,11 +176,11 @@ const Dashboard = () => {
       />
 
       <div className="flex-1 flex flex-col relative z-10">
+        {/* Updated Topbar without handleLogout prop */}
         <Topbar
           toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           notifications={[]}
           user={user}
-          handleLogout={handleLogout}
         />
 
         <MainView>
@@ -392,10 +367,8 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Budget Section: Kept Visual Bars for Quick Status */}
+            {/* Budget Section */}
             <section className="relative">
-              {/* ... (Existing code for Active Budgets - No changes needed here for Dashboard) ... */}
-              {/* I'm keeping the original Budget mapping here as requested to preserve "functionality" for the dashboard view */}
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-100/50 p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -465,7 +438,7 @@ const Dashboard = () => {
               </div>
             </section>
 
-            {/* Savings Section (Unchanged) */}
+            {/* Savings Section */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/30 to-blue-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 p-6">
@@ -499,7 +472,6 @@ const Dashboard = () => {
                         key={s.id}
                         className="bg-white rounded-xl p-5 border border-blue-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
                       >
-                        {/* ... (Existing Savings Card JSX) ... */}
                         <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                         <Target
                           className="absolute top-3 right-3 text-blue-200"

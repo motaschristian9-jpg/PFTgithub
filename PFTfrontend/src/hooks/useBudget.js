@@ -1,80 +1,72 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getBudgets,
-  createBudget,
-  updateBudget,
-  deleteBudget,
-} from "../api/budgets";
+import axios from "../api/axios";
 
-export const useBudget = (status = "active", options = {}) => {
+// API Functions
+const getActiveBudgets = () => {
+  return axios
+    .get("/budgets", { params: { status: "active" } })
+    .then((res) => res.data);
+};
+
+// Updated to accept filters
+const getBudgetHistory = (page = 1, filters = {}) => {
+  const params = {
+    status: "history",
+    page,
+    search: filters.search,
+    category_id: filters.categoryId,
+    sort_by: filters.sortBy,
+    sort_dir: filters.sortDir,
+  };
+  return axios.get("/budgets", { params }).then((res) => res.data);
+};
+
+export const createBudget = (data) =>
+  axios.post("/budgets", data).then((res) => res.data);
+export const updateBudget = (id, data) =>
+  axios.put(`/budgets/${id}`, data).then((res) => res.data);
+export const deleteBudget = (id) =>
+  axios.delete(`/budgets/${id}`).then((res) => res.data);
+
+// Hooks
+export const useActiveBudgets = () => {
   return useQuery({
-    queryKey: ["budgets", status],
-    queryFn: () => getBudgets({ status }),
+    queryKey: ["budgets", "active"],
+    queryFn: getActiveBudgets,
     staleTime: 5 * 60 * 1000,
-    keepPreviousData: true, // Prevents flickering when switching tabs
     select: (data) => {
-      const budgets = Array.isArray(data?.data) ? data.data : [];
-      return {
-        ...data,
-        data: budgets,
-        totals: {
-          totalAmount: budgets.reduce(
-            (sum, budget) => sum + parseFloat(budget.amount || 0),
-            0
-          ),
-        },
-      };
+      const items = Array.isArray(data?.data) ? data.data : [];
+      return { data: items };
     },
-    ...options,
   });
 };
 
+// Updated Hook Signature
+export const useBudgetHistory = (page, filters) => {
+  return useQuery({
+    queryKey: ["budgets", "history", page, filters], // Include filters in key to trigger refetch
+    queryFn: () => getBudgetHistory(page, filters),
+    keepPreviousData: true,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Mutations
 export const useCreateBudget = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: createBudget,
     onSuccess: () => {
-      // Invalidate all budget lists (active, history, all)
-      queryClient.invalidateQueries({ queryKey: ["budgets"] });
+      queryClient.invalidateQueries({ queryKey: ["budgets", "active"] });
     },
   });
 };
 
 export const useUpdateBudget = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: ({ id, data }) => updateBudget(id, data),
-    onMutate: async ({ id, data }) => {
-      // 1. Cancel outgoing fetches
-      await queryClient.cancelQueries({ queryKey: ["budgets"] });
-
-      // 2. Snapshot previous data
-      const previousData = queryClient.getQueriesData({
-        queryKey: ["budgets"],
-      });
-
-      // 3. Optimistically update
-      queryClient.setQueriesData({ queryKey: ["budgets"] }, (old) => {
-        if (!old?.data) return old;
-        return {
-          ...old,
-          data: old.data.map((b) => (b.id === id ? { ...b, ...data } : b)),
-        };
-      });
-
-      return { previousData };
-    },
-    onError: (err, vars, context) => {
-      // Rollback on error
-      if (context?.previousData) {
-        context.previousData.forEach(([key, data]) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });
@@ -82,38 +74,9 @@ export const useUpdateBudget = () => {
 
 export const useDeleteBudget = () => {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: deleteBudget,
-    onMutate: async (deletedId) => {
-      // 1. Cancel outgoing fetches
-      await queryClient.cancelQueries({ queryKey: ["budgets"] });
-
-      // 2. Snapshot previous data
-      const previousData = queryClient.getQueriesData({
-        queryKey: ["budgets"],
-      });
-
-      // 3. Optimistically update (Remove item from list)
-      queryClient.setQueriesData({ queryKey: ["budgets"] }, (old) => {
-        if (!old?.data) return old;
-        return {
-          ...old,
-          data: old.data.filter((b) => b.id !== deletedId),
-        };
-      });
-
-      return { previousData };
-    },
-    onError: (err, vars, context) => {
-      // Rollback on error
-      if (context?.previousData) {
-        context.previousData.forEach(([key, data]) => {
-          queryClient.setQueryData(key, data);
-        });
-      }
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgets"] });
     },
   });

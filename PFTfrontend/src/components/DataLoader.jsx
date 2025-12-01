@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import LoadingScreen from "./LoadingScreen.jsx";
 import { useAuth } from "../hooks/useAuth.js";
 import { useTransactions } from "../hooks/useTransactions.js";
 import { useCategories } from "../hooks/useCategories.js";
-import { useBudget } from "../hooks/useBudget.js";
+import { useActiveBudgets } from "../hooks/useBudget.js";
 import { useSavings } from "../hooks/useSavings.js";
 
 const DataContext = createContext(null);
@@ -31,14 +31,13 @@ const DataLoader = ({ children }) => {
     error: catsError,
   } = useCategories();
 
-  // Budget Hooks
+  // Changed to only fetch active budgets globally
   const {
-    data: budgetsData,
+    data: activeBudgetsDataRaw,
     isLoading: budgetsLoading,
     error: budgetsError,
-  } = useBudget("all");
+  } = useActiveBudgets();
 
-  // Savings Hooks
   const {
     data: savingsData,
     isLoading: savingsLoading,
@@ -63,23 +62,16 @@ const DataLoader = ({ children }) => {
       return [];
     };
 
-    const budgetsList = getList(budgetsData);
+    const budgetsList = getList(activeBudgetsDataRaw);
     const savingsList = getList(savingsData);
 
-    // Filter Budgets
-    const filterActiveBudgets = (items) =>
-      items.filter((item) => item.status === "active");
-    const filterHistoryBudgets = (items) =>
-      items.filter((item) => item.status !== "active");
+    const activeBudgetsData = budgetsList;
+    // History is now handled locally in pages via pagination
+    const historyBudgetsData = [];
 
-    const activeBudgetsData = filterActiveBudgets(budgetsList);
-    const historyBudgetsData = filterHistoryBudgets(budgetsList);
-
-    // Filter Savings
     const filterActiveSavings = (items) =>
       items.filter((item) => item.status === "active");
 
-    // FIX: Added 'reached' to the filter so it appears in history
     const filterHistorySavings = (items) =>
       items.filter(
         (item) =>
@@ -102,7 +94,13 @@ const DataLoader = ({ children }) => {
       activeSavingsData,
       historySavingsData,
     };
-  }, [user, transactionsData, categoriesData, budgetsData, savingsData]);
+  }, [
+    user,
+    transactionsData,
+    categoriesData,
+    activeBudgetsDataRaw,
+    savingsData,
+  ]);
 
   if (isLoading) return <LoadingScreen />;
 

@@ -10,8 +10,15 @@ import {
   AlertTriangle,
   Wallet,
   CheckCircle2,
-  XCircle,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  LayoutGrid,
+  Search,
+  Filter,
+  ArrowUpDown,
   TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -21,7 +28,12 @@ import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import Swal from "sweetalert2";
 import { useDataContext } from "../../components/DataLoader.jsx";
-import { createBudget, updateBudget, deleteBudget } from "../../api/budgets.js";
+import {
+  useBudgetHistory,
+  useCreateBudget,
+  useUpdateBudget,
+  useDeleteBudget,
+} from "../../hooks/useBudget.js";
 import { deleteTransaction } from "../../api/transactions.js";
 import BudgetModal from "../../components/BudgetModal.jsx";
 import BudgetCardModal from "../../components/BudgetCardModal.jsx";
@@ -29,35 +41,98 @@ import BudgetCardModal from "../../components/BudgetCardModal.jsx";
 export default function BudgetPage() {
   const queryClient = useQueryClient();
 
-  // --- UI State ---
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState(null);
   const [budgetCardModalOpen, setBudgetCardModalOpen] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState(null);
 
-  // --- Data Access ---
+  // --- Search & Filter State ---
+  const [activeTab, setActiveTab] = useState("active");
+  const [historyPage, setHistoryPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [sortBy, setSortBy] = useState("created_at"); // created_at, amount, name
+  const [sortDir, setSortDir] = useState("desc");
+
   const {
     categoriesData,
     user,
     transactionsData,
-    activeBudgetsData,
-    historyBudgetsData,
+    activeBudgetsData, // Raw active list from context
   } = useDataContext();
 
-  // FIX: Access arrays directly since DataLoader already extracted/filtered them
-  const activeBudgets = useMemo(
-    () => activeBudgetsData || [],
-    [activeBudgetsData]
+  // History Hook (Server-Side Filtering)
+  const historyFilters = useMemo(
+    () => ({
+      search,
+      categoryId,
+      sortBy,
+      sortDir,
+    }),
+    [search, categoryId, sortBy, sortDir]
   );
 
+  const { data: historyBudgetsRaw, isLoading: historyLoading } =
+    useBudgetHistory(historyPage, historyFilters);
+
+  const createBudgetMutation = useCreateBudget();
+  const updateBudgetMutation = useUpdateBudget();
+  const deleteBudgetMutation = useDeleteBudget();
+
+  // --- Process Data ---
+
+  // 1. Process ACTIVE Budgets (Client-Side Filtering)
+  const activeBudgets = useMemo(() => {
+    let result = activeBudgetsData || [];
+
+    // Filter by Name
+    if (search) {
+      result = result.filter((b) =>
+        b.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    // Filter by Category
+    if (categoryId) {
+      result = result.filter((b) => b.category_id == categoryId);
+    }
+    // Sorting
+    result = [...result].sort((a, b) => {
+      let valA = a[sortBy];
+      let valB = b[sortBy];
+
+      if (sortBy === "amount") {
+        valA = parseFloat(valA);
+        valB = parseFloat(valB);
+      } else if (sortBy === "created_at" || sortBy === "end_date") {
+        valA = new Date(valA);
+        valB = new Date(valB);
+      } else if (sortBy === "name") {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [activeBudgetsData, search, categoryId, sortBy, sortDir]);
+
+  // 2. Process HISTORY Budgets (Already filtered by server)
   const historyBudgets = useMemo(
-    () => historyBudgetsData || [],
-    [historyBudgetsData]
+    () => historyBudgetsRaw?.data || [],
+    [historyBudgetsRaw]
+  );
+  const historyMeta = useMemo(
+    () => historyBudgetsRaw?.meta || {},
+    [historyBudgetsRaw]
   );
 
   const allTransactions = useMemo(
@@ -65,9 +140,6 @@ export default function BudgetPage() {
     [transactionsData]
   );
 
-  // --- OPTIMIZATION: MEMOIZED CALCULATIONS ---
-
-  // 1. Category Map
   const categoryMap = useMemo(() => {
     const map = {};
     if (categoriesData?.data) {
@@ -78,10 +150,8 @@ export default function BudgetPage() {
     return map;
   }, [categoriesData]);
 
-  const getCategoryName = (categoryId) =>
-    categoryMap[categoryId] || "Uncategorized";
+  const getCategoryName = (catId) => categoryMap[catId] || "Uncategorized";
 
-  // 2. Spending Map (O(n))
   const spendingMap = useMemo(() => {
     const map = {};
     allTransactions.forEach((t) => {
@@ -94,40 +164,27 @@ export default function BudgetPage() {
 
   const getBudgetSpent = (budgetId) => spendingMap[budgetId] || 0;
 
-  // 3. Overview Statistics
+  // Stats (DYNAMIC: Calculates based on whichever tab is open)
   const budgetStats = useMemo(() => {
-    const totalAllocated = activeBudgets.reduce(
+    // Determine which list to use for calculation
+    const listToCalculate =
+      activeTab === "active" ? activeBudgets : historyBudgets;
+
+    const totalAllocated = listToCalculate.reduce(
       (sum, b) => sum + Number(b.amount),
       0
     );
-    const totalSpent = activeBudgets.reduce(
+    const totalSpent = listToCalculate.reduce(
       (sum, b) => sum + (spendingMap[b.id] || 0),
       0
     );
 
-    // Count specific statuses from history + active checks
-    const completedCount = historyBudgets.filter(
-      (b) => b.status === "completed"
-    ).length;
-
-    // Check active budgets that have reached their limit
-    const reachedLimitCount =
-      activeBudgets.filter((b) => {
-        const spent = spendingMap[b.id] || 0;
-        return spent >= Number(b.amount);
-      }).length + historyBudgets.filter((b) => b.status === "reached").length;
-
     return {
       totalAllocated,
       totalSpent,
-      remaining: totalAllocated - totalSpent,
-      completedCount,
-      reachedLimitCount,
-      activeCount: activeBudgets.length,
+      count: listToCalculate.length,
     };
-  }, [activeBudgets, historyBudgets, spendingMap]);
-
-  // --- HELPERS ---
+  }, [activeTab, activeBudgets, historyBudgets, spendingMap]);
 
   const getBudgetTransactions = (budget) => {
     if (!budget) return [];
@@ -169,8 +226,6 @@ export default function BudgetPage() {
         textClass: "text-orange-700",
         barColor: "bg-orange-500",
       };
-
-    // Active states
     if (ratio > 0.85)
       return {
         label: "Near Limit",
@@ -186,8 +241,6 @@ export default function BudgetPage() {
       barColor: "bg-green-500",
     };
   };
-
-  // --- HANDLERS ---
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -222,8 +275,8 @@ export default function BudgetPage() {
 
     if (result.isConfirmed) {
       try {
-        await deleteBudget(id);
-        await queryClient.invalidateQueries(["budgets"]);
+        await deleteBudgetMutation.mutateAsync(id);
+        queryClient.invalidateQueries(["budgets"]);
         if (budgetCardModalOpen) {
           setBudgetCardModalOpen(false);
           setSelectedBudget(null);
@@ -243,10 +296,15 @@ export default function BudgetPage() {
 
   const handleSaveBudget = async (budgetData) => {
     try {
-      if (budgetData.id) await updateBudget(budgetData.id, budgetData);
-      else await createBudget(budgetData);
-
-      await queryClient.invalidateQueries(["budgets"]);
+      if (budgetData.id) {
+        await updateBudgetMutation.mutateAsync({
+          id: budgetData.id,
+          data: budgetData,
+        });
+      } else {
+        await createBudgetMutation.mutateAsync(budgetData);
+      }
+      queryClient.invalidateQueries(["budgets"]);
       setEditingBudget(null);
       setModalOpen(false);
     } catch (error) {
@@ -281,7 +339,6 @@ export default function BudgetPage() {
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
       <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
 
-      {/* Background decorations */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
@@ -310,7 +367,7 @@ export default function BudgetPage() {
 
         <MainView>
           <div className="space-y-6 p-4 sm:p-6 lg:p-0">
-            {/* 1. Header & Actions */}
+            {/* Header & Actions */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -340,13 +397,89 @@ export default function BudgetPage() {
               </div>
             </section>
 
-            {/* 2. Overview Stats (Updated Colors) */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Total Allocated (Green) */}
-              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-green-100 flex items-center justify-between group hover:shadow-md transition-all">
+            {/* Filter Bar */}
+            <section className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4">
+              <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
+                {/* Search */}
+                <div className="relative w-full lg:max-w-md group">
+                  <Search
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-green-500 transition-colors"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Search budgets..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+                  {/* Category Filter */}
+                  <div className="relative flex-1 lg:flex-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <Filter size={16} />
+                    </div>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer"
+                    >
+                      <option value="">All Categories</option>
+                      {categoriesData?.data
+                        ?.filter((c) => c.type === "expense")
+                        .map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+
+                  {/* Sort Filter */}
+                  <div className="relative flex-1 lg:flex-none">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                      <ArrowUpDown size={16} />
+                    </div>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer"
+                    >
+                      <option value="created_at">Newest First</option>
+                      <option value="end_date">End Date</option>
+                      <option value="amount">Amount</option>
+                      <option value="name">Name</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Direction Toggle */}
+                  <button
+                    onClick={() =>
+                      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
+                    }
+                    className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600 transition-colors"
+                    title={sortDir === "asc" ? "Ascending" : "Descending"}
+                  >
+                    {sortDir === "asc" ? (
+                      <TrendingUp size={18} />
+                    ) : (
+                      <TrendingDown size={18} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Stats (Dynamic: Shows either Active Stats or History Stats) */}
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-green-100 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">
-                    Total Allocated
+                    {activeTab === "active"
+                      ? "Active Allocated"
+                      : "History Allocated"}
                   </p>
                   <p className="text-2xl font-bold text-green-600 mt-1">
                     ${budgetStats.totalAllocated.toLocaleString()}
@@ -356,12 +489,10 @@ export default function BudgetPage() {
                   <DollarSign size={24} />
                 </div>
               </div>
-
-              {/* Total Spent (Red) */}
-              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between group hover:shadow-md transition-all">
+              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">
-                    Total Spent
+                    {activeTab === "active" ? "Active Spent" : "History Spent"}
                   </p>
                   <p className="text-2xl font-bold text-red-600 mt-1">
                     ${budgetStats.totalSpent.toLocaleString()}
@@ -371,32 +502,14 @@ export default function BudgetPage() {
                   <TrendingUp size={24} />
                 </div>
               </div>
-
-              {/* Status Overview */}
-              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between group hover:shadow-md transition-all">
+              <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">
-                    Status Check
+                    {activeTab === "active" ? "Active Count" : "History Count"}
                   </p>
-                  <div className="flex space-x-4 mt-1">
-                    <div className="text-center">
-                      <span className="block text-xl font-bold text-green-600">
-                        {budgetStats.completedCount}
-                      </span>
-                      <span className="text-[10px] uppercase text-gray-400 font-semibold">
-                        Done
-                      </span>
-                    </div>
-                    <div className="w-px h-8 bg-gray-200"></div>
-                    <div className="text-center">
-                      <span className="block text-xl font-bold text-red-600">
-                        {budgetStats.reachedLimitCount}
-                      </span>
-                      <span className="text-[10px] uppercase text-gray-400 font-semibold">
-                        Limit
-                      </span>
-                    </div>
-                  </div>
+                  <p className="text-2xl font-bold text-blue-600 mt-1">
+                    {budgetStats.count}
+                  </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
                   <CheckCircle2 size={24} />
@@ -404,211 +517,55 @@ export default function BudgetPage() {
               </div>
             </section>
 
-            {/* 3. Active Budgets Grid */}
-            <section className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 min-h-[300px]">
-                <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-800">
-                    Active Budgets
-                  </h2>
-                  <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                    {activeBudgets.length} Active
-                  </span>
-                </div>
-
-                {activeBudgets.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-center">
-                    <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4">
-                      <PieChart className="text-green-300" size={40} />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-700">
-                      No active budgets
-                    </h3>
-                    <p className="text-gray-500 text-sm mt-1 max-w-xs">
-                      Create a budget to start tracking your expenses and save
-                      more effectively.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {activeBudgets.map((b) => {
-                      const spent = getBudgetSpent(b.id);
-                      const allocated = Number(b.amount);
-                      const remaining = allocated - spent;
-                      const rawPercent =
-                        allocated > 0 ? (spent / allocated) * 100 : 0;
-                      const widthPercent = Math.min(rawPercent, 100);
-                      const statusInfo = getBudgetStatusInfo(
-                        spent,
-                        allocated,
-                        b.status
-                      );
-
-                      return (
-                        <div
-                          key={b.id}
-                          className="group relative cursor-pointer"
-                          onClick={() => handleBudgetCardModalOpen(b)}
-                        >
-                          <div className="relative bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition-all duration-300 overflow-hidden">
-                            {/* Top Bar Indicator */}
-                            <div
-                              className={`absolute top-0 left-0 right-0 h-1.5 ${statusInfo.barColor}`}
-                            ></div>
-
-                            <div className="flex items-start justify-between mb-4 mt-1">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="font-bold text-lg text-gray-800 truncate">
-                                  {b.name ?? "Unnamed"}
-                                </h3>
-                                <p className="text-xs text-gray-500 mt-0.5 truncate uppercase tracking-wider font-medium">
-                                  {getCategoryName(b.category_id)}
-                                </p>
-                              </div>
-                              <div className="ml-3">
-                                {rawPercent > 100 ? (
-                                  <AlertTriangle
-                                    className="text-red-500"
-                                    size={20}
-                                  />
-                                ) : (
-                                  <Clock
-                                    className="text-gray-300 group-hover:text-green-500 transition-colors"
-                                    size={20}
-                                  />
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Dates */}
-                            <div className="flex items-center space-x-3 mb-5 text-xs text-gray-400 bg-gray-50 p-2 rounded-lg">
-                              <Calendar size={14} />
-                              <span className="truncate">
-                                {b.start_date
-                                  ? new Date(b.start_date).toLocaleDateString()
-                                  : "-"}{" "}
-                                —{" "}
-                                {b.end_date
-                                  ? new Date(b.end_date).toLocaleDateString()
-                                  : "-"}
-                              </span>
-                            </div>
-
-                            {/* Stats Rows */}
-                            <div className="space-y-3 mb-5">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Allocated</span>
-                                <span className="font-bold text-gray-800">
-                                  ${allocated.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Spent</span>
-                                <span
-                                  className={`font-bold ${statusInfo.textClass}`}
-                                >
-                                  ${spent.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex justify-between text-sm pt-2 border-t border-dashed border-gray-100">
-                                <span className="text-gray-500">Remaining</span>
-                                <span
-                                  className={`font-bold ${
-                                    remaining < 0
-                                      ? "text-red-600"
-                                      : "text-gray-800"
-                                  }`}
-                                >
-                                  ${remaining.toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Progress Bar */}
-                            <div className="mb-4">
-                              <div className="flex justify-between items-center mb-1.5">
-                                <span className="text-xs font-semibold text-gray-500 uppercase">
-                                  Progress
-                                </span>
-                                <span
-                                  className={`text-xs font-bold ${statusInfo.textClass}`}
-                                >
-                                  {rawPercent.toFixed(1)}%
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ease-out ${statusInfo.barColor}`}
-                                  style={{ width: `${widthPercent}%` }}
-                                ></div>
-                              </div>
-                            </div>
-
-                            {/* Footer Actions */}
-                            <div className="flex items-center justify-between pt-2">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.colorClass}`}
-                              >
-                                {statusInfo.label}
-                              </span>
-                              <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="p-1.5 bg-gray-50 rounded-md text-gray-400 hover:text-green-600 hover:bg-green-50">
-                                  <Eye size={16} />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+            <div className="space-y-6">
+              {/* Tabs */}
+              <div className="flex space-x-1 bg-white/50 p-1 rounded-xl w-fit border border-green-100">
+                <button
+                  onClick={() => setActiveTab("active")}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "active"
+                      ? "bg-white text-green-700 shadow-sm"
+                      : "text-gray-500 hover:text-green-600"
+                  }`}
+                >
+                  <LayoutGrid size={16} /> <span>Active Budgets</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab("history")}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "history"
+                      ? "bg-white text-green-700 shadow-sm"
+                      : "text-gray-500 hover:text-green-600"
+                  }`}
+                >
+                  <History size={16} /> <span>History</span>
+                </button>
               </div>
-            </section>
 
-            {/* 4. History Table (Desktop) */}
-            {historyBudgets.length > 0 && (
-              <section className="relative hidden lg:block">
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-                <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
-                  <div className="p-6 border-b border-green-100/50 flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-gray-800">
-                      Budget History
-                    </h3>
-                    <span className="text-sm text-gray-500">
-                      Past & Completed
-                    </span>
-                  </div>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead className="bg-gray-50/50 border-b border-gray-100">
-                        <tr>
-                          <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
-                            Name
-                          </th>
-                          <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
-                            Category
-                          </th>
-                          <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
-                            Allocated
-                          </th>
-                          <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
-                            Spent
-                          </th>
-                          <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
-                            Status
-                          </th>
-                          <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {historyBudgets.map((b) => {
+              {activeTab === "active" && (
+                <section className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
+                  <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 min-h-[300px]">
+                    {activeBudgets.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-64 text-center">
+                        <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4">
+                          <PieChart className="text-green-300" size={40} />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-700">
+                          No active budgets found
+                        </h3>
+                        <p className="text-gray-500 text-sm mt-1 max-w-xs">
+                          Try adjusting your filters or create a new budget.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {activeBudgets.map((b) => {
                           const spent = getBudgetSpent(b.id);
                           const allocated = Number(b.amount);
+                          const rawPercent =
+                            allocated > 0 ? (spent / allocated) * 100 : 0;
+                          const widthPercent = Math.min(rawPercent, 100);
                           const statusInfo = getBudgetStatusInfo(
                             spent,
                             allocated,
@@ -616,131 +573,242 @@ export default function BudgetPage() {
                           );
 
                           return (
-                            <tr
+                            <div
                               key={b.id}
-                              className="hover:bg-green-50/30 transition-colors"
-                            >
-                              <td className="py-4 px-6 text-gray-800 font-medium">
-                                {b.name}
-                              </td>
-                              <td className="py-4 px-6">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                  {getCategoryName(b.category_id)}
-                                </span>
-                              </td>
-                              <td className="py-4 px-6 font-medium text-gray-600">
-                                ${allocated.toLocaleString()}
-                              </td>
-                              <td
-                                className={`py-4 px-6 font-bold ${statusInfo.textClass}`}
-                              >
-                                ${spent.toLocaleString()}
-                              </td>
-                              <td className="py-4 px-6">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.colorClass}`}
-                                >
-                                  {statusInfo.label}
-                                </span>
-                              </td>
-                              <td className="py-4 px-6 text-right">
-                                <div className="flex items-center justify-end space-x-2">
-                                  <button
-                                    className="p-2 rounded-lg transition-colors text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                                    onClick={() => handleBudgetCardModalOpen(b)}
-                                  >
-                                    <Eye size={16} />
-                                  </button>
-                                  <button
-                                    className="p-2 rounded-lg transition-colors text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                    onClick={() => handleDelete(b.id)}
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* 5. History Cards (Mobile) */}
-            {historyBudgets.length > 0 && (
-              <section className="relative lg:hidden">
-                <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-                <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
-                  <div className="p-4 border-b border-green-100/50">
-                    <h3 className="text-lg font-bold text-gray-800">History</h3>
-                  </div>
-                  <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-                    {historyBudgets.map((b) => {
-                      const spent = getBudgetSpent(b.id);
-                      const allocated = Number(b.amount);
-                      const statusInfo = getBudgetStatusInfo(
-                        spent,
-                        allocated,
-                        b.status
-                      );
-
-                      return (
-                        <div
-                          key={b.id}
-                          className="p-4 hover:bg-green-50/30 transition-colors"
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <p className="font-bold text-gray-800">
-                                {b.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {getCategoryName(b.category_id)}
-                              </p>
-                            </div>
-                            <span
-                              className={`px-2 py-0.5 rounded text-xs font-semibold ${statusInfo.colorClass}`}
-                            >
-                              {statusInfo.label}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm mb-3">
-                            <span className="text-gray-500">
-                              Allocated:{" "}
-                              <span className="text-gray-800 font-medium">
-                                ${allocated.toLocaleString()}
-                              </span>
-                            </span>
-                            <span
-                              className={`font-bold ${statusInfo.textClass}`}
-                            >
-                              Spent: ${spent.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-end space-x-3">
-                            <button
-                              className="text-sm text-blue-600 font-medium hover:underline flex items-center"
+                              className="group relative cursor-pointer"
                               onClick={() => handleBudgetCardModalOpen(b)}
                             >
-                              <Eye size={14} className="mr-1" /> View
-                            </button>
-                            <button
-                              className="text-sm text-red-500 font-medium hover:underline flex items-center"
-                              onClick={() => handleDelete(b.id)}
-                            >
-                              <Trash2 size={14} className="mr-1" /> Delete
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                              <div className="relative bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg transition-all duration-300 overflow-hidden">
+                                <div
+                                  className={`absolute top-0 left-0 right-0 h-1.5 ${statusInfo.barColor}`}
+                                ></div>
+                                <div className="flex items-start justify-between mb-4 mt-1">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-lg text-gray-800 truncate">
+                                      {b.name ?? "Unnamed"}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate uppercase tracking-wider font-medium">
+                                      {getCategoryName(b.category_id)}
+                                    </p>
+                                  </div>
+                                  <div className="ml-3">
+                                    {rawPercent > 100 ? (
+                                      <AlertTriangle
+                                        className="text-red-500"
+                                        size={20}
+                                      />
+                                    ) : (
+                                      <Clock
+                                        className="text-gray-300 group-hover:text-green-500 transition-colors"
+                                        size={20}
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-3 mb-5 text-xs text-gray-400 bg-gray-50 p-2 rounded-lg">
+                                  <Calendar size={14} />
+                                  <span className="truncate">
+                                    {b.start_date
+                                      ? new Date(
+                                          b.start_date
+                                        ).toLocaleDateString()
+                                      : "-"}{" "}
+                                    —{" "}
+                                    {b.end_date
+                                      ? new Date(
+                                          b.end_date
+                                        ).toLocaleDateString()
+                                      : "-"}
+                                  </span>
+                                </div>
+                                <div className="space-y-3 mb-5">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">
+                                      Allocated
+                                    </span>
+                                    <span className="font-bold text-gray-800">
+                                      ${allocated.toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Spent</span>
+                                    <span
+                                      className={`font-bold ${statusInfo.textClass}`}
+                                    >
+                                      ${spent.toLocaleString()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="mb-4">
+                                  <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all duration-500 ease-out ${statusInfo.barColor}`}
+                                      style={{ width: `${widthPercent}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between pt-2">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.colorClass}`}
+                                  >
+                                    {statusInfo.label}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              </section>
-            )}
+                </section>
+              )}
+
+              {activeTab === "history" && (
+                <section className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
+                  <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
+                    <div className="p-6 border-b border-green-100/50 flex justify-between items-center bg-gray-50/50">
+                      <h3 className="text-xl font-bold text-gray-800">
+                        Budget History
+                      </h3>
+                      <span className="text-sm text-gray-500">
+                        Completed & Expired
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead className="bg-gray-50/50 border-b border-gray-100">
+                          <tr>
+                            <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
+                              Allocated
+                            </th>
+                            <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
+                              Spent
+                            </th>
+                            <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="py-4 px-6 font-semibold text-xs text-gray-500 uppercase tracking-wider text-right">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {historyLoading ? (
+                            <tr>
+                              <td colSpan="6" className="p-8 text-center">
+                                Loading history...
+                              </td>
+                            </tr>
+                          ) : historyBudgets.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan="6"
+                                className="p-8 text-center text-gray-500"
+                              >
+                                No budget history found matching your filters.
+                              </td>
+                            </tr>
+                          ) : (
+                            historyBudgets.map((b) => {
+                              const spent = getBudgetSpent(b.id);
+                              const allocated = Number(b.amount);
+                              const statusInfo = getBudgetStatusInfo(
+                                spent,
+                                allocated,
+                                b.status
+                              );
+                              return (
+                                <tr
+                                  key={b.id}
+                                  className="hover:bg-green-50/30 transition-colors"
+                                >
+                                  <td className="py-4 px-6 text-gray-800 font-medium">
+                                    {b.name}
+                                  </td>
+                                  <td className="py-4 px-6">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                      {getCategoryName(b.category_id)}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-6 font-medium text-gray-600">
+                                    ${allocated.toLocaleString()}
+                                  </td>
+                                  <td
+                                    className={`py-4 px-6 font-bold ${statusInfo.textClass}`}
+                                  >
+                                    ${spent.toLocaleString()}
+                                  </td>
+                                  <td className="py-4 px-6">
+                                    <span
+                                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.colorClass}`}
+                                    >
+                                      {statusInfo.label}
+                                    </span>
+                                  </td>
+                                  <td className="py-4 px-6 text-right">
+                                    <div className="flex items-center justify-end space-x-2">
+                                      <button
+                                        className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                                        onClick={() =>
+                                          handleBudgetCardModalOpen(b)
+                                        }
+                                      >
+                                        <Eye size={16} />
+                                      </button>
+                                      <button
+                                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                        onClick={() => handleDelete(b.id)}
+                                      >
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {historyMeta.last_page > 1 && (
+                      <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+                        <button
+                          onClick={() =>
+                            setHistoryPage((p) => Math.max(1, p - 1))
+                          }
+                          disabled={historyPage === 1}
+                          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ChevronLeft size={16} className="mr-2" /> Previous
+                        </button>
+                        <span className="text-sm text-gray-600">
+                          Page {historyPage} of {historyMeta.last_page}
+                        </span>
+                        <button
+                          onClick={() =>
+                            setHistoryPage((p) =>
+                              Math.min(historyMeta.last_page, p + 1)
+                            )
+                          }
+                          disabled={historyPage === historyMeta.last_page}
+                          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Next <ChevronRight size={16} className="ml-2" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+            </div>
           </div>
         </MainView>
         <Footer />
@@ -758,7 +826,6 @@ export default function BudgetPage() {
         categories={categoriesData?.data ?? []}
         currentBudgets={activeBudgets}
       />
-
       <BudgetCardModal
         isOpen={budgetCardModalOpen}
         budget={selectedBudget}
