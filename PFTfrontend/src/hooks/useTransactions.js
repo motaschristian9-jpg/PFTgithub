@@ -1,59 +1,157 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../api/axios"; // Assumes your custom axios instance is here
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
+import axios from "../api/axios";
 
-// API Call
+const KEYS = {
+  transactions: (params) => ["transactions", params],
+  allTransactions: ["transactions"],
+  budgets: ["budgets"],
+  savings: ["savings"],
+};
+
 const fetchTransactions = async (params) => {
   const response = await axios.get("/transactions", { params });
   return response.data;
 };
 
-// Hook
+const createTransaction = async (data) => {
+  const response = await axios.post("/transactions", data);
+  return response.data;
+};
+
+const updateTransaction = async ({ id, data }) => {
+  const response = await axios.put(`/transactions/${id}`, data);
+  return response.data;
+};
+
+const deleteTransaction = async (id) => {
+  const response = await axios.delete(`/transactions/${id}`);
+  return response.data;
+};
+
 export const useTransactions = (params = {}, options = {}) => {
   return useQuery({
-    queryKey: ["transactions", params],
+    queryKey: KEYS.transactions(params),
     queryFn: () => fetchTransactions(params),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
     ...options,
   });
 };
 
-// Mutations
+const invalidateFinancialData = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: KEYS.allTransactions });
+  queryClient.invalidateQueries({ queryKey: KEYS.budgets });
+  queryClient.invalidateQueries({ queryKey: KEYS.savings });
+};
+
 export const useCreateTransaction = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (data) =>
-      axios.post("/transactions", data).then((res) => res.data),
+    mutationFn: createTransaction,
     onSuccess: () => {
-      queryClient.invalidateQueries(["transactions"]);
-      queryClient.invalidateQueries(["budgets"]);
-      queryClient.invalidateQueries(["savings"]);
+      invalidateFinancialData(queryClient);
     },
   });
 };
 
 export const useUpdateTransaction = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, data }) =>
-      axios.put(`/transactions/${id}`, data).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["transactions"]);
-      queryClient.invalidateQueries(["budgets"]);
-      queryClient.invalidateQueries(["savings"]);
+    mutationFn: updateTransaction,
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.allTransactions });
+
+      const previousTransactions = queryClient.getQueryData(
+        KEYS.allTransactions
+      );
+
+      queryClient.setQueriesData(
+        { queryKey: KEYS.allTransactions },
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          if (oldData.data) {
+            return {
+              ...oldData,
+              data: oldData.data.map((item) =>
+                item.id === id ? { ...item, ...data } : item
+              ),
+            };
+          }
+
+          return Array.isArray(oldData)
+            ? oldData.map((item) =>
+                item.id === id ? { ...item, ...data } : item
+              )
+            : oldData;
+        }
+      );
+
+      return { previousTransactions };
+    },
+    onError: (err, newTodo, context) => {
+      if (context?.previousTransactions) {
+        queryClient.setQueriesData(
+          { queryKey: KEYS.allTransactions },
+          context.previousTransactions
+        );
+      }
+    },
+    onSettled: () => {
+      invalidateFinancialData(queryClient);
     },
   });
 };
 
 export const useDeleteTransaction = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (id) =>
-      axios.delete(`/transactions/${id}`).then((res) => res.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["transactions"]);
-      queryClient.invalidateQueries(["budgets"]);
-      queryClient.invalidateQueries(["savings"]);
+    mutationFn: deleteTransaction,
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.allTransactions });
+
+      const previousTransactions = queryClient.getQueryData(
+        KEYS.allTransactions
+      );
+
+      queryClient.setQueriesData(
+        { queryKey: KEYS.allTransactions },
+        (oldData) => {
+          if (!oldData) return oldData;
+
+          if (oldData.data) {
+            return {
+              ...oldData,
+              data: oldData.data.filter((item) => item.id !== id),
+            };
+          }
+
+          return Array.isArray(oldData)
+            ? oldData.filter((item) => item.id !== id)
+            : oldData;
+        }
+      );
+
+      return { previousTransactions };
+    },
+    onError: (err, id, context) => {
+      if (context?.previousTransactions) {
+        queryClient.setQueriesData(
+          { queryKey: KEYS.allTransactions },
+          context.previousTransactions
+        );
+      }
+    },
+    onSettled: () => {
+      invalidateFinancialData(queryClient);
     },
   });
 };

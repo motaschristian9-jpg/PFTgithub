@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   TrendingUp,
   TrendingDown,
+  Loader2,
 } from "lucide-react";
 
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
@@ -24,15 +25,18 @@ import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import TransactionModal from "../../components/TransactionModal.jsx";
-import { useExampleTransactionsApi } from "../../hooks/useExampleTransactionsApi.js";
-import Swal from "sweetalert2";
+
+// --- IMPORT CUSTOM ALERTS (Removed showToast, Added showSuccess) ---
+import { confirmDelete, showSuccess, showError } from "../../utils/swal";
+
 import { useDataContext } from "../../components/DataLoader";
-import { useDeleteTransaction } from "../../hooks/useTransactions.js";
-// CORRECTED IMPORT NAME
+import {
+  useTransactions,
+  useDeleteTransaction,
+} from "../../hooks/useTransactions.js";
 import { formatCurrency } from "../../utils/currency";
 
 export default function TransactionsPage() {
-  // --- UI State ---
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
@@ -41,50 +45,63 @@ export default function TransactionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
 
-  // Local filter state for date logic
   const [datePreset, setDatePreset] = useState("all");
 
-  // --- Data & Hooks ---
-  const { user, categoriesData } = useDataContext();
-  const deleteTransactionMutation = useDeleteTransaction();
+  const [page, setPage] = useState(1);
+  const [type, setType] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("date");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [categoryId, setCategoryId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const {
-    transactions,
-    totalIncome,
-    totalExpenses,
-    pagination,
-    setPage,
-    type,
-    setType,
-    search,
-    setSearch,
-    sortBy,
-    setSortBy,
-    sortOrder,
-    setSortOrder,
-    categoryId,
-    setCategoryId,
-    startDate,
-    setStartDate,
-    endDate,
-    setEndDate,
-    isLoading,
-    isError,
-  } = useExampleTransactionsApi();
+    user,
+    categoriesData,
+    transactionsData: initialContextData,
+  } = useDataContext();
 
-  // Get user's currency preference
+  const { data, isLoading, isError, isFetching } = useTransactions(
+    {
+      page,
+      type: type === "all" ? undefined : type,
+      search,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      category_id: categoryId,
+      start_date: startDate,
+      end_date: endDate,
+    },
+    {
+      placeholderData: (previousData) => previousData || initialContextData,
+    }
+  );
+
+  const deleteTransactionMutation = useDeleteTransaction();
+
+  const transactions = data?.data || [];
+  const totalIncome = data?.totals?.income || 0;
+  const totalExpenses = data?.totals?.expenses || 0;
+
+  const getPageNumber = (val) => {
+    if (Array.isArray(val)) return Number(val[0]);
+    return Number(val) || 1;
+  };
+
+  const pagination = {
+    currentPage: getPageNumber(data?.meta?.current_page),
+    lastPage: getPageNumber(data?.meta?.last_page),
+  };
+
   const userCurrency = user?.currency || "USD";
 
-  // --- Optimization: Memoize Filtered Categories ---
   const filteredCategories = useMemo(() => {
     return (categoriesData?.data || []).filter(
       (cat) => type === "all" || cat.type === type
     );
   }, [categoriesData, type]);
 
-  // --- Effects ---
-
-  // Handle Date Presets
   useEffect(() => {
     const today = new Date();
     let start = "";
@@ -101,37 +118,35 @@ export default function TransactionsPage() {
 
     setStartDate(start);
     setEndDate(end);
-    setPage(1); // Always reset to page 1 when changing filters
-  }, [datePreset, setStartDate, setEndDate, setPage]);
+    setPage(1);
+  }, [datePreset]);
 
-  // --- Handlers ---
+  useEffect(() => {
+    if (pagination.lastPage > 0 && page > pagination.lastPage) {
+      setPage(pagination.lastPage);
+    }
+  }, [pagination.lastPage, page]);
 
   const handleEdit = (transaction) => {
     setEditingTransaction(transaction);
     setModalOpen(true);
   };
 
+  // --- UPDATED DELETE HANDLER ---
   const handleDelete = async (transactionId) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Yes, delete it!",
-      customClass: { container: "swal-z-index-fix" },
-    });
+    const result = await confirmDelete(
+      "Delete Transaction?",
+      "This action cannot be undone."
+    );
 
     if (result.isConfirmed) {
-      await deleteTransactionMutation.mutateAsync(transactionId);
-      await Swal.fire({
-        icon: "success",
-        title: "Deleted!",
-        timer: 1500,
-        showConfirmButton: false,
-        customClass: { container: "swal-z-index-fix" },
-      });
+      try {
+        await deleteTransactionMutation.mutateAsync(transactionId);
+        // Use the standard success modal instead of toast
+        showSuccess("Deleted!", "Transaction has been removed.");
+      } catch (error) {
+        showError("Error", "Failed to delete transaction.");
+      }
     }
   };
 
@@ -144,8 +159,6 @@ export default function TransactionsPage() {
     setSortOrder(direction);
     setPage(1);
   };
-
-  // --- Render Helpers ---
 
   const getSortIcon = (key) => {
     if (sortBy !== key)
@@ -167,11 +180,12 @@ export default function TransactionsPage() {
       day: "numeric",
     });
 
+  const netBalance = totalIncome - totalExpenses;
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
-      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
+      {/* Removed style tag since utility handles it */}
 
-      {/* Decorative Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/20 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
@@ -198,7 +212,6 @@ export default function TransactionsPage() {
       />
 
       <div className="flex-1 flex flex-col relative z-10">
-        {/* Updated Topbar without handleLogout prop */}
         <Topbar
           toggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           notifications={[]}
@@ -207,7 +220,6 @@ export default function TransactionsPage() {
 
         <MainView>
           <div className="space-y-6 p-4 sm:p-6 lg:p-0">
-            {/* 1. Header & Actions */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -238,11 +250,9 @@ export default function TransactionsPage() {
               </div>
             </section>
 
-            {/* 2. Enhanced Filter & Control Panel */}
             <section className="relative z-20">
               <div className="absolute -inset-1 bg-gradient-to-r from-gray-200/30 to-gray-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/60 p-5">
-                {/* Top Row: Search & Pagination */}
                 <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-5">
                   <div className="relative w-full lg:max-w-md group">
                     <Search
@@ -272,7 +282,7 @@ export default function TransactionsPage() {
                       <ChevronLeft size={18} className="text-gray-600" />
                     </button>
                     <span className="px-3 text-sm font-semibold text-gray-700 min-w-[3rem] text-center">
-                      {pagination.currentPage} / {pagination.lastPage || 1}
+                      {pagination.currentPage} / {pagination.lastPage}
                     </span>
                     <button
                       onClick={() =>
@@ -291,9 +301,7 @@ export default function TransactionsPage() {
                   </div>
                 </div>
 
-                {/* Bottom Row: Filters Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {/* Type Filter */}
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                       <SlidersHorizontal size={16} />
@@ -313,7 +321,6 @@ export default function TransactionsPage() {
                     </select>
                   </div>
 
-                  {/* Category Filter */}
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                       <Filter size={16} />
@@ -335,7 +342,6 @@ export default function TransactionsPage() {
                     </select>
                   </div>
 
-                  {/* Date Preset */}
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                       <Calendar size={16} />
@@ -352,7 +358,6 @@ export default function TransactionsPage() {
                     </select>
                   </div>
 
-                  {/* Sort Filter (Mobile Only primarily, serves as quick sort) */}
                   <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                       <ArrowUpDown size={16} />
@@ -373,7 +378,6 @@ export default function TransactionsPage() {
                   </div>
                 </div>
 
-                {/* Custom Date Range Expandable */}
                 {datePreset === "custom" && (
                   <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="flex-1 space-y-1">
@@ -403,7 +407,6 @@ export default function TransactionsPage() {
               </div>
             </section>
 
-            {/* 3. Totals Summary (Mobile Optimized Grid) */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl shadow-sm border border-green-100 flex items-center justify-between">
                 <div>
@@ -432,12 +435,10 @@ export default function TransactionsPage() {
                   <p className="text-sm text-gray-500 font-medium">Net</p>
                   <p
                     className={`text-xl font-bold ${
-                      totalIncome - totalExpenses >= 0
-                        ? "text-blue-600"
-                        : "text-red-500"
+                      netBalance >= 0 ? "text-blue-600" : "text-red-500"
                     }`}
                   >
-                    {formatCurrency(totalIncome - totalExpenses, userCurrency)}
+                    {formatCurrency(netBalance, userCurrency)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
@@ -446,11 +447,9 @@ export default function TransactionsPage() {
               </div>
             </section>
 
-            {/* 4. Transactions List */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden min-h-[400px] flex flex-col">
-                {/* Desktop Table Header */}
                 <div className="hidden lg:grid grid-cols-12 gap-4 p-4 bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   <div
                     onClick={() => handleSort("date")}
@@ -470,7 +469,6 @@ export default function TransactionsPage() {
                   <div className="col-span-2 text-right">Actions</div>
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 overflow-y-auto">
                   {isLoading ? (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-400">
@@ -493,7 +491,6 @@ export default function TransactionsPage() {
                           key={tx.id}
                           className="group hover:bg-green-50/30 transition-colors"
                         >
-                          {/* Desktop Row */}
                           <div className="hidden lg:grid grid-cols-12 gap-4 p-4 items-center">
                             <div className="col-span-2 text-sm text-gray-600 font-medium">
                               {formatDate(tx.date)}
@@ -548,7 +545,6 @@ export default function TransactionsPage() {
                             </div>
                           </div>
 
-                          {/* Mobile Card */}
                           <div className="lg:hidden p-4 flex items-center justify-between">
                             <div className="flex items-center gap-3 overflow-hidden">
                               <div
@@ -610,7 +606,6 @@ export default function TransactionsPage() {
                   )}
                 </div>
 
-                {/* Mobile Footer Pagination Summary */}
                 <div className="lg:hidden p-4 bg-gray-50 border-t border-gray-200 text-center text-xs text-gray-500">
                   Page {pagination.currentPage} of {pagination.lastPage}
                 </div>

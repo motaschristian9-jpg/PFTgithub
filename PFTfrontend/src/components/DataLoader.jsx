@@ -26,12 +26,10 @@ export const useDataContext = () => {
   return context;
 };
 
-// --- CONSTANT FOR SESSION STORAGE KEY ---
 const ACK_SESSION_KEY = "notifyAck_";
 
 const DataLoader = ({ children }) => {
   const [hasUnread, setHasUnread] = useState(false);
-  // NEW: Local state to hold the immediate acknowledgment time for the CURRENT session, linked to user ID.
   const [localSessionAckTime, setLocalSessionAckTime] = useState(null);
 
   const { user, isLoading: userLoading, error: userError, setUser } = useAuth();
@@ -40,7 +38,7 @@ const DataLoader = ({ children }) => {
     data: transactionsData,
     isLoading: transLoading,
     error: transError,
-  } = useTransactions({}, { fetchAll: true });
+  } = useTransactions({ page: 1, limit: 15 });
 
   const {
     data: categoriesData,
@@ -70,7 +68,6 @@ const DataLoader = ({ children }) => {
   const error =
     userError || transError || catsError || budgetsError || savingsError;
 
-  // --- INITIAL LOAD: Load session storage time on user change ---
   useEffect(() => {
     if (user?.id) {
       const key = ACK_SESSION_KEY + user.id;
@@ -78,7 +75,6 @@ const DataLoader = ({ children }) => {
       if (savedTime) {
         setLocalSessionAckTime(parseISO(savedTime));
       } else {
-        // Use the server time if available, otherwise start null
         const serverTime = user.last_notification_ack_time
           ? parseISO(user.last_notification_ack_time)
           : null;
@@ -87,7 +83,7 @@ const DataLoader = ({ children }) => {
     } else {
       setLocalSessionAckTime(null);
     }
-  }, [user?.id, user?.last_notification_ack_time]); // Dependency on user ID and server time
+  }, [user?.id, user?.last_notification_ack_time]);
 
   const acknowledgeNotifications = useCallback(
     (value) => {
@@ -97,7 +93,6 @@ const DataLoader = ({ children }) => {
         const clickTime = new Date();
         const key = ACK_SESSION_KEY + user.id;
 
-        // 1. Immediate local persistence (SessionStorage) to prevent flicker
         sessionStorage.setItem(key, clickTime.toISOString());
         setLocalSessionAckTime(clickTime);
 
@@ -106,7 +101,6 @@ const DataLoader = ({ children }) => {
             const acknowledgedTime =
               response.data.data.user.last_notification_ack_time;
 
-            // 2. Update the user context with the guaranteed server time
             setUser((prevUser) => ({
               ...prevUser,
               last_notification_ack_time: acknowledgedTime,
@@ -117,8 +111,6 @@ const DataLoader = ({ children }) => {
               "Failed to acknowledge notifications on server:",
               err
             );
-            // Note: The dot won't reappear locally because sessionStorage is set.
-            // However, the server value hasn't updated. It will eventually sync.
           });
       }
     },
@@ -137,25 +129,20 @@ const DataLoader = ({ children }) => {
 
     const budgetsList = getList(activeBudgetsDataRaw);
     const savingsList = getList(activeSavingsDataRaw);
-    const activeBudgetsData = budgetsList;
-    const activeSavingsData = savingsList;
 
     const getBudgetSpent = (budget) => {
-      if (budget.total_spent !== undefined && budget.total_spent !== null) {
+      if (budget.transactions_sum_amount !== undefined) {
+        return parseFloat(budget.transactions_sum_amount);
+      }
+      if (budget.total_spent !== undefined) {
         return parseFloat(budget.total_spent);
       }
-      const spentAmount = getList(transactionsData).reduce((sum, t) => {
-        if (t.type === "expense" && t.budget_id == budget.id) {
-          return sum + parseFloat(t.amount || 0);
-        }
-        return sum;
-      }, 0);
-      return spentAmount;
+      return 0;
     };
 
     const notificationList = [];
 
-    activeSavingsData.forEach((s) => {
+    savingsList.forEach((s) => {
       const current = Number(s.current_amount || 0);
       const target = Number(s.target_amount || 1);
       const percent = target > 0 ? (current / target) * 100 : 0;
@@ -188,7 +175,7 @@ const DataLoader = ({ children }) => {
       }
     });
 
-    activeBudgetsData.forEach((b) => {
+    budgetsList.forEach((b) => {
       const spent = getBudgetSpent(b);
       const allocated = Number(b.amount || 0);
       const percent = allocated > 0 ? (spent / allocated) * 100 : 0;
@@ -226,20 +213,16 @@ const DataLoader = ({ children }) => {
       const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
       return dateB - dateA;
     });
-  }, [user, transactionsData, activeBudgetsDataRaw, activeSavingsDataRaw]);
+  }, [user, activeBudgetsDataRaw, activeSavingsDataRaw]);
 
   useEffect(() => {
-    // This check is now the single source of truth for the dot state.
     if (userLoading || !user) return;
 
-    // Use the local state for immediate feedback, which is initialized from the server on load.
     const lastAckTime = localSessionAckTime;
 
     const hasUnacknowledgedNotifications = notifications.some((n) => {
       if (!n.timestamp) return true;
       const notificationTime = parseISO(n.timestamp);
-
-      // Check against the current effective acknowledgment time.
       return !lastAckTime || isAfter(notificationTime, lastAckTime);
     });
 
@@ -248,7 +231,7 @@ const DataLoader = ({ children }) => {
     } else {
       setHasUnread(false);
     }
-  }, [notifications, user, userLoading, localSessionAckTime]); // Depend on the stable localSessionAckTime
+  }, [notifications, user, userLoading, localSessionAckTime]);
 
   const contextValue = useMemo(() => {
     const getList = (source) => {
@@ -261,16 +244,12 @@ const DataLoader = ({ children }) => {
     const budgetsList = getList(activeBudgetsDataRaw);
     const savingsList = getList(activeSavingsDataRaw);
 
-    const activeBudgetsData = budgetsList;
-    const activeSavingsData = savingsList;
-
     return {
       user,
       transactionsData,
       categoriesData,
-      activeBudgetsData,
-      activeSavingsData,
-
+      activeBudgetsData: budgetsList,
+      activeSavingsData: savingsList,
       notifications,
       hasUnread,
       setHasUnread: acknowledgeNotifications,

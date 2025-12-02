@@ -223,14 +223,6 @@ export default function Topbar({
                   </p>
                 </div>
 
-                <Link
-                  to="/profile"
-                  className="flex items-center space-x-3 px-4 py-3 hover:bg-green-50 transition-colors duration-200 text-gray-700 hover:text-green-600"
-                  onClick={() => setDropdownOpen(false)}
-                >
-                  <User size={16} />
-                  <span className="font-medium">Profile Settings</span>
-                </Link>
                 <div className="border-t border-green-100 my-1"></div>
 
                 {/* Updated Logout Button */}

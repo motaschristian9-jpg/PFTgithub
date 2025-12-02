@@ -8,6 +8,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\SavingController;
 use App\Http\Controllers\ForgotPasswordController; // <-- ADD THIS CONTROLLER
+use App\Jobs\TestRedisQueue;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +20,11 @@ use App\Http\Controllers\ForgotPasswordController; // <-- ADD THIS CONTROLLER
 Route::get('/cors-test', function () {
     return response()->json(['success' => true, 'message' => 'CORS test endpoint']);
 })->middleware(['cors']);
+
+Route::get('/test-queue', function () {
+    TestRedisQueue::dispatch();
+    return 'Job dispatched to Redis queue!';
+});
 
 // Auth routes (Public/Unprotected)
 Route::post('/register', [AuthController::class, 'register']);

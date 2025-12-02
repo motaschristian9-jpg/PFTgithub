@@ -9,6 +9,7 @@ use App\Http\Resources\BudgetResource;
 use App\Http\Resources\BudgetCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Carbon\Carbon;
 
@@ -16,50 +17,70 @@ class BudgetController extends Controller
 {
     use AuthorizesRequests;
 
+    private function getCacheKey(Request $request, $userId)
+    {
+        $params = $request->all();
+        ksort($params);
+        return 'budgets_' . $userId . '_' . md5(json_encode($params));
+    }
+
+    private function clearUserCache($userId)
+    {
+        // Clear budget list
+        Cache::tags(['user_budgets_' . $userId])->flush();
+
+        // CRITICAL: Clear transaction list because deleting a budget deletes transactions
+        Cache::tags(['user_transactions_' . $userId])->flush();
+    }
+
     public function index(Request $request)
     {
-        $this->updateBudgetStatuses();
+        $userId = Auth::id();
+        $cacheKey = $this->getCacheKey($request, $userId);
 
-        // FIX: Calculate total spent (expenses) for each budget
-        $query = Budget::where('user_id', Auth::id())
-            ->withSum([
-                'transactions' => function ($q) {
-                    $q->where('type', 'expense');
-                }
-            ], 'amount');
+        return Cache::tags(['user_budgets_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
+            $this->updateBudgetStatuses();
 
-        $status = $request->get('status', 'active');
+            $query = Budget::where('user_id', $userId)
+                ->withSum([
+                    'transactions' => function ($q) {
+                        $q->where('type', 'expense');
+                    }
+                ], 'amount');
 
-        if ($request->has('search') && $request->search) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
+            $status = $request->get('status', 'active');
 
-        if ($request->has('category_id') && $request->category_id) {
-            $query->where('category_id', $request->category_id);
-        }
+            if ($request->has('search') && $request->search) {
+                $query->where('name', 'like', '%' . $request->search . '%');
+            }
 
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDir = $request->get('sort_dir', 'desc');
+            if ($request->has('category_id') && $request->category_id) {
+                $query->where('category_id', $request->category_id);
+            }
 
-        $allowedSorts = ['name', 'amount', 'start_date', 'end_date', 'created_at', 'updated_at'];
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortDir = $request->get('sort_dir', 'desc');
 
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortDir);
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
+            $allowedSorts = ['name', 'amount', 'start_date', 'end_date', 'created_at', 'updated_at'];
 
-        if ($status === 'history') {
-            $query->whereIn('status', ['completed', 'expired', 'reached']);
-            return new BudgetCollection($query->paginate(10));
-        }
+            if (in_array($sortBy, $allowedSorts)) {
+                $query->orderBy($sortBy, $sortDir);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
 
-        if ($status === 'active') {
-            $query->where('status', 'active');
+            if ($status === 'history') {
+                $query->whereIn('status', ['completed', 'expired', 'reached']);
+                return new BudgetCollection($query->paginate(10));
+            }
+
+            if ($status === 'active') {
+                $query->where('status', 'active');
+                return new BudgetCollection($query->get());
+            }
+
             return new BudgetCollection($query->get());
-        }
-
-        return new BudgetCollection($query->get());
+        });
     }
 
     private function updateBudgetStatuses()
@@ -103,6 +124,8 @@ class BudgetController extends Controller
 
         $budget = Auth::user()->budgets()->create($data);
 
+        $this->clearUserCache(Auth::id());
+
         return new BudgetResource($budget->fresh());
     }
 
@@ -118,6 +141,8 @@ class BudgetController extends Controller
         $budget->update($request->validated());
         $this->updateBudgetStatuses();
 
+        $this->clearUserCache(Auth::id());
+
         return new BudgetResource($budget->fresh());
     }
 
@@ -126,6 +151,8 @@ class BudgetController extends Controller
         $this->authorize('delete', $budget);
         $budget->transactions()->delete();
         $budget->delete();
+
+        $this->clearUserCache(Auth::id());
 
         return response()->json(['success' => true]);
     }

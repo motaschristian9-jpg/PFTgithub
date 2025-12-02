@@ -9,6 +9,7 @@ use App\Http\Resources\TransactionResource;
 use App\Http\Resources\TransactionCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class TransactionController extends Controller
@@ -43,12 +44,10 @@ class TransactionController extends Controller
             $query->where('amount', '<=', $request->max_amount);
         }
 
-        // --- FIX 1: Filter by Saving Goal ID ---
         if ($request->filled('saving_goal_id')) {
             $query->where('saving_goal_id', $request->saving_goal_id);
         }
 
-        // --- FIX 2: Filter by Budget ID (This was missing!) ---
         if ($request->filled('budget_id')) {
             $query->where('budget_id', $request->budget_id);
         }
@@ -64,6 +63,22 @@ class TransactionController extends Controller
         return $query;
     }
 
+    private function getCacheKey(Request $request, $userId)
+    {
+        $params = $request->all();
+        ksort($params);
+        return 'transactions_' . $userId . '_' . md5(json_encode($params));
+    }
+
+    private function clearUserCache($userId)
+    {
+        // Clear transactions list
+        Cache::tags(['user_transactions_' . $userId])->flush();
+
+        // CRITICAL: Clear budgets list because budgets calculate 'total spent' from transactions
+        Cache::tags(['user_budgets_' . $userId])->flush();
+    }
+
     public function index(Request $request)
     {
         if (!Auth::check()) {
@@ -71,66 +86,67 @@ class TransactionController extends Controller
         }
 
         $userId = Auth::id();
+        $cacheKey = $this->getCacheKey($request, $userId);
 
-        $baseQuery = $this->buildTransactionQuery($request, $userId);
-        $query = clone $baseQuery;
+        return Cache::tags(['user_transactions_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
+            $baseQuery = $this->buildTransactionQuery($request, $userId);
 
-        $sortBy = $request->get('sort_by', 'date');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $allowedSortFields = ['date', 'amount', 'type', 'name'];
-        if (in_array($sortBy, $allowedSortFields)) {
-            $query->orderBy($sortBy, $sortOrder);
-        }
+            $totalIncome = (clone $baseQuery)->where('type', 'income')->sum('amount');
+            $totalExpenses = (clone $baseQuery)->where('type', 'expense')->sum('amount');
 
-        // Calculate Totals
-        $totalIncome = (clone $baseQuery)->where('type', 'income')->sum('amount');
-        $totalExpenses = (clone $baseQuery)->where('type', 'expense')->sum('amount');
+            $totalExpensesByCategory = (clone $baseQuery)
+                ->where('type', 'expense')
+                ->whereHas('category', function ($q) {
+                    $q->where('type', 'expense');
+                })
+                ->selectRaw('category_id, SUM(amount) as total')
+                ->groupBy('category_id')
+                ->with('category')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'category_id' => $item->category_id,
+                        'category_name' => $item->category ? $item->category->name : 'Uncategorized',
+                        'total' => (float) $item->total,
+                    ];
+                });
 
-        $totalExpensesByCategory = (clone $baseQuery)
-            ->where('type', 'expense')
-            ->whereHas('category', function ($q) {
-                $q->where('type', 'expense');
-            })
-            ->selectRaw('category_id, SUM(amount) as total')
-            ->groupBy('category_id')
-            ->with('category')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'category_id' => $item->category_id,
-                    'category_name' => $item->category ? $item->category->name : 'Uncategorized',
-                    'total' => (float) $item->total,
-                ];
-            });
+            $query = clone $baseQuery;
+            $sortBy = $request->get('sort_by', 'date');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $allowedSortFields = ['date', 'amount', 'type', 'name'];
 
-        // Bypass Pagination for Modals
-        if ($request->has('all') && $request->all == 'true') {
-            $transactions = $query->get();
-            return (new TransactionCollection($transactions))->additional([
+            if (in_array($sortBy, $allowedSortFields)) {
+                $query->orderBy($sortBy, $sortOrder);
+            }
+
+            if ($request->has('all') && $request->all == 'true') {
+                $transactions = $query->get();
+                return (new TransactionCollection($transactions))->additional([
+                    'totals' => [
+                        'income' => (float) $totalIncome,
+                        'expenses' => (float) $totalExpenses,
+                    ],
+                    'expense_by_category' => $totalExpensesByCategory,
+                ]);
+            }
+
+            $paginated = $query->paginate(15);
+
+            return (new TransactionCollection($paginated))->additional([
                 'totals' => [
                     'income' => (float) $totalIncome,
                     'expenses' => (float) $totalExpenses,
                 ],
                 'expense_by_category' => $totalExpensesByCategory,
             ]);
-        }
-
-        $paginated = $query->paginate(15);
-
-        return (new TransactionCollection($paginated))->additional([
-            'totals' => [
-                'income' => (float) $totalIncome,
-                'expenses' => (float) $totalExpenses,
-            ],
-            'expense_by_category' => $totalExpensesByCategory,
-        ]);
+        });
     }
 
     public function store(CreateTransactionsRequest $request)
     {
         $validatedData = $request->validated();
 
-        // Auto-assign Budget ID logic
         if (empty($validatedData['budget_id']) && $validatedData['type'] === 'expense' && !empty($validatedData['category_id'])) {
             $activeBudget = Budget::where('user_id', Auth::id())
                 ->where('category_id', $validatedData['category_id'])
@@ -149,6 +165,8 @@ class TransactionController extends Controller
         }
 
         $transaction = Auth::user()->transactions()->create($validatedData);
+
+        $this->clearUserCache(Auth::id());
 
         return new TransactionResource($transaction);
     }
@@ -188,6 +206,8 @@ class TransactionController extends Controller
 
         $transaction->update($validatedData);
 
+        $this->clearUserCache(Auth::id());
+
         return new TransactionResource($transaction);
     }
 
@@ -195,6 +215,8 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
         $transaction->delete();
+
+        $this->clearUserCache(Auth::id());
 
         return response()->json([
             'success' => true,

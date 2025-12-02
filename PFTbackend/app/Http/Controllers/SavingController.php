@@ -8,49 +8,63 @@ use App\Http\Resources\SavingResource;
 use App\Http\Resources\SavingCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 
 class SavingController extends Controller
 {
     use AuthorizesRequests;
 
+    private function getCacheKey(Request $request, $userId)
+    {
+        $params = $request->all();
+        ksort($params);
+        return 'savings_' . $userId . '_' . md5(json_encode($params));
+    }
+
+    private function clearUserCache($userId)
+    {
+        Cache::tags(['user_savings_' . $userId])->flush();
+    }
+
     public function index(Request $request)
     {
-        $this->syncStatuses();
+        $userId = Auth::id();
+        $cacheKey = $this->getCacheKey($request, $userId);
 
-        $query = Saving::where('user_id', Auth::id());
-        $status = $request->get('status', 'active');
+        return Cache::tags(['user_savings_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
+            $this->syncStatuses();
 
-        // --- Filtering ---
-        if ($request->has('search') && $request->search) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
+            $query = Saving::where('user_id', $userId);
+            $status = $request->get('status', 'active');
 
-        // --- Sorting ---
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDir = $request->get('sort_dir', 'desc');
+            if ($request->has('search') && $request->search) {
+                $query->where('name', 'like', '%' . $request->search . '%');
+            }
 
-        $allowedSorts = ['name', 'target_amount', 'current_amount', 'target_date', 'created_at', 'updated_at'];
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortDir = $request->get('sort_dir', 'desc');
 
-        if (in_array($sortBy, $allowedSorts)) {
-            $query->orderBy($sortBy, $sortDir);
-        } else {
-            $query->orderBy('created_at', 'desc');
-        }
+            $allowedSorts = ['name', 'target_amount', 'current_amount', 'target_date', 'created_at', 'updated_at'];
 
-        // --- Response Logic ---
-        if ($status === 'history') {
-            $query->whereIn('status', ['completed', 'cancelled']);
-            return new SavingCollection($query->paginate(10));
-        }
+            if (in_array($sortBy, $allowedSorts)) {
+                $query->orderBy($sortBy, $sortDir);
+            } else {
+                $query->orderBy('created_at', 'desc');
+            }
 
-        if ($status === 'active') {
-            $query->where('status', 'active');
+            if ($status === 'history') {
+                $query->whereIn('status', ['completed', 'cancelled']);
+                return new SavingCollection($query->paginate(10));
+            }
+
+            if ($status === 'active') {
+                $query->where('status', 'active');
+                return new SavingCollection($query->get());
+            }
+
             return new SavingCollection($query->get());
-        }
-
-        // Fallback
-        return new SavingCollection($query->get());
+        });
     }
 
     public function store(CreateSavingsRequest $request)
@@ -63,6 +77,8 @@ class SavingController extends Controller
         }
 
         $saving = Auth::user()->savings()->create($data);
+
+        $this->clearUserCache(Auth::id());
 
         return new SavingResource($saving);
     }
@@ -81,6 +97,8 @@ class SavingController extends Controller
 
         $saving->save();
 
+        $this->clearUserCache(Auth::id());
+
         return new SavingResource($saving->fresh());
     }
 
@@ -98,6 +116,9 @@ class SavingController extends Controller
     {
         $this->authorize('delete', $saving);
         $saving->delete();
+
+        $this->clearUserCache(Auth::id());
+
         return response()->json(['success' => true]);
     }
 
