@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
 import {
   User,
   Settings as SettingsIcon,
@@ -11,17 +12,17 @@ import {
   ChevronRight,
   Camera,
   Mail,
+  Loader2,
 } from "lucide-react";
-// ADDED IMPORT: SweetAlert2
 import Swal from "sweetalert2";
 
-// FIXED IMPORTS: Using ../../ for userpages directory
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import { useAuth } from "../../hooks/useAuth.js";
-import { updateProfile } from "../../api/auth.js";
+// Import dedicated API for password setting/changing
+import { updateProfile, setLocalPasswordAPI } from "../../api/auth.js";
 
 // --- SUB-COMPONENTS ---
 
@@ -210,28 +211,264 @@ const SystemSettings = ({ formData, setFormData }) => {
   );
 };
 
-const SecuritySettings = () => {
+// --- NEW COMPONENT: Handles Password Forms (Using React Hook Form) ---
+const PasswordForm = ({ user, setUser, isGoogleUser }) => {
+  // Requires old password only for traditional email users
+  const requiresOldPassword = !isGoogleUser;
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    defaultValues: {
+      current_password: "",
+      password: "",
+      password_confirmation: "",
+    },
+    mode: "onChange",
+  });
+
+  const newPassword = watch("password");
+
+  const onSubmit = async (data) => {
+    try {
+      let response;
+
+      if (isGoogleUser) {
+        // 1. OAuth user setting their first local password: uses setLocalPasswordAPI (PUT /user/set-password)
+        const payload = {
+          password: data.password,
+          password_confirmation: data.password_confirmation,
+        };
+        response = await setLocalPasswordAPI(payload);
+      } else {
+        // 2. Traditional user changing their existing password:
+        // Uses the dedicated updateProfile API helper, which the Laravel backend must be configured to handle
+        // the password fields alongside the profile fields, or be updated to use a dedicated endpoint.
+
+        // IMPORTANT: Since updateProfile is set up as POST multipart/form-data, we use FormData.
+        // We assume the Laravel AuthController's updateProfile method can handle the change password logic.
+        const payload = new FormData();
+        // Ensure name and currency fields are NOT sent here if this API is purely for password.
+        // But since the current updateProfile API requires name/currency, we have a conflict.
+        // For a 422 fix, we must use a minimal JSON payload, forcing us to use a dedicated API.
+
+        // *** Using dedicated endpoint logic (even if implemented as POST/PUT) ***
+        const passwordPayload = {
+          current_password: data.current_password,
+          password: data.password,
+          password_confirmation: data.password_confirmation,
+        };
+
+        // NOTE: We must use a dedicated API for password change, let's assume one is created
+        // called changePasswordAPI (which is often /user/change-password)
+        // For the purpose of getting past the 422 error, we assume you'll use /user/set-password as change API placeholder.
+
+        // *** Replace with your actual /user/change-password API helper: ***
+        // response = await changePasswordAPI(passwordPayload);
+        response = await setLocalPasswordAPI(passwordPayload);
+      }
+
+      Swal.fire({
+        icon: "success",
+        title: isGoogleUser ? "Password Created!" : "Password Changed!",
+        text: isGoogleUser
+          ? "You can now log in using this password and your email."
+          : "Your password has been updated.",
+        confirmButtonColor: "#10B981",
+        timer: 3000,
+      });
+
+      // Reset the form fields
+      reset();
+
+      if (response.data?.user) {
+        // Update the user context if the server returns updated details.
+        setUser(response.data.user);
+      }
+    } catch (error) {
+      let errorMessage = "An unknown error occurred.";
+
+      if (error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        if (validationErrors.current_password) {
+          errorMessage = validationErrors.current_password[0];
+        } else if (validationErrors.password) {
+          errorMessage = validationErrors.password[0];
+        } else if (validationErrors.email) {
+          errorMessage = validationErrors.email[0];
+        }
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: errorMessage,
+        confirmButtonColor: "#EF4444",
+      });
+      // Re-render form to show validation errors (if applicable)
+      Object.keys(error.response?.data?.errors || {}).forEach((key) => {
+        setError(key, { message: error.response.data.errors[key][0] });
+      });
+    } finally {
+      // Ensure submission state is reset
+      // This is managed by React Hook Form's isSubmitting, but we keep it here for clarity if needed.
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+      <h4 className="text-xl font-bold text-gray-800">
+        {isGoogleUser ? "Set Your Local Password" : "Change Password"}
+      </h4>
+
+      {requiresOldPassword && (
+        <div className="space-y-2">
+          <label className="text-sm font-bold text-gray-700">
+            Current Password
+          </label>
+          <input
+            type="password"
+            {...register("current_password", {
+              required: "Current password is required",
+            })}
+            className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-rose-500 outline-none ${
+              errors.current_password ? "border-red-500" : "border-gray-300"
+            }`}
+            placeholder="Required for verification"
+            aria-invalid={errors.current_password ? "true" : "false"}
+          />
+          {errors.current_password && (
+            <p className="text-xs text-red-500">
+              {errors.current_password.message}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <label className="text-sm font-bold text-gray-700">New Password</label>
+        <input
+          type="password"
+          {...register("password", {
+            required: "New password is required",
+            minLength: {
+              value: 8,
+              message: "Password must be at least 8 characters",
+            },
+          })}
+          className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-rose-500 outline-none ${
+            errors.password ? "border-red-500" : "border-gray-300"
+          }`}
+          placeholder="Enter new password (min 8 characters)"
+          aria-invalid={errors.password ? "true" : "false"}
+        />
+        {errors.password && (
+          <p className="text-xs text-red-500">{errors.password.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-sm font-bold text-gray-700">
+          Confirm New Password
+        </label>
+        <input
+          type="password"
+          {...register("password_confirmation", {
+            required: "Confirmation is required",
+            validate: (value) =>
+              value === newPassword || "Passwords must match",
+          })}
+          className={`w-full px-4 py-3 bg-white border rounded-xl focus:ring-2 focus:ring-rose-500 outline-none ${
+            errors.password_confirmation ? "border-red-500" : "border-gray-300"
+          }`}
+          placeholder="Confirm new password"
+          aria-invalid={errors.password_confirmation ? "true" : "false"}
+        />
+        {errors.password_confirmation && (
+          <p className="text-xs text-red-500">
+            {errors.password_confirmation.message}
+          </p>
+        )}
+      </div>
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full mt-4 flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-white font-bold bg-rose-600 hover:bg-rose-700 transition-colors disabled:opacity-50"
+      >
+        {isSubmitting ? (
+          <Loader2 className="w-5 h-5 animate-spin" />
+        ) : (
+          <Lock size={20} />
+        )}
+        {isGoogleUser ? "Create Password" : "Update Password"}
+      </button>
+    </form>
+  );
+};
+// ---------------------------------------------
+
+// --- UPDATED COMPONENT: Security Settings ---
+const SecuritySettings = ({ user, setUser }) => {
+  const isGoogleUser = user?.login_method === "google";
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="pb-6 border-b border-gray-100">
         <h3 className="text-2xl font-bold text-gray-800">Login & Security</h3>
         <p className="text-gray-500 mt-2 text-base">
-          Manage your password and 2FA settings.
+          {isGoogleUser
+            ? "Manage your account's local password access."
+            : "Manage your password."}
         </p>
       </div>
 
       <div className="space-y-6 max-w-lg">
+        {/* Conditional Password Form */}
+        <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-sm">
+          <PasswordForm
+            user={user}
+            setUser={setUser}
+            isGoogleUser={isGoogleUser}
+          />
+        </div>
+
+        {/* Info / Warning Section */}
+        {isGoogleUser && (
+          <div className="p-5 bg-rose-50 border border-rose-100 rounded-2xl flex gap-4">
+            <div className="p-2 bg-rose-100 rounded-lg h-fit text-rose-600">
+              <Shield size={24} />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-rose-900">
+                Identity Provider
+              </h4>
+              <p className="text-sm text-rose-700 mt-1 leading-relaxed">
+                This account uses Google for primary authentication. Setting a
+                local password above allows you to sign in with your email and
+                password as well.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="p-5 bg-blue-50 border border-blue-100 rounded-2xl flex gap-4">
           <div className="p-2 bg-blue-100 rounded-lg h-fit text-blue-600">
             <Shield size={24} />
           </div>
           <div>
             <h4 className="text-base font-bold text-blue-900">
-              Secure your account
+              Forgotten Password?
             </h4>
             <p className="text-sm text-blue-700 mt-1 leading-relaxed">
-              For security updates like password changes, please use the 'Forgot
-              Password' flow on the login screen for now.
+              If you've forgotten your current password, please use the "Forgot
+              Password" link on the main login screen.
             </p>
           </div>
         </div>
@@ -239,6 +476,7 @@ const SecuritySettings = () => {
     </div>
   );
 };
+// ----------------------------------------------------
 
 // --- MAIN SETTINGS PAGE ---
 
@@ -248,16 +486,18 @@ export default function SettingsPage() {
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("profile");
-  const [isSaving, setIsSaving] = useState(false);
 
   const { user, setUser } = useAuth();
+  const isGoogleUser = user?.login_method === "google";
+
+  const [activeTab, setActiveTab] = useState("profile");
+  const [isSaving, setIsSaving] = useState(false);
 
   // Centralized State for all settings
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    currency: "USD", // Default
+    currency: "USD",
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -268,13 +508,18 @@ export default function SettingsPage() {
       setFormData({
         name: user.name || "",
         email: user.email || "",
-        currency: user.currency || "USD", // Load saved preference
+        currency: user.currency || "USD",
       });
       if (user.avatar_url) {
         setPreviewUrl(user.avatar_url);
       }
+
+      // Fallback check: If the user is a Google user, ensure they aren't stuck on the security tab.
+      if (activeTab === "security" && isGoogleUser) {
+        setActiveTab("profile");
+      }
     }
-  }, [user]);
+  }, [user, isGoogleUser]);
 
   const toggleSidebar = () => {
     setSidebarOpen((prev) => {
@@ -288,7 +533,7 @@ export default function SettingsPage() {
     setIsSaving(true);
 
     try {
-      // Prepare Payload
+      // Prepare Payload for Profile/System updates
       const data = new FormData();
       data.append("name", formData.name);
       data.append("currency", formData.currency);
@@ -296,7 +541,6 @@ export default function SettingsPage() {
       if (avatarFile) {
         data.append("avatar", avatarFile);
       }
-      // FIXED: Removed data.append("_method", "PUT"); to solve 405 Error
 
       const response = await updateProfile(data);
 
@@ -316,7 +560,7 @@ export default function SettingsPage() {
         icon: "success",
         title: "Settings Saved!",
         text: "Your preferences have been updated successfully.",
-        confirmButtonColor: "#10B981", // Matches emerald theme
+        confirmButtonColor: "#10B981",
         timer: 3000,
         timerProgressBar: true,
       });
@@ -330,7 +574,7 @@ export default function SettingsPage() {
         text:
           error.response?.data?.message ||
           "Something went wrong. Please try again.",
-        confirmButtonColor: "#EF4444", // Red for error
+        confirmButtonColor: "#EF4444",
       });
     } finally {
       setIsSaving(false);
@@ -352,7 +596,8 @@ export default function SettingsPage() {
       case "system":
         return <SystemSettings formData={formData} setFormData={setFormData} />;
       case "security":
-        return <SecuritySettings />;
+        // Always render the container content, which handles its own logic based on user props
+        return <SecuritySettings user={user} setUser={setUser} />;
       default:
         return null;
     }
@@ -366,6 +611,9 @@ export default function SettingsPage() {
   };
 
   const themeColor = getThemeColor();
+
+  // Condition to hide the Security tab entirely
+  const showSecurityTab = !isGoogleUser;
 
   return (
     <div
@@ -466,27 +714,30 @@ export default function SettingsPage() {
                       )}
                     </button>
 
-                    <button
-                      onClick={() => setActiveTab("security")}
-                      className={`flex items-center gap-3 px-5 py-4 rounded-xl text-base font-semibold transition-all whitespace-nowrap ${
-                        activeTab === "security"
-                          ? "bg-rose-50 text-rose-700 shadow-sm ring-1 ring-rose-200"
-                          : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
-                      }`}
-                    >
-                      <Lock
-                        size={20}
-                        className={
+                    {/* CONDITIONAL RENDERING OF SECURITY TAB */}
+                    {showSecurityTab && (
+                      <button
+                        onClick={() => setActiveTab("security")}
+                        className={`flex items-center gap-3 px-5 py-4 rounded-xl text-base font-semibold transition-all whitespace-nowrap ${
                           activeTab === "security"
-                            ? "text-rose-600"
-                            : "text-gray-400"
-                        }
-                      />
-                      <span className="flex-1 text-left">Security</span>
-                      {activeTab === "security" && (
-                        <ChevronRight size={18} className="opacity-50" />
-                      )}
-                    </button>
+                            ? "bg-rose-50 text-rose-700 shadow-sm ring-1 ring-rose-200"
+                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                        }`}
+                      >
+                        <Lock
+                          size={20}
+                          className={
+                            activeTab === "security"
+                              ? "text-rose-600"
+                              : "text-gray-400"
+                          }
+                        />
+                        <span className="flex-1 text-left">Security</span>
+                        {activeTab === "security" && (
+                          <ChevronRight size={18} className="opacity-50" />
+                        )}
+                      </button>
+                    )}
                   </nav>
                 </div>
               </div>

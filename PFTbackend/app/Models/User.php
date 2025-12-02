@@ -17,10 +17,12 @@ use Illuminate\Support\Facades\Storage;
  * @OA\Property(property="id", type="integer", example=1),
  * @OA\Property(property="name", type="string", example="John Doe"),
  * @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+ * @OA\Property(property="login_method", type="string", enum={"email", "google"}, example="email"),
  * @OA\Property(property="avatar", type="string", nullable=true, example="avatars/filename.jpg"),
  * @OA\Property(property="avatar_url", type="string", nullable=true, example="http://localhost:8000/storage/avatars/filename.jpg"),
  * @OA\Property(property="bio", type="string", nullable=true, example="Software Developer"),
  * @OA\Property(property="currency", type="string", nullable=true, example="USD"),
+ * @OA\Property(property="last_notification_ack_time", type="string", format="date-time", nullable=true, description="Timestamp of the last time the user acknowledged notifications."),
  * @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
  * @OA\Property(property="created_at", type="string", format="date-time"),
  * @OA\Property(property="updated_at", type="string", format="date-time")
@@ -30,11 +32,6 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -42,39 +39,24 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at',
         'avatar',
         'bio',
-        'currency', // <--- Added currency here
+        'currency',
+        'login_method',
+        'last_notification_ack_time',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'last_notification_ack_time' => 'datetime',
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
     protected $appends = ['avatar_url'];
 
-    /**
-     * Get the full URL of the avatar.
-     */
     public function getAvatarUrlAttribute()
     {
         return $this->avatar

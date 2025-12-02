@@ -20,7 +20,6 @@ use OpenApi\Annotations as OA;
  */
 class AuthController extends Controller
 {
-    // ... Existing Register Method ...
     public function register(RegisterRequest $request)
     {
         $validated = $request->validated();
@@ -29,8 +28,8 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            // Set default currency if not provided during registration
             'currency' => 'USD',
+            'login_method' => 'email',
         ]);
 
         $user->sendEmailVerificationNotification();
@@ -40,7 +39,6 @@ class AuthController extends Controller
         ], 'User registered successfully. Please check your email to verify your account.', 201);
     }
 
-    // ... Existing Login Method ...
     public function login(LoginRequest $request)
     {
         $validated = $request->validated();
@@ -73,7 +71,6 @@ class AuthController extends Controller
         ], 'Login successful.');
     }
 
-    // ... Existing Logout Method ...
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -119,34 +116,28 @@ class AuthController extends Controller
      * description="Validation Error"
      * )
      * )
-     * )
      */
     public function updateProfile(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'currency' => 'required|string|max:3', // UPDATED: Added currency validation
+            'currency' => 'required|string|max:3',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         $user = $request->user();
 
-        // 1. Update Basic Info
         $user->name = $request->name;
 
-        // 2. Update Currency
         if ($request->has('currency')) {
             $user->currency = $request->currency;
         }
 
-        // 3. Handle Avatar Upload (if provided)
         if ($request->hasFile('avatar')) {
-            // Delete old avatar if it exists to save space
             if ($user->avatar) {
                 Storage::disk('public')->delete($user->avatar);
             }
 
-            // Store new file
             $path = $request->file('avatar')->store('avatars', 'public');
             $user->avatar = $path;
         }
@@ -158,7 +149,82 @@ class AuthController extends Controller
         ], 'Profile updated successfully.');
     }
 
-    // ... Existing Verify Email Methods ...
+    /**
+     * @OA\Put(
+     * path="/api/user/set-password",
+     * summary="Sets a local password for the first time for a user currently without one (typically OAuth users).",
+     * tags={"Authentication"},
+     * security={{"sanctum":{}}},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"password", "password_confirmation"},
+     * @OA\Property(property="password", type="string", format="password", example="newsecret123"),
+     * @OA\Property(property="password_confirmation", type="string", format="password", example="newsecret123")
+     * )
+     * ),
+     * @OA\Response(response=200, description="Password set successfully"),
+     * @OA\Response(response=422, description="Validation Error")
+     * )
+     */
+    public function setLocalPassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|confirmed|min:8',
+        ]);
+
+        $user = $request->user();
+
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return $this->success([
+            'user' => $user
+        ], 'Password set successfully.');
+    }
+
+    /**
+     * @OA\Put(
+     * path="/api/user/acknowledge-notifications",
+     * summary="Updates the user's last notification acknowledgment time.",
+     * tags={"Authentication"},
+     * security={{"sanctum":{}}},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"ack_time"},
+     * @OA\Property(property="ack_time", type="string", format="date-time", example="2025-01-01T10:00:00Z")
+     * )
+     * ),
+     * @OA\Response(
+     * response=200,
+     * description="Acknowledgment time updated successfully.",
+     * @OA\JsonContent(
+     * @OA\Property(property="success", type="boolean", example=true),
+     * @OA\Property(property="message", type="string", example="Notifications acknowledged."),
+     * @OA\Property(property="data", type="object",
+     * @OA\Property(property="user", ref="#/components/schemas/User")
+     * )
+     * )
+     * )
+     * )
+     */
+    public function acknowledgeNotifications(Request $request)
+    {
+        $request->validate([
+            'ack_time' => 'required|date',
+        ]);
+
+        $user = $request->user();
+
+        $user->last_notification_ack_time = $request->ack_time;
+        $user->save();
+
+        return $this->success([
+            'user' => $user
+        ], 'Notifications acknowledged.');
+    }
+
     public function verifyEmail(Request $request, $id, $hash)
     {
         $user = User::findOrFail($id);

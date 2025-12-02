@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Bell, User, LogOut, Menu } from "lucide-react";
 import Swal from "sweetalert2";
 import { logoutUser } from "../api/auth";
+import { useDataContext } from "../components/DataLoader"; // <-- NEW IMPORT
 
 // --- NEW COMPONENT: Formats messages for bolding ---
 const NotificationMessage = ({ message }) => {
@@ -31,15 +32,23 @@ const NotificationMessage = ({ message }) => {
 
 export default function Topbar({
   toggleMobileMenu,
-  notifications,
-  hasUnread,
-  setHasUnread,
+  // Removed: notifications, hasUnread, setHasUnread
   user,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+
+  // *** PULL DATA FROM CONTEXT ***
+  const {
+    notifications,
+    hasUnread,
+    setHasUnread,
+    user: contextUser,
+  } = useDataContext();
+  const finalUser = user || contextUser;
+  // ******************************
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -58,12 +67,15 @@ export default function Topbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // *** REMOVED CONFLICTING useEffect HERE ***
+  // The logic to set hasUnread=true is now only in DataLoader.jsx
+
   // Helper to get avatar URL or fallback
   const getAvatarSrc = () => {
-    if (user?.avatar_url) {
-      return user.avatar_url;
+    if (finalUser?.avatar_url) {
+      return finalUser.avatar_url;
     }
-    const name = user?.name || "User";
+    const name = finalUser?.name || "User";
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       name
     )}&background=10b981&color=fff&bold=true`;
@@ -125,7 +137,9 @@ export default function Topbar({
               onClick={() => {
                 setNotificationOpen((prev) => !prev);
                 // Clear the 'hasUnread' status when the notifications dropdown is opened
-                if (!notificationOpen) setHasUnread(false);
+                if (!notificationOpen && typeof setHasUnread === "function") {
+                  setHasUnread(false); // <-- Clearing the dot
+                }
               }}
               className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 text-gray-600 hover:text-green-600 relative cursor-pointer"
             >
@@ -185,16 +199,16 @@ export default function Topbar({
             >
               <img
                 src={getAvatarSrc()}
-                alt={user?.name || "User"}
+                alt={finalUser?.name || "User"}
                 className="w-9 h-9 rounded-full object-cover shadow-sm border border-green-100"
                 onError={(e) => {
                   e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    user?.name || "User"
+                    finalUser?.name || "User"
                   )}&background=10b981&color=fff&bold=true`;
                 }}
               />
               <span className="hidden sm:block text-sm font-medium text-gray-700 truncate max-w-[100px]">
-                {user?.name?.split(" ")[0]}
+                {finalUser?.name?.split(" ")[0]}
               </span>
             </button>
 
@@ -202,10 +216,10 @@ export default function Topbar({
               <div className="absolute right-0 mt-2 w-56 bg-white/95 backdrop-blur-sm border border-green-100 rounded-xl shadow-xl py-2 z-50">
                 <div className="px-4 py-3 border-b border-green-50 bg-green-50/30">
                   <p className="text-sm font-semibold text-gray-800 truncate">
-                    {user?.name}
+                    {finalUser?.name}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    {user?.email}
+                    {finalUser?.email}
                   </p>
                 </div>
 

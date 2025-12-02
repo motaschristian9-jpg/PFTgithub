@@ -23,7 +23,6 @@ export default function ForgotPasswordPage() {
   });
 
   useEffect(() => {
-    // Trigger entrance animations
     setIsVisible(true);
   }, []);
 
@@ -40,38 +39,53 @@ export default function ForgotPasswordPage() {
         confirmButtonText: "OK",
       });
     } catch (err) {
+      let errorMessage = "Something went wrong. Try again later.";
+      let isGoogleError = false;
+
       if (err.response && err.response.data) {
-        // Handle Laravel validation errors
-        if (err.response.data.errors) {
-          // Laravel ValidationException returns errors in 'errors' key
-          const errors = err.response.data.errors;
-          if (errors.email) {
-            setError("email", {
-              message: Array.isArray(errors.email) ? errors.email[0] : errors.email
-            });
-          }
-        } else if (err.response.data.message) {
-          if (typeof err.response.data.message === "string") {
-            setError("email", { message: err.response.data.message });
-          } else if (typeof err.response.data.message === "object") {
-            // Check for email-specific errors
-            if (err.response.data.message.email) {
-              setError("email", {
-                message: Array.isArray(err.response.data.message.email)
-                  ? err.response.data.message.email[0]
-                  : err.response.data.message.email
-              });
-            }
-          }
-        } else if (err.response.data.error) {
-          setError("email", { message: err.response.data.error });
-        } else {
-          // Network or other errors - keep Swal for these
-          Swal.fire("Error", "Something went wrong. Try again later.", "error");
+        const responseData = err.response.data;
+
+        // Check for the specific Google login method error message from the backend
+        if (
+          responseData.message &&
+          typeof responseData.message === "string" &&
+          responseData.message.includes("Google")
+        ) {
+          errorMessage = responseData.message;
+          isGoogleError = true;
+        } else if (responseData.errors?.email) {
+          // Handle Laravel validation errors (422)
+          errorMessage = Array.isArray(responseData.errors.email)
+            ? responseData.errors.email[0]
+            : responseData.errors.email;
+        } else if (responseData.message) {
+          // General error message
+          errorMessage = responseData.message;
         }
+      }
+
+      // Display specific error feedback
+      if (isGoogleError) {
+        Swal.fire({
+          icon: "info",
+          title: "Google Account Detected",
+          text: "This account was created using Google. Please use the 'Continue with Google' button to sign in.",
+          confirmButtonText: "Go to Login",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.location.href = "/login";
+          }
+        });
       } else {
-        // Network or other errors - keep Swal for these
-        Swal.fire("Error", "Something went wrong. Try again later.", "error");
+        // Apply the error message to the email field or show general Swal
+        if (
+          errorMessage.includes("email") ||
+          errorMessage.includes("account found")
+        ) {
+          setError("email", { message: errorMessage });
+        } else {
+          Swal.fire("Error", errorMessage, "error");
+        }
       }
     } finally {
       setLoading(false);
@@ -125,7 +139,8 @@ export default function ForgotPasswordPage() {
                       Reset Your Password
                     </h2>
                     <p className="text-gray-600 text-sm leading-relaxed">
-                      Enter your email address and we'll send you a link to reset your password.
+                      Enter your email address and we'll send you a link to
+                      reset your password.
                     </p>
                   </div>
                 </div>
@@ -173,7 +188,10 @@ export default function ForgotPasswordPage() {
 
                 {!emailSent ? (
                   /* Form */
-                  <form className="space-y-4" onSubmit={handleSubmit(handleForgotPassword)}>
+                  <form
+                    className="space-y-4"
+                    onSubmit={handleSubmit(handleForgotPassword)}
+                  >
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">
                         Email Address
@@ -193,7 +211,9 @@ export default function ForgotPasswordPage() {
                         }`}
                       />
                       {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.email.message}
+                        </p>
                       )}
                     </div>
 
@@ -221,7 +241,9 @@ export default function ForgotPasswordPage() {
                       </h3>
                       <p className="text-gray-600 text-sm mb-4">
                         We've sent a password reset link to{" "}
-                        <span className="font-medium text-gray-800">{getValues("email")}</span>
+                        <span className="font-medium text-gray-800">
+                          {getValues("email")}
+                        </span>
                       </p>
                       <p className="text-gray-500 text-xs">
                         Didn't receive the email? Check your spam folder or{" "}
