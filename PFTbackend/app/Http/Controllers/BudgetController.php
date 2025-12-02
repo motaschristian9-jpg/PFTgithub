@@ -20,10 +20,16 @@ class BudgetController extends Controller
     {
         $this->updateBudgetStatuses();
 
-        $query = Budget::where('user_id', Auth::id());
+        // FIX: Calculate total spent (expenses) for each budget
+        $query = Budget::where('user_id', Auth::id())
+            ->withSum([
+                'transactions' => function ($q) {
+                    $q->where('type', 'expense');
+                }
+            ], 'amount');
+
         $status = $request->get('status', 'active');
 
-        // --- Common Filtering (Name & Category) ---
         if ($request->has('search') && $request->search) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
@@ -32,11 +38,9 @@ class BudgetController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        // --- Sorting Logic ---
-        $sortBy = $request->get('sort_by', 'created_at'); // Default sort
-        $sortDir = $request->get('sort_dir', 'desc');     // Default direction
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
 
-        // Allowed sort columns to prevent SQL injection or errors
         $allowedSorts = ['name', 'amount', 'start_date', 'end_date', 'created_at', 'updated_at'];
 
         if (in_array($sortBy, $allowedSorts)) {
@@ -45,16 +49,13 @@ class BudgetController extends Controller
             $query->orderBy('created_at', 'desc');
         }
 
-        // --- Response Logic ---
         if ($status === 'history') {
             $query->whereIn('status', ['completed', 'expired', 'reached']);
-            // History is paginated
             return new BudgetCollection($query->paginate(10));
         }
 
         if ($status === 'active') {
             $query->where('status', 'active');
-            // Active is just a list (filtered by search/sort above)
             return new BudgetCollection($query->get());
         }
 

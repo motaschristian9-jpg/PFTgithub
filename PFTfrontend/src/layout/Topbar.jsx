@@ -1,8 +1,33 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Bell, User, LogOut, Menu } from "lucide-react";
-import Swal from "sweetalert2"; // Import SweetAlert
-import { logoutUser } from "../api/auth"; // Import API handler
+import Swal from "sweetalert2";
+import { logoutUser } from "../api/auth";
+
+// --- NEW COMPONENT: Formats messages for bolding ---
+const NotificationMessage = ({ message }) => {
+  // Regex to find content enclosed in **...**
+  const parts = message.split(/(\*\*.*?\*\*)/g).filter(Boolean);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        // Check if the part starts and ends with **
+        if (part.startsWith("**") && part.endsWith("**")) {
+          // Render the content inside <strong> tags
+          return (
+            <strong key={index} className="font-bold">
+              {part.slice(2, -2)}
+            </strong>
+          );
+        }
+        // Render regular text
+        return <span key={index}>{part}</span>;
+      })}
+    </>
+  );
+};
+// ---------------------------------------------------
 
 export default function Topbar({
   toggleMobileMenu,
@@ -10,7 +35,6 @@ export default function Topbar({
   hasUnread,
   setHasUnread,
   user,
-  // handleLogout prop is no longer needed from parent
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
@@ -39,7 +63,6 @@ export default function Topbar({
     if (user?.avatar_url) {
       return user.avatar_url;
     }
-    // Fallback to UI Avatars using the user's name
     const name = user?.name || "User";
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       name
@@ -64,7 +87,6 @@ export default function Topbar({
       } catch (e) {
         console.error("Logout error:", e);
       } finally {
-        // Clear storage and redirect
         localStorage.clear();
         sessionStorage.clear();
         window.location.href = "/login";
@@ -102,11 +124,13 @@ export default function Topbar({
             <button
               onClick={() => {
                 setNotificationOpen((prev) => !prev);
+                // Clear the 'hasUnread' status when the notifications dropdown is opened
                 if (!notificationOpen) setHasUnread(false);
               }}
               className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 text-gray-600 hover:text-green-600 relative cursor-pointer"
             >
               <Bell size={20} />
+              {/* Red dot indicator */}
               {hasUnread && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
               )}
@@ -142,7 +166,8 @@ export default function Topbar({
                               : "bg-blue-50 border-blue-500 text-blue-800"
                           }`}
                         >
-                          {n.message}
+                          {/* USE THE NEW COMPONENT HERE */}
+                          <NotificationMessage message={n.message} />
                         </div>
                       ))}
                     </div>

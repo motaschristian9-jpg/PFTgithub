@@ -43,6 +43,16 @@ class TransactionController extends Controller
             $query->where('amount', '<=', $request->max_amount);
         }
 
+        // --- FIX 1: Filter by Saving Goal ID ---
+        if ($request->filled('saving_goal_id')) {
+            $query->where('saving_goal_id', $request->saving_goal_id);
+        }
+
+        // --- FIX 2: Filter by Budget ID (This was missing!) ---
+        if ($request->filled('budget_id')) {
+            $query->where('budget_id', $request->budget_id);
+        }
+
         if ($request->filled('search')) {
             $searchTerm = $request->search;
             $query->where(function ($q) use ($searchTerm) {
@@ -72,6 +82,7 @@ class TransactionController extends Controller
             $query->orderBy($sortBy, $sortOrder);
         }
 
+        // Calculate Totals
         $totalIncome = (clone $baseQuery)->where('type', 'income')->sum('amount');
         $totalExpenses = (clone $baseQuery)->where('type', 'expense')->sum('amount');
 
@@ -92,6 +103,18 @@ class TransactionController extends Controller
                 ];
             });
 
+        // Bypass Pagination for Modals
+        if ($request->has('all') && $request->all == 'true') {
+            $transactions = $query->get();
+            return (new TransactionCollection($transactions))->additional([
+                'totals' => [
+                    'income' => (float) $totalIncome,
+                    'expenses' => (float) $totalExpenses,
+                ],
+                'expense_by_category' => $totalExpensesByCategory,
+            ]);
+        }
+
         $paginated = $query->paginate(15);
 
         return (new TransactionCollection($paginated))->additional([
@@ -107,6 +130,7 @@ class TransactionController extends Controller
     {
         $validatedData = $request->validated();
 
+        // Auto-assign Budget ID logic
         if (empty($validatedData['budget_id']) && $validatedData['type'] === 'expense' && !empty($validatedData['category_id'])) {
             $activeBudget = Budget::where('user_id', Auth::id())
                 ->where('category_id', $validatedData['category_id'])
@@ -118,6 +142,10 @@ class TransactionController extends Controller
             if ($activeBudget) {
                 $validatedData['budget_id'] = $activeBudget->id;
             }
+        }
+
+        if ($request->has('saving_goal_id')) {
+            $validatedData['saving_goal_id'] = $request->saving_goal_id;
         }
 
         $transaction = Auth::user()->transactions()->create($validatedData);
@@ -152,6 +180,10 @@ class TransactionController extends Controller
                     $validatedData['budget_id'] = null;
                 }
             }
+        }
+
+        if ($request->has('saving_goal_id')) {
+            $validatedData['saving_goal_id'] = $request->saving_goal_id;
         }
 
         $transaction->update($validatedData);

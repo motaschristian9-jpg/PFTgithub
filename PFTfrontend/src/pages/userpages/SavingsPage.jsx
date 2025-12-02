@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import axios from "../../api/axios"; // Ensure axios is imported for delete fetch
 
+// FIXED IMPORTS: Keeping user defined paths
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
@@ -36,11 +38,14 @@ import {
   useUpdateSaving,
   useDeleteSaving,
 } from "../../hooks/useSavings.js";
-// 1. IMPORT DELETE TRANSACTION HOOK
+
 import {
   useCreateTransaction,
   useDeleteTransaction,
 } from "../../hooks/useTransactions.js";
+
+// Import Currency Utility
+import { formatCurrency } from "../../utils/currency";
 
 export default function SavingsPage() {
   const queryClient = useQueryClient();
@@ -67,6 +72,8 @@ export default function SavingsPage() {
   const { user, activeSavingsData, transactionsData, categoriesData } =
     useDataContext();
 
+  const userCurrency = user?.currency || "USD"; // Get user's currency
+
   const historyFilters = useMemo(
     () => ({ search, sortBy, sortDir }),
     [search, sortBy, sortDir]
@@ -79,7 +86,6 @@ export default function SavingsPage() {
   const updateMutation = useUpdateSaving();
   const deleteMutation = useDeleteSaving();
   const createTransactionMutation = useCreateTransaction();
-  // 2. INITIALIZE DELETE TRANSACTION MUTATION
   const deleteTransactionMutation = useDeleteTransaction();
 
   // --- Calculations ---
@@ -184,10 +190,23 @@ export default function SavingsPage() {
     };
   };
 
-  // --- FILTER TRANSACTIONS FOR SELECTED GOAL ---
+  // --- FILTER TRANSACTIONS FOR SELECTED GOAL (Visual only) ---
   const getSavingsGoalTransactions = (goalId) => {
     if (!transactionsData || !transactionsData.data || !goalId) return [];
-    const currentGoal = activeSavingsData?.find((g) => g.id === goalId);
+
+    // 1. Try finding in active list
+    let currentGoal = activeSavingsData?.find((g) => g.id === goalId);
+
+    // 2. If not found, check selected saving (could be from history modal)
+    if (!currentGoal && selectedSaving?.id === goalId) {
+      currentGoal = selectedSaving;
+    }
+
+    // 3. If still not found, check history list
+    if (!currentGoal) {
+      currentGoal = historySavings?.find((h) => h.id === goalId);
+    }
+
     const goalNameLower = currentGoal ? currentGoal.name.toLowerCase() : "";
 
     return transactionsData.data
@@ -197,6 +216,7 @@ export default function SavingsPage() {
           goalNameLower &&
           (t.name?.toLowerCase().includes(goalNameLower) ||
             t.description?.toLowerCase().includes(goalNameLower));
+
         return idMatch || nameMatch;
       })
       .map((t) => ({
@@ -381,30 +401,56 @@ export default function SavingsPage() {
 
   // --- 3. UPDATED "REFUND & DELETE" LOGIC ---
   const handleDelete = async (id) => {
-    // A. Identify the goal and its transactions
-    const goalToDelete = activeSavingsData?.find((s) => s.id === id);
+    // A. Identify the goal (Search Active, then Selected, then History)
+    let goalToDelete = activeSavingsData?.find((s) => s.id === id);
+
+    if (!goalToDelete && selectedSaving?.id === id) {
+      goalToDelete = selectedSaving;
+    }
+
+    // FIX: Check History if not found in active
+    if (!goalToDelete) {
+      goalToDelete = historySavings?.find((s) => s.id === id);
+    }
+
     if (!goalToDelete) return;
 
-    const linkedTransactions = getSavingsGoalTransactions(id);
+    // B. Fetch Transactions from API (Bypass Pagination Limit)
+    let linkedTransactions = [];
+    try {
+      // Using direct axios call to ensure we get all history
+      const response = await axios.get("/transactions", {
+        params: {
+          saving_goal_id: id,
+          all: "true",
+        },
+      });
+      linkedTransactions = response.data.data || [];
+    } catch (e) {
+      console.error("Failed to fetch transactions for deletion check", e);
+      linkedTransactions = [];
+    }
+
     const hasFunds = linkedTransactions.length > 0;
 
-    // B. Build the Alert Message
+    // C. Build the Alert Message
     let title = "Delete Goal?";
     let text = "This action cannot be undone.";
     let confirmText = "Yes, delete it";
     let icon = "warning";
 
+    const formattedCurrentAmount = formatCurrency(
+      Number(goalToDelete.current_amount),
+      userCurrency
+    );
+
     if (hasFunds) {
       title = "Return Funds to Balance?";
-      text = `This goal has ${
-        linkedTransactions.length
-      } transaction(s) totaling $${Number(
-        goalToDelete.current_amount
-      ).toLocaleString()}. \n\nDeleting this will remove these transactions and return the money to your Available Balance.`;
+      text = `This goal has ${linkedTransactions.length} transaction(s) totaling ${formattedCurrentAmount}. \n\nDeleting this will remove these transactions and return the money to your Available Balance.`;
       confirmText = "Yes, Refund & Delete";
     }
 
-    // C. Fire Confirmation
+    // D. Fire Confirmation with Swal
     const result = await Swal.fire({
       title: title,
       text: text,
@@ -418,7 +464,7 @@ export default function SavingsPage() {
 
     if (result.isConfirmed) {
       try {
-        // D. Refund Step: Delete linked transactions first
+        // E. Refund Step: Delete linked transactions first
         if (hasFunds) {
           // Show loading indication
           Swal.fire({
@@ -438,10 +484,10 @@ export default function SavingsPage() {
           await Promise.all(deletePromises);
         }
 
-        // E. Delete the Goal
+        // F. Delete the Goal
         await deleteMutation.mutateAsync(id);
 
-        // F. Refresh and Cleanup
+        // G. Refresh and Cleanup
         await queryClient.invalidateQueries(["savings"]);
         await queryClient.invalidateQueries(["transactions"]);
 
@@ -589,7 +635,7 @@ export default function SavingsPage() {
                     {activeTab === "active" ? "Active Saved" : "History Saved"}
                   </p>
                   <p className="text-2xl font-bold text-green-600 mt-1">
-                    ${stats.totalSaved.toLocaleString()}
+                    {formatCurrency(stats.totalSaved, userCurrency)}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
@@ -604,7 +650,7 @@ export default function SavingsPage() {
                       : "History Target"}
                   </p>
                   <p className="text-2xl font-bold text-emerald-600 mt-1">
-                    ${stats.totalTarget.toLocaleString()}
+                    {formatCurrency(stats.totalTarget, userCurrency)}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
@@ -696,7 +742,8 @@ export default function SavingsPage() {
                                         {s.name}
                                       </h3>
                                       <p className="text-xs text-gray-500 mt-0.5 truncate uppercase tracking-wider font-medium">
-                                        Target: ${target.toLocaleString()}
+                                        Target:{" "}
+                                        {formatCurrency(target, userCurrency)}
                                       </p>
                                     </div>
                                     <div
@@ -724,7 +771,7 @@ export default function SavingsPage() {
                                         Saved
                                       </span>
                                       <span className="font-bold text-gray-800">
-                                        ${current.toLocaleString()}
+                                        {formatCurrency(current, userCurrency)}
                                       </span>
                                     </div>
                                     <div className="flex justify-between text-sm">
@@ -732,7 +779,10 @@ export default function SavingsPage() {
                                         Remaining
                                       </span>
                                       <span className="font-bold text-gray-600">
-                                        ${remaining.toLocaleString()}
+                                        {formatCurrency(
+                                          remaining,
+                                          userCurrency
+                                        )}
                                       </span>
                                     </div>
                                   </div>
@@ -843,10 +893,16 @@ export default function SavingsPage() {
                                   {s.name}
                                 </td>
                                 <td className="py-4 px-6 text-gray-500">
-                                  ${Number(s.target_amount).toLocaleString()}
+                                  {formatCurrency(
+                                    Number(s.target_amount),
+                                    userCurrency
+                                  )}
                                 </td>
                                 <td className="py-4 px-6 font-bold text-green-600">
-                                  ${Number(s.current_amount).toLocaleString()}
+                                  {formatCurrency(
+                                    Number(s.current_amount),
+                                    userCurrency
+                                  )}
                                 </td>
                                 <td className="py-4 px-6 text-gray-500 text-sm">
                                   {s.updated_at
@@ -926,6 +982,7 @@ export default function SavingsPage() {
         onSave={handleSave}
         editMode={!!selectedSaving}
         saving={selectedSaving}
+        availableBalance={availableBalance} // Pass available balance to modal
       />
 
       <SavingsCardModal

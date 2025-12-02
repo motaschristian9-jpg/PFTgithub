@@ -29,6 +29,8 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
+            // Set default currency if not provided during registration
+            'currency' => 'USD',
         ]);
 
         $user->sendEmailVerificationNotification();
@@ -91,7 +93,7 @@ class AuthController extends Controller
      * @OA\Schema(
      * required={"name"},
      * @OA\Property(property="name", type="string", example="John Doe"),
-     * @OA\Property(property="bio", type="string", example="I love coding"),
+     * @OA\Property(property="currency", type="string", example="USD"),
      * @OA\Property(
      * property="avatar",
      * description="User profile image (optional)",
@@ -117,12 +119,13 @@ class AuthController extends Controller
      * description="Validation Error"
      * )
      * )
+     * )
      */
     public function updateProfile(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'bio' => 'nullable|string|max:500', // <--- Added validation for bio
+            'currency' => 'required|string|max:3', // UPDATED: Added currency validation
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
@@ -130,9 +133,13 @@ class AuthController extends Controller
 
         // 1. Update Basic Info
         $user->name = $request->name;
-        $user->bio = $request->bio; // <--- Save the bio
 
-        // 2. Handle Avatar Upload (if provided)
+        // 2. Update Currency
+        if ($request->has('currency')) {
+            $user->currency = $request->currency;
+        }
+
+        // 3. Handle Avatar Upload (if provided)
         if ($request->hasFile('avatar')) {
             // Delete old avatar if it exists to save space
             if ($user->avatar) {

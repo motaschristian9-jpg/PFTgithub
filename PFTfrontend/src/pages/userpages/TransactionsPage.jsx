@@ -28,6 +28,8 @@ import { useExampleTransactionsApi } from "../../hooks/useExampleTransactionsApi
 import Swal from "sweetalert2";
 import { useDataContext } from "../../components/DataLoader";
 import { useDeleteTransaction } from "../../hooks/useTransactions.js";
+// CORRECTED IMPORT NAME
+import { formatCurrency } from "../../utils/currency";
 
 export default function TransactionsPage() {
   // --- UI State ---
@@ -69,6 +71,9 @@ export default function TransactionsPage() {
     isLoading,
     isError,
   } = useExampleTransactionsApi();
+
+  // Get user's currency preference
+  const userCurrency = user?.currency || "USD";
 
   // --- Optimization: Memoize Filtered Categories ---
   const filteredCategories = useMemo(() => {
@@ -153,9 +158,7 @@ export default function TransactionsPage() {
   };
 
   const formatAmount = (amount) =>
-    `$${Math.abs(amount).toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-    })}`;
+    formatCurrency(Math.abs(amount), userCurrency);
 
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleDateString("en-US", {
@@ -406,7 +409,7 @@ export default function TransactionsPage() {
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Income</p>
                   <p className="text-xl font-bold text-green-600">
-                    ${totalIncome.toLocaleString()}
+                    {formatCurrency(totalIncome, userCurrency)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
@@ -417,7 +420,7 @@ export default function TransactionsPage() {
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Expenses</p>
                   <p className="text-xl font-bold text-red-600">
-                    ${totalExpenses.toLocaleString()}
+                    {formatCurrency(totalExpenses, userCurrency)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600">
@@ -434,7 +437,7 @@ export default function TransactionsPage() {
                         : "text-red-500"
                     }`}
                   >
-                    ${(totalIncome - totalExpenses).toLocaleString()}
+                    {formatCurrency(totalIncome - totalExpenses, userCurrency)}
                   </p>
                 </div>
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">

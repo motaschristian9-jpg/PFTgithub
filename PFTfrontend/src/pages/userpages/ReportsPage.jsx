@@ -20,12 +20,17 @@ import {
   isWithinInterval,
   parseISO,
 } from "date-fns";
+
+// IMPORTS: Adjusted to ../../ based on file location src/pages/userpages/
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import { useDataContext } from "../../components/DataLoader.jsx";
 import { exportFullReport } from "../../utils/excelExport.js";
+
+// IMPORT CURRENCY UTILITY
+import { formatCurrency } from "../../utils/currency";
 
 import {
   PieChart,
@@ -52,17 +57,42 @@ const COLORS = [
   "#6366F1", // Indigo
 ];
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
+// NOTE: CustomTooltip and CustomBarTooltip typically cannot access the React Context (useDataContext)
+// directly, as they are rendered outside the main component tree by Recharts.
+// We will rely on the parent component to inject the currency code, or use a default/fallback.
+// For the purpose of this immediate fix, we'll extract the currency code from the parent.
+
+// --- Helper component to get the user currency for tooltips ---
+const CurrencyInjectedTooltip = ({
+  payload,
+  label,
+  userCurrency,
+  isBar = false,
+}) => {
+  if (payload && payload.length) {
+    const item = payload[0];
+    const amount = Number(item.value);
+
+    if (isBar) {
+      const color =
+        item.name === "Income" ? "text-emerald-600" : "text-rose-600";
+      return (
+        <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
+          <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
+          <p className={`text-sm font-semibold ${color}`}>
+            {formatCurrency(amount, userCurrency)}
+          </p>
+        </div>
+      );
+    }
+
+    // Pie Chart Tooltip
     return (
       <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
         <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
         <p className="text-sm text-gray-600">
           <span className="font-semibold text-emerald-600">
-            $
-            {Number(payload[0].value).toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-            })}
+            {formatCurrency(amount, userCurrency)}
           </span>
         </p>
       </div>
@@ -71,24 +101,21 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-const CustomBarTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const item = payload[0];
-    const color = item.name === "Income" ? "text-emerald-600" : "text-rose-600";
-    return (
-      <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
-        <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
-        <p className={`text-sm font-semibold ${color}`}>
-          $
-          {Number(item.value).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-          })}
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
+// --- Recharts Tooltip Wrappers ---
+const CustomTooltip = (props) => (
+  <CurrencyInjectedTooltip
+    {...props}
+    userCurrency={props.userCurrency}
+    isBar={false}
+  />
+);
+const CustomBarTooltip = (props) => (
+  <CurrencyInjectedTooltip
+    {...props}
+    userCurrency={props.userCurrency}
+    isBar={true}
+  />
+);
 
 export default function ReportsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(() => {
@@ -107,9 +134,11 @@ export default function ReportsPage() {
     user,
     transactionsData,
     activeBudgetsData,
-    activeSavingsData, // Using activeSavingsData from DataLoader
+    activeSavingsData,
     categoriesData,
   } = useDataContext();
+
+  const userCurrency = user?.currency || "USD"; // Get user currency
 
   // --- Date Logic ---
   useEffect(() => {
@@ -188,13 +217,7 @@ export default function ReportsPage() {
   const processedSavings = useMemo(() => {
     const list = Array.isArray(activeSavingsData) ? activeSavingsData : [];
 
-    // Calculate total savings regardless of filter dates for the Summary Card
-    const totalSavings = list.reduce(
-      (sum, s) => sum + Number(s.current_amount || 0),
-      0
-    );
-
-    // Apply date filter to savings for listing purposes (assuming created_at)
+    // FIX 1: Apply Date Filter to the list first
     const filteredList = list.filter((s) => {
       if (!s.created_at) return true;
       const createdDate = parseISO(s.created_at);
@@ -204,6 +227,12 @@ export default function ReportsPage() {
 
       return isWithinInterval(createdDate, { start, end });
     });
+
+    // FIX 2: Calculate total savings only from the FILTERED list
+    const totalSavings = filteredList.reduce(
+      (sum, s) => sum + Number(s.current_amount || 0),
+      0
+    );
 
     return {
       list: filteredList.map((s) => {
@@ -270,11 +299,10 @@ export default function ReportsPage() {
     [stats]
   );
 
-  // --- 7. Budget Compliance ---
+  // --- 7. Budget Compliance (FIXED) ---
   const budgetCompliance = useMemo(() => {
+    // Use local transactions only as a fallback (though likely insufficient for history)
     const spendingMap = {};
-
-    // Spending is calculated from ALL transactions (Total Spending)
     allTransactions.forEach((t) => {
       if (t.type === "expense" && t.budget_id) {
         spendingMap[t.budget_id] =
@@ -282,11 +310,16 @@ export default function ReportsPage() {
       }
     });
 
-    // Display list is filtered by creation date
     return filteredBudgets
       .map((b) => {
         const allocated = Number(b.amount || 0);
-        const spent = spendingMap[b.id] || 0;
+
+        // FIX: Use 'total_spent' from backend to ensure accuracy
+        const spent =
+          b.total_spent !== undefined
+            ? Number(b.total_spent)
+            : spendingMap[b.id] || 0;
+
         const remaining = allocated - spent;
         const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
         const isOver = spent > allocated;
@@ -307,12 +340,11 @@ export default function ReportsPage() {
 
   // --- Handlers ---
   const handleExport = async () => {
-    // Create the unified object expected by exportFullReport
     const exportData = {
       income: filteredTransactions.filter((t) => t.type === "income"),
       expenses: filteredTransactions.filter((t) => t.type === "expense"),
       budgets: budgetCompliance,
-      savings: processedSavings.list, // Pass the list property
+      savings: processedSavings.list,
       stats: stats,
       range: {
         from: startDate,
@@ -322,8 +354,6 @@ export default function ReportsPage() {
       expenseAllocation: expenseChartData,
     };
 
-    // Assuming exportFullReport is implemented elsewhere
-    // await exportFullReport(exportData);
     alert("Export feature initiated.");
   };
 
@@ -459,7 +489,7 @@ export default function ReportsPage() {
                 },
                 {
                   label: "Total Savings",
-                  value: stats.totalSavings, // Now uses the sum of current_amount from DataLoader
+                  value: stats.totalSavings, // Now correctly summed from filtered list
                   icon: PiggyBank,
                   color: "teal",
                   iconBg: "bg-teal-100",
@@ -476,10 +506,8 @@ export default function ReportsPage() {
                     <p
                       className={`text-2xl font-bold text-${metric.color}-600 mt-1`}
                     >
-                      {metric.value.toLocaleString(undefined, {
-                        style: "currency",
-                        currency: "USD",
-                      })}
+                      {/* CURRENCY APPLIED */}
+                      {formatCurrency(metric.value, userCurrency)}
                     </p>
                   </div>
                   <div
@@ -529,7 +557,12 @@ export default function ReportsPage() {
                             />
                           ))}
                         </Pie>
-                        <Tooltip content={<CustomTooltip />} />
+                        {/* INJECT CURRENCY CODE */}
+                        <Tooltip
+                          content={
+                            <CustomTooltip userCurrency={userCurrency} />
+                          }
+                        />
                         <Legend
                           verticalAlign="bottom"
                           height={36}
@@ -571,12 +604,16 @@ export default function ReportsPage() {
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: "#6B7280", fontSize: 12 }}
+                        // Simplify Y-axis label without currency symbol
                         tickFormatter={(value) =>
-                          `$${(value / 1000).toFixed(0)}k`
+                          `${(value / 1000).toFixed(0)}k`
                         }
                       />
+                      {/* INJECT CURRENCY CODE */}
                       <Tooltip
-                        content={<CustomBarTooltip />}
+                        content={
+                          <CustomBarTooltip userCurrency={userCurrency} />
+                        }
                         cursor={{ fill: "#F3F4F6" }}
                       />
                       <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
@@ -640,10 +677,12 @@ export default function ReportsPage() {
                             </td>
                             <td className="p-4 text-gray-500">{b.category}</td>
                             <td className="p-4 text-right text-gray-600">
-                              ${b.allocated.toLocaleString()}
+                              {/* CURRENCY APPLIED */}
+                              {formatCurrency(b.allocated, userCurrency)}
                             </td>
                             <td className="p-4 text-right font-bold text-gray-800">
-                              ${b.spent.toLocaleString()}
+                              {/* CURRENCY APPLIED */}
+                              {formatCurrency(b.spent, userCurrency)}
                             </td>
                             <td className="p-4 text-center">
                               <span
@@ -653,10 +692,12 @@ export default function ReportsPage() {
                                     : "bg-emerald-100 text-emerald-800"
                                 }`}
                               >
+                                {/* CURRENCY APPLIED */}
                                 {b.isOver
-                                  ? `Over by $${Math.abs(
-                                      b.remaining
-                                    ).toLocaleString()}`
+                                  ? `Over by ${formatCurrency(
+                                      Math.abs(b.remaining),
+                                      userCurrency
+                                    )}`
                                   : `${b.percent.toFixed(0)}% Used`}
                               </span>
                             </td>
@@ -713,10 +754,12 @@ export default function ReportsPage() {
                               {s.name}
                             </td>
                             <td className="p-4 text-right text-gray-600">
-                              ${s.target.toLocaleString()}
+                              {/* CURRENCY APPLIED */}
+                              {formatCurrency(s.target, userCurrency)}
                             </td>
                             <td className="p-4 text-right font-bold text-blue-600">
-                              ${s.current.toLocaleString()}
+                              {/* CURRENCY APPLIED */}
+                              {formatCurrency(s.current, userCurrency)}
                             </td>
                             <td className="p-4 align-middle">
                               <div className="flex items-center gap-3">

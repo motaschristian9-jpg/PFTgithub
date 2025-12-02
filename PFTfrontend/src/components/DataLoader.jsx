@@ -25,6 +25,8 @@ const DataLoader = ({ children }) => {
     error: transError,
   } = useTransactions({}, { fetchAll: true });
 
+  console.log(transactionsData);
+
   const {
     data: categoriesData,
     isLoading: catsLoading,

@@ -21,6 +21,9 @@ import {
   useUpdateTransaction,
 } from "../hooks/useTransactions.js";
 
+// IMPORT CURRENCY UTILITY
+import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+
 // ... (Keep TypeSwitcher and BudgetStatusCard components exactly as they were) ...
 const TypeSwitcher = ({ type, setType }) => (
   <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-6 relative">
@@ -51,13 +54,16 @@ const TypeSwitcher = ({ type, setType }) => (
   </div>
 );
 
-const BudgetStatusCard = ({ budget }) => {
+const BudgetStatusCard = ({ budget, userCurrency }) => {
   if (!budget) return null;
-  const percentage = Math.min(
-    (budget.spent / parseFloat(budget.amount)) * 100,
-    100
-  );
-  const isOver = budget.remaining < 0;
+
+  const spent = budget.spent || 0;
+  const allocated = parseFloat(budget.amount);
+  const remaining = allocated - spent;
+
+  const percentage = Math.min((spent / allocated) * 100, 100);
+  const isOver = remaining < 0;
+
   return (
     <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
       <div
@@ -84,13 +90,13 @@ const BudgetStatusCard = ({ budget }) => {
         <span className="text-gray-500">
           Spent:{" "}
           <span className="text-gray-800 font-medium">
-            ${budget.spent.toLocaleString()}
+            {formatCurrency(spent, userCurrency)}
           </span>
         </span>
         <span className="text-gray-500">
           Limit:{" "}
           <span className="text-gray-800 font-medium">
-            ${parseFloat(budget.amount).toLocaleString()}
+            {formatCurrency(allocated, userCurrency)}
           </span>
         </span>
       </div>
@@ -109,7 +115,7 @@ const BudgetStatusCard = ({ budget }) => {
             isOver ? "text-red-600" : "text-emerald-600"
           }`}
         >
-          ${Math.max(budget.remaining, 0).toLocaleString()}
+          {formatCurrency(Math.abs(remaining), userCurrency)}
         </span>
       </div>
     </div>
@@ -122,9 +128,11 @@ const SavingsSection = ({
   setSaveToSavings,
   savingsGoals,
   watch,
+  userCurrency, // Added currency prop
 }) => {
   const selectedGoalId = watch("savingsGoalId");
   const selectedGoal = savingsGoals.find((g) => g.id == selectedGoalId);
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   return (
     <div
@@ -195,12 +203,20 @@ const SavingsSection = ({
               <div className="mt-2 text-xs text-emerald-800 bg-emerald-100/50 p-2 rounded">
                 Current Saved:{" "}
                 <span className="font-bold">
-                  ${Number(selectedGoal.current_amount).toLocaleString()}
+                  {/* CURRENCY APPLIED */}
+                  {formatCurrency(
+                    Number(selectedGoal.current_amount),
+                    userCurrency
+                  )}
                 </span>
                 <span className="mx-1">/</span>
                 Target:{" "}
                 <span className="font-bold">
-                  ${Number(selectedGoal.target_amount).toLocaleString()}
+                  {/* CURRENCY APPLIED */}
+                  {formatCurrency(
+                    Number(selectedGoal.target_amount),
+                    userCurrency
+                  )}
                 </span>
               </div>
             )}
@@ -208,7 +224,7 @@ const SavingsSection = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-emerald-700 uppercase">
-                Fixed Amount ($)
+                Fixed Amount ({currencySymbol})
               </label>
               <input
                 type="number"
@@ -255,6 +271,7 @@ export default function TransactionModal({
     transactionsData,
     activeSavingsData,
     categoriesData,
+    user, // Get user for currency context
   } = useDataContext();
 
   const addTransactionMutation = useCreateTransaction();
@@ -266,6 +283,10 @@ export default function TransactionModal({
   const [saveToSavings, setSaveToSavings] = useState(false);
 
   const todayString = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  // Get user's currency preference
+  const userCurrency = user?.currency || "USD";
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   const {
     register,
@@ -497,14 +518,19 @@ export default function TransactionModal({
             saving_goal_id: selectedGoal.id, // Links it to the goal history
           });
 
+          // Use formatCurrency for the alert message
+          const formattedDeduction = formatCurrency(
+            savingsDeduction,
+            userCurrency
+          );
+
           Swal.fire({
             icon: "success",
             title: "Success!",
-            text: `Transaction saved & $${savingsDeduction.toLocaleString()} allocated to "${
-              selectedGoal.name
-            }".`,
+            text: `Transaction saved & ${formattedDeduction} allocated to "${selectedGoal.name}".`,
             timer: 2500,
             showConfirmButton: false,
+            timerProgressBar: true,
           });
 
           if (onTransactionAdded) onTransactionAdded(response);
@@ -600,7 +626,8 @@ export default function TransactionModal({
                 <span
                   className={`text-3xl font-medium text-${accentColor}-500 absolute left-[15%] sm:left-[20%] top-2`}
                 >
-                  $
+                  {/* CURRENCY APPLIED */}
+                  {currencySymbol}
                 </span>
                 <input
                   type="number"
@@ -646,6 +673,8 @@ export default function TransactionModal({
                           d.setHours(0, 0, 0, 0);
                           const start = new Date(budgetStatus.start_date);
                           start.setHours(0, 0, 0, 0);
+                          const end = new Date(budgetStatus.end_date);
+                          end.setHours(23, 59, 59, 999);
                           return d >= start || "Date before budget start";
                         }
                         return true;
@@ -730,7 +759,10 @@ export default function TransactionModal({
               />
             </div>
 
-            <BudgetStatusCard budget={budgetStatus} />
+            <BudgetStatusCard
+              budget={budgetStatus}
+              userCurrency={userCurrency}
+            />
 
             {type === "income" && (
               <SavingsSection
@@ -739,6 +771,7 @@ export default function TransactionModal({
                 setSaveToSavings={setSaveToSavings}
                 savingsGoals={savingsGoals}
                 watch={watch}
+                userCurrency={userCurrency}
               />
             )}
 

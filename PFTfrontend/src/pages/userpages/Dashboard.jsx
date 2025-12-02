@@ -9,13 +9,13 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownRight,
-  PiggyBank, // Added Icon
+  PiggyBank,
 } from "lucide-react";
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
-import { useDataContext } from "../../components/DataLoader";
+import { useDataContext } from "../../components/DataLoader.jsx";
 
 import {
   BarChart,
@@ -28,14 +28,18 @@ import {
   Cell,
 } from "recharts";
 
+import { formatCurrency } from "../../utils/currency";
+
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const amount = Number(payload[0].value);
+
     return (
       <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
         <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
         <p className="text-sm text-gray-600">
           <span className="font-semibold text-blue-600">
-            ${Number(payload[0].value).toLocaleString()}
+            {formatCurrency(amount, "USD")}
           </span>
         </p>
       </div>
@@ -47,6 +51,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 const Dashboard = () => {
   const { user, transactionsData, activeBudgetsData, activeSavingsData } =
     useDataContext();
+
+  const userCurrency = user?.currency || "USD";
 
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
@@ -79,7 +85,6 @@ const Dashboard = () => {
     const income = transactionsData?.totals?.income || 0;
     const expenses = transactionsData?.totals?.expenses || 0;
 
-    // Calculate Total Savings from the savings list provided by DataLoader (which is Active Savings)
     const totalSavings = savingsList.reduce(
       (sum, s) => sum + Number(s.current_amount || 0),
       0
@@ -97,7 +102,7 @@ const Dashboard = () => {
     () => [
       { name: "Income", amount: stats.income, color: "#10B981" },
       { name: "Expense", amount: stats.expenses, color: "#EF4444" },
-      { name: "Saved", amount: stats.totalSavings, color: "#3B82F6" }, // Added Savings to Chart
+      { name: "Saved", amount: stats.totalSavings, color: "#3B82F6" },
     ],
     [stats]
   );
@@ -113,7 +118,12 @@ const Dashboard = () => {
 
     return activeBudgets.map((b) => {
       const allocated = Number(b.amount || 0);
-      const spent = spendingMap[b.id] || 0;
+
+      const spent =
+        b.total_spent !== undefined
+          ? Number(b.total_spent)
+          : spendingMap[b.id] || 0;
+
       const remaining = allocated - spent;
       const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
 
@@ -230,7 +240,7 @@ const Dashboard = () => {
                       Total Income
                     </p>
                     <p className="text-xl font-bold text-emerald-600 mt-1">
-                      ${stats.income.toLocaleString()}
+                      {formatCurrency(stats.income, userCurrency)}
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
@@ -247,7 +257,7 @@ const Dashboard = () => {
                       Total Expenses
                     </p>
                     <p className="text-xl font-bold text-red-600 mt-1">
-                      ${stats.expenses.toLocaleString()}
+                      {formatCurrency(stats.expenses, userCurrency)}
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
@@ -268,7 +278,7 @@ const Dashboard = () => {
                         stats.net >= 0 ? "text-blue-600" : "text-red-500"
                       }`}
                     >
-                      ${stats.net.toLocaleString()}
+                      {formatCurrency(stats.net, userCurrency)}
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
@@ -286,7 +296,7 @@ const Dashboard = () => {
                       Total Savings
                     </p>
                     <p className="text-xl font-bold text-indigo-600 mt-1">
-                      ${stats.totalSavings.toLocaleString()}
+                      {formatCurrency(stats.totalSavings, userCurrency)}
                     </p>
                   </div>
                   <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600">
@@ -344,8 +354,11 @@ const Dashboard = () => {
                               : "text-red-600"
                           }`}
                         >
-                          {t.type === "income" ? "+" : "-"}$
-                          {Number(t.amount).toLocaleString()}
+                          {t.type === "income" ? "+" : "-"}
+                          {formatCurrency(
+                            Number(t.amount),
+                            userCurrency
+                          ).replace(/^-/, "")}
                         </p>
                       </div>
                     ))
@@ -427,7 +440,11 @@ const Dashboard = () => {
                               {budget.name}
                             </h4>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              Limit: ${Number(budget.amount).toLocaleString()}
+                              Limit:{" "}
+                              {formatCurrency(
+                                Number(budget.amount),
+                                userCurrency
+                              )}
                             </p>
                           </div>
                           <div className="text-right">
@@ -449,7 +466,13 @@ const Dashboard = () => {
                         </div>
 
                         <div className="flex justify-between text-xs text-gray-500">
-                          <span>Spent: ${budget.spent.toLocaleString()}</span>
+                          <span>
+                            Spent:{" "}
+                            {formatCurrency(budget.spent, userCurrency).replace(
+                              /^-/,
+                              ""
+                            )}
+                          </span>
                           <span
                             className={
                               budget.remaining < 0
@@ -457,8 +480,11 @@ const Dashboard = () => {
                                 : ""
                             }
                           >
-                            {budget.remaining < 0 ? "-" : ""}$
-                            {Math.abs(budget.remaining).toLocaleString()} left
+                            {formatCurrency(
+                              Math.abs(budget.remaining),
+                              userCurrency
+                            ).replace(/^-/, "")}{" "}
+                            left
                           </span>
                         </div>
                       </div>
@@ -513,13 +539,13 @@ const Dashboard = () => {
                             {s.name}
                           </h4>
                           <p className="text-xs text-gray-500 mb-4">
-                            Target: ${s.target.toLocaleString()}
+                            Target: {formatCurrency(s.target, userCurrency)}
                           </p>
 
                           <div className="flex items-end justify-between mb-2">
                             <div>
                               <span className="text-2xl font-bold text-blue-600">
-                                ${s.current.toLocaleString()}
+                                {formatCurrency(s.current, userCurrency)}
                               </span>
                             </div>
                             <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-lg">

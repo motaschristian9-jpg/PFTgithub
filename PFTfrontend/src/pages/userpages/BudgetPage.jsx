@@ -44,6 +44,9 @@ import {
 import BudgetModal from "../../components/BudgetModal.jsx";
 import BudgetCardModal from "../../components/BudgetCardModal.jsx";
 
+// Import Currency Utility
+import { formatCurrency } from "../../utils/currency";
+
 export default function BudgetPage() {
   const queryClient = useQueryClient();
 
@@ -66,8 +69,11 @@ export default function BudgetPage() {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
 
+  // Destructure from DataLoader Context
   const { categoriesData, user, transactionsData, activeBudgetsData } =
     useDataContext();
+
+  const userCurrency = user?.currency || "USD"; // Get user's currency
 
   const historyFilters = useMemo(
     () => ({
@@ -93,16 +99,21 @@ export default function BudgetPage() {
   const deleteTransactionMutation = useDeleteTransaction();
 
   // --- Process Data ---
+
+  // 1. Active Budgets
   const activeBudgets = useMemo(() => {
     let result = activeBudgetsData || [];
+
     if (search) {
       result = result.filter((b) =>
         b.name.toLowerCase().includes(search.toLowerCase())
       );
     }
+
     result = [...result].sort((a, b) => {
       let valA = a[sortBy];
       let valB = b[sortBy];
+
       if (sortBy === "amount") {
         valA = parseFloat(valA);
         valB = parseFloat(valB);
@@ -113,13 +124,16 @@ export default function BudgetPage() {
         valA = valA.toLowerCase();
         valB = valB.toLowerCase();
       }
+
       if (valA < valB) return sortDir === "asc" ? -1 : 1;
       if (valA > valB) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
+
     return result;
   }, [activeBudgetsData, search, sortBy, sortDir]);
 
+  // 2. History Budgets
   const historyBudgets = useMemo(
     () => historyBudgetsRaw?.data || [],
     [historyBudgetsRaw]
@@ -129,6 +143,7 @@ export default function BudgetPage() {
     [historyBudgetsRaw]
   );
 
+  // 3. Transactions
   const allTransactions = useMemo(
     () => transactionsData?.data || [],
     [transactionsData]
@@ -146,6 +161,7 @@ export default function BudgetPage() {
 
   const getCategoryName = (catId) => categoryMap[catId] || "Uncategorized";
 
+  // Calculate spending based on locally loaded transactions (Fallback)
   const spendingMap = useMemo(() => {
     const map = {};
     allTransactions.forEach((t) => {
@@ -156,19 +172,36 @@ export default function BudgetPage() {
     return map;
   }, [allTransactions]);
 
-  const getBudgetSpent = (budgetId) => spendingMap[budgetId] || 0;
+  // --- CRITICAL FIX: getBudgetSpent ---
+  const getBudgetSpent = (budget) => {
+    // 1. Priority: Use the Backend Calculation (total_spent)
+    if (budget.total_spent !== undefined && budget.total_spent !== null) {
+      return parseFloat(budget.total_spent);
+    }
 
+    // 2. Fallback: Use Frontend calculation (spendingMap)
+    if (spendingMap[budget.id] !== undefined && spendingMap[budget.id] > 0) {
+      return spendingMap[budget.id];
+    }
+
+    return 0;
+  };
+
+  // --- STATS CALCULATION ---
   const budgetStats = useMemo(() => {
     const listToCalculate =
       activeTab === "active" ? activeBudgets : historyBudgets;
+
     const totalAllocated = listToCalculate.reduce(
       (sum, b) => sum + Number(b.amount),
       0
     );
+
     const totalSpent = listToCalculate.reduce(
-      (sum, b) => sum + (spendingMap[b.id] || 0),
+      (sum, b) => sum + getBudgetSpent(b),
       0
     );
+
     return {
       totalAllocated,
       totalSpent,
@@ -239,14 +272,14 @@ export default function BudgetPage() {
   };
 
   const handleBudgetCardModalOpen = (budget) => {
-    const spent = getBudgetSpent(budget.id);
+    const spent = getBudgetSpent(budget);
     const remaining = Number(budget.amount) - spent;
     setSelectedBudget({ ...budget, spent, remaining });
     setBudgetCardModalOpen(true);
   };
 
   // ===========================================================
-  // UPDATED HANDLE DELETE LOGIC (Unlink & Delete)
+  // HANDLE DELETE LOGIC (Unlink & Delete)
   // ===========================================================
   const handleDelete = async (budgetIdOrObject) => {
     const id =
@@ -477,7 +510,6 @@ export default function BudgetPage() {
 
             {/* Filter Bar */}
             <section className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4">
-              {/* ... (Filter Logic remains the same as provided) ... */}
               <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
                 <div className="relative w-full lg:max-w-md group">
                   <Search
@@ -556,7 +588,7 @@ export default function BudgetPage() {
                       : "History Allocated"}
                   </p>
                   <p className="text-2xl font-bold text-green-600 mt-1">
-                    ${budgetStats.totalAllocated.toLocaleString()}
+                    {formatCurrency(budgetStats.totalAllocated, userCurrency)}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600">
@@ -569,7 +601,7 @@ export default function BudgetPage() {
                     {activeTab === "active" ? "Active Spent" : "History Spent"}
                   </p>
                   <p className="text-2xl font-bold text-red-600 mt-1">
-                    ${budgetStats.totalSpent.toLocaleString()}
+                    {formatCurrency(budgetStats.totalSpent, userCurrency)}
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-red-600">
@@ -635,7 +667,7 @@ export default function BudgetPage() {
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {activeBudgets.map((b) => {
-                          const spent = getBudgetSpent(b.id);
+                          const spent = getBudgetSpent(b);
                           const allocated = Number(b.amount);
                           const rawPercent =
                             allocated > 0 ? (spent / allocated) * 100 : 0;
@@ -700,7 +732,7 @@ export default function BudgetPage() {
                                       Allocated
                                     </span>
                                     <span className="font-bold text-gray-800">
-                                      ${allocated.toLocaleString()}
+                                      {formatCurrency(allocated, userCurrency)}
                                     </span>
                                   </div>
                                   <div className="flex justify-between text-sm">
@@ -708,7 +740,7 @@ export default function BudgetPage() {
                                     <span
                                       className={`font-bold ${statusInfo.textClass}`}
                                     >
-                                      ${spent.toLocaleString()}
+                                      {formatCurrency(spent, userCurrency)}
                                     </span>
                                   </div>
                                 </div>
@@ -719,13 +751,13 @@ export default function BudgetPage() {
                                       style={{ width: `${widthPercent}%` }}
                                     />
                                   </div>
-                                </div>
-                                <div className="flex items-center justify-between pt-2">
-                                  <span
-                                    className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.colorClass}`}
-                                  >
-                                    {statusInfo.label}
-                                  </span>
+                                  <div className="flex items-center justify-between pt-2">
+                                    <span
+                                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.colorClass}`}
+                                    >
+                                      {statusInfo.label}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -739,7 +771,7 @@ export default function BudgetPage() {
 
               {activeTab === "history" && (
                 <section className="relative">
-                  {/* ... History Table Logic (Same as before, kept short for brevity) ... */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
                   <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 overflow-hidden">
                     <div className="p-6 border-b border-green-100/50 flex justify-between items-center bg-gray-50/50">
                       <h3 className="text-xl font-bold text-gray-800">
@@ -791,7 +823,8 @@ export default function BudgetPage() {
                             </tr>
                           ) : (
                             historyBudgets.map((b) => {
-                              const spent = getBudgetSpent(b.id);
+                              // FIX: Use new helper function here
+                              const spent = getBudgetSpent(b);
                               const allocated = Number(b.amount);
                               const statusInfo = getBudgetStatusInfo(
                                 spent,
@@ -812,12 +845,12 @@ export default function BudgetPage() {
                                     </span>
                                   </td>
                                   <td className="py-4 px-6 font-medium text-gray-600">
-                                    ${allocated.toLocaleString()}
+                                    {formatCurrency(allocated, userCurrency)}
                                   </td>
                                   <td
                                     className={`py-4 px-6 font-bold ${statusInfo.textClass}`}
                                   >
-                                    ${spent.toLocaleString()}
+                                    {formatCurrency(spent, userCurrency)}
                                   </td>
                                   <td className="py-4 px-6">
                                     <span

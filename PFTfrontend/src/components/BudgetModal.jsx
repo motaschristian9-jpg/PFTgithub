@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 
+// Import Currency Utilities and DataLoader Context
+import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+import { useDataContext } from "../components/DataLoader.jsx";
+
 export default function BudgetModal({
   isOpen,
   onClose,
@@ -23,6 +27,11 @@ export default function BudgetModal({
   currentBudgets = [],
 }) {
   const [loading, setLoading] = useState(false);
+
+  // Access user for currency symbol
+  const { user } = useDataContext();
+  const userCurrency = user?.currency || "USD";
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   const {
     register,
@@ -209,7 +218,8 @@ export default function BudgetModal({
                 <span
                   className={`text-3xl font-medium text-${accentColor}-500 absolute left-[15%] sm:left-[20%] top-2`}
                 >
-                  $
+                  {/* CURRENCY APPLIED */}
+                  {currencySymbol}
                 </span>
                 <input
                   type="number"

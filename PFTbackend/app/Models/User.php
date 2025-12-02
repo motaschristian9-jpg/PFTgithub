@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
  * @OA\Property(property="avatar", type="string", nullable=true, example="avatars/filename.jpg"),
  * @OA\Property(property="avatar_url", type="string", nullable=true, example="http://localhost:8000/storage/avatars/filename.jpg"),
  * @OA\Property(property="bio", type="string", nullable=true, example="Software Developer"),
+ * @OA\Property(property="currency", type="string", nullable=true, example="USD"),
  * @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
  * @OA\Property(property="created_at", type="string", format="date-time"),
  * @OA\Property(property="updated_at", type="string", format="date-time")
@@ -40,7 +41,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'email_verified_at',
         'avatar',
-        'bio', // <--- Added bio here
+        'bio',
+        'currency', // <--- Added currency here
     ];
 
     /**

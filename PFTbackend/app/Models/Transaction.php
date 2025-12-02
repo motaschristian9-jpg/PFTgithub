@@ -18,7 +18,8 @@ class Transaction extends Model
         'description',
         'date',
         'category_id',
-        'budget_id', // <--- IMPORTANT: This allows the ID to be saved
+        'budget_id',
+        'saving_goal_id', // <--- IMPORTANT: Required to save the relationship
     ];
 
     protected $casts = [
@@ -47,5 +48,13 @@ class Transaction extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    // Defines the relationship to the Savings Goal
+    public function savingsGoal()
+    {
+        // Assuming your savings table model is named 'Saving' or 'SavingsGoal'
+        // adjust the class name if necessary (e.g. Saving::class)
+        return $this->belongsTo(Saving::class, 'saving_goal_id');
     }
 }

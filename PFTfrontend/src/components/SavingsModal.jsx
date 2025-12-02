@@ -3,6 +3,10 @@ import { createPortal } from "react-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { X, Loader2, PiggyBank, Target, Check, TrendingUp } from "lucide-react";
 import Swal from "sweetalert2";
+// CORRECTED IMPORT PATH (Adjusted back to match typical folder depth, assuming standard nested structure)
+import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+// Assuming useDataContext is defined elsewhere and provides 'user'
+import { useDataContext } from "./DataLoader.jsx";
 
 export default function SavingsModal({
   isOpen,
@@ -12,6 +16,9 @@ export default function SavingsModal({
   saving = null,
 }) {
   const [loading, setLoading] = useState(false);
+  const { user } = useDataContext(); // Access user to get currency code
+  const userCurrency = user?.currency || "USD";
+  const currencySymbol = getCurrencySymbol(userCurrency);
 
   const {
     register,
@@ -162,7 +169,8 @@ export default function SavingsModal({
                 <span
                   className={`text-3xl font-medium text-${accentColor}-500 absolute left-[15%] sm:left-[20%] top-2`}
                 >
-                  $
+                  {/* CURRENCY APPLIED */}
+                  {currencySymbol}
                 </span>
                 <input
                   type="number"
@@ -292,8 +300,12 @@ export default function SavingsModal({
                   <div className="flex justify-between text-xs text-emerald-700">
                     <span>{watchedName}</span>
                     <span>
-                      ${parseFloat(watchedCurrent || 0).toLocaleString()} / $
-                      {parseFloat(watchedTarget).toLocaleString()}
+                      {/* CURRENCY APPLIED */}
+                      {formatCurrency(
+                        parseFloat(watchedCurrent || 0),
+                        userCurrency
+                      )}{" "}
+                      /{formatCurrency(parseFloat(watchedTarget), userCurrency)}
                     </span>
                   </div>
                 </div>

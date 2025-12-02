@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
+import { useTransactions } from "../hooks/useTransactions.js";
 import {
   Edit2,
   X,
@@ -17,19 +18,45 @@ import {
   ArrowRight,
 } from "lucide-react";
 
+// Import Currency Utilities (Assumed path)
+import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+// Import Context to grab currency code
+import { useDataContext } from "../components/DataLoader.jsx";
+
 export default function BudgetCardModal({
   isOpen,
   budget,
-  transactions = [],
   onClose,
   onEditBudget,
   onDeleteTransaction,
   onDeleteBudget,
   getCategoryName,
 }) {
+  const { user } = useDataContext(); // Access user for currency code
+  const userCurrency = user?.currency || "USD";
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
   const [localBudget, setLocalBudget] = useState(budget || {});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // --- FETCH HISTORY ---
+  // Fetches ALL transactions filtered by this budget_id
+  const { data: historyDataRaw, isLoading: isLoadingHistory } = useTransactions(
+    {
+      budget_id: localBudget?.id,
+      all: "true",
+      sort_by: "date",
+      sort_order: "desc",
+    },
+    {
+      fetchAll: true,
+      enabled: isOpen && !!localBudget?.id,
+      staleTime: 0, // Always fetch fresh data
+    }
+  );
+
+  const transactions = historyDataRaw?.data || [];
 
   // Read-only check
   const isReadOnly = localBudget.status !== "active";
@@ -65,7 +92,7 @@ export default function BudgetCardModal({
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
-      setIsEditing(false); // Reset edit mode on close
+      setIsEditing(false);
     }
     return () => {
       document.body.style.overflow = "";
@@ -84,12 +111,22 @@ export default function BudgetCardModal({
   // --- CALCULATIONS ---
   const stats = useMemo(() => {
     const allocated = Number(localBudget.amount || 0);
-    const spent = Number(localBudget.spent || 0);
+
+    // Priority 1: Sum up the fresh transaction history (most accurate for real-time)
+    const spentFromHistory = transactions.reduce(
+      (sum, t) => sum + Number(t.amount),
+      0
+    );
+
+    // Priority 2: Use backend total if history is loading
+    const spent = isLoadingHistory
+      ? Number(localBudget.total_spent || localBudget.spent || 0)
+      : spentFromHistory;
+
     const remaining = allocated - spent;
     const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
     const isOverspent = rawPercent > 100;
 
-    // Theme logic
     let theme = "blue";
     if (isOverspent) theme = "red";
     else if (rawPercent > 85) theme = "orange";
@@ -102,9 +139,9 @@ export default function BudgetCardModal({
       percentage: rawPercent,
       displayPercent: Math.min(rawPercent, 100),
       isOverspent,
-      theme, // 'emerald', 'orange', 'red'
+      theme,
     };
-  }, [localBudget]);
+  }, [localBudget, transactions, isLoadingHistory]);
 
   // --- ACTIONS ---
   const handleSaveChanges = async (data) => {
@@ -118,6 +155,7 @@ export default function BudgetCardModal({
         end_date: data.end_date,
       });
 
+      // Using Swal instead of window.alert for consistent UI
       Swal.fire({
         icon: "success",
         title: "Saved!",
@@ -129,28 +167,38 @@ export default function BudgetCardModal({
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating budget", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Failed to update budget.",
+        customClass: { container: "swal-z-index-fix" },
+      });
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDeleteTx = (tx) => {
+    // Using Swal instead of window.confirm
     Swal.fire({
       title: "Delete Transaction?",
       text: "This will remove it from your budget history.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#ef4444",
-      confirmButtonText: "Delete",
+      confirmButtonText: "Yes, delete it!",
       customClass: { container: "swal-z-index-fix" },
     }).then((result) => {
-      if (result.isConfirmed) onDeleteTransaction(tx);
+      if (result.isConfirmed) {
+        if (onDeleteTransaction) {
+          onDeleteTransaction(tx);
+        }
+      }
     });
   };
 
   if (!isOpen) return null;
 
-  // Dynamic Theme Colors
   const themeColors = {
     emerald: {
       bg: "bg-emerald-50",
@@ -179,12 +227,12 @@ export default function BudgetCardModal({
       border: "border-blue-200",
       icon: "bg-blue-100",
       bar: "bg-blue-500",
-    }, // Default/Edit
+    },
   };
 
   const currentTheme = isEditing ? themeColors.blue : themeColors[stats.theme];
 
-  const modalContent = (
+  return createPortal(
     <div
       className="fixed inset-0 z-[50] flex justify-center items-center p-4"
       onClick={!isSaving ? onClose : undefined}
@@ -192,7 +240,6 @@ export default function BudgetCardModal({
       <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
 
-      {/* Main Card */}
       <div
         className="relative z-50 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
@@ -279,7 +326,7 @@ export default function BudgetCardModal({
                   </label>
                   <div className="flex items-baseline justify-center relative w-full">
                     <span className="text-3xl font-medium text-blue-400 absolute left-[15%] top-2">
-                      $
+                      {currencySymbol}
                     </span>
                     <input
                       type="number"
@@ -346,7 +393,7 @@ export default function BudgetCardModal({
                   <div
                     className={`text-5xl font-black ${currentTheme.text} tracking-tight`}
                   >
-                    ${Math.abs(stats.remaining).toLocaleString()}
+                    {formatCurrency(Math.abs(stats.remaining), userCurrency)}
                   </div>
                   {stats.isOverspent && (
                     <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold">
@@ -358,7 +405,7 @@ export default function BudgetCardModal({
                 {/* Progress Bar */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-medium text-gray-500">
-                    <span>0%</span>
+                    <span>{formatCurrency(0, userCurrency)}</span>
                     <span>{stats.percentage.toFixed(0)}% used</span>
                   </div>
                   <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner relative">
@@ -383,7 +430,7 @@ export default function BudgetCardModal({
                       </span>
                     </div>
                     <p className="text-xl font-bold text-gray-800">
-                      ${stats.allocated.toLocaleString()}
+                      {formatCurrency(stats.allocated, userCurrency)}
                     </p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
@@ -398,7 +445,7 @@ export default function BudgetCardModal({
                           : "text-gray-800"
                       }`}
                     >
-                      ${stats.spent.toLocaleString()}
+                      {formatCurrency(stats.spent, userCurrency)}
                     </p>
                   </div>
                 </div>
@@ -427,7 +474,12 @@ export default function BudgetCardModal({
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-              {transactions.length === 0 ? (
+              {isLoadingHistory ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60">
+                  <Loader2 className="animate-spin" size={32} />
+                  <p className="text-sm font-medium">Loading transactions...</p>
+                </div>
+              ) : transactions.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60">
                   <div className="p-4 rounded-full bg-gray-100">
                     <Clock size={32} />
@@ -446,9 +498,7 @@ export default function BudgetCardModal({
                       </div>
                       <div>
                         <p className="font-semibold text-gray-800 text-sm">
-                          {tx.amount
-                            ? `$${Number(tx.amount).toLocaleString()}`
-                            : "-"}
+                          {formatCurrency(Number(tx.amount), userCurrency)}
                         </p>
                         <p className="text-xs text-gray-500">
                           {tx.date || tx.transaction_date
@@ -470,6 +520,7 @@ export default function BudgetCardModal({
                         <button
                           onClick={() => handleDeleteTx(tx)}
                           className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                          title="Delete Transaction"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -482,8 +533,7 @@ export default function BudgetCardModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
-
-  return createPortal(modalContent, document.body);
 }

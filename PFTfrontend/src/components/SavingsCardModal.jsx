@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
 import Swal from "sweetalert2";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTransactions } from "../hooks/useTransactions.js";
 import {
   Edit2,
   X,
@@ -18,11 +20,13 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
 } from "lucide-react";
+// CORRECTED IMPORT PATH
+import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+import { useDataContext } from "./DataLoader.jsx";
 
 export default function SavingsCardModal({
   isOpen,
   saving,
-  transactions = [],
   onClose,
   onEditSaving,
   onDeleteSaving,
@@ -34,6 +38,29 @@ export default function SavingsCardModal({
   const [localSaving, setLocalSaving] = useState(saving || {});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { user } = useDataContext(); // Access user for currency code
+  const userCurrency = user?.currency || "USD";
+  const currencySymbol = getCurrencySymbol(userCurrency);
+
+  // --- FETCH HISTORY ---
+  // Use custom hook with fetchAll to get full history for this goal
+  const { data: historyDataRaw, isLoading: isLoadingHistory } = useTransactions(
+    {
+      saving_goal_id: localSaving?.id,
+      all: true,
+      sort_by: "date",
+      sort_order: "desc",
+    },
+    {
+      fetchAll: true,
+      enabled: isOpen && !!localSaving?.id,
+      staleTime: 0,
+    }
+  );
+
+  const transactions = historyDataRaw?.data || [];
 
   const {
     register,
@@ -66,6 +93,7 @@ export default function SavingsCardModal({
     }
     return () => {
       document.body.style.overflow = "";
+      setIsEditing(false); // Ensure editing is off on close
     };
   }, [isOpen, saving, reset]);
 
@@ -102,37 +130,13 @@ export default function SavingsCardModal({
 
   // --- FILTER & SORT TRANSACTIONS ---
   const sortedTransactions = useMemo(() => {
-    return [...transactions]
-      .filter((tx) => {
-        // 1. Keep all Expenses (Contributions to savings)
-        if (tx.type === "expense") return true;
-
-        // 2. For Income, ONLY keep explicit withdrawals
-        const nameLower = (tx.name || "").toLowerCase();
-        const descLower = (tx.description || "").toLowerCase();
-
-        const isExplicitWithdrawal =
-          nameLower.includes("withdrawal") ||
-          descLower.includes("withdrawal") ||
-          descLower.includes("moved from savings");
-
-        return isExplicitWithdrawal;
-      })
-      .sort((a, b) => {
-        // Primary Sort: Date Descending (Newest Date First)
-        // Handle various date field names (date, transaction_date, created_at)
-        const dateA = new Date(a.date || a.transaction_date || a.created_at);
-        const dateB = new Date(b.date || b.transaction_date || b.created_at);
-
-        const timeDiff = dateB - dateA;
-
-        // If dates are different, sort by date
-        if (timeDiff !== 0) return timeDiff;
-
-        // Secondary Sort: ID Descending (Newest ID First)
-        // This ensures if you add 2 items today, the one added last appears first
-        return b.id - a.id;
-      });
+    return [...transactions].sort((a, b) => {
+      const dateA = new Date(a.date || a.transaction_date || a.created_at);
+      const dateB = new Date(b.date || b.transaction_date || b.created_at);
+      const timeDiff = dateB - dateA;
+      if (timeDiff !== 0) return timeDiff;
+      return b.id - a.id;
+    });
   }, [transactions]);
 
   const isReadOnly = stats.isCompleted || localSaving.status === "cancelled";
@@ -166,14 +170,18 @@ export default function SavingsCardModal({
     }
   };
 
+  // --- RESTORED CUSTOM SWAL FOR CONTRIBUTION (WITH CURRENCY) ---
   const handleQuickContribute = () => {
+    const formattedAvailableBalance = formatCurrency(
+      availableBalance ?? 0,
+      userCurrency
+    );
+
     Swal.fire({
       title: "Add Contribution",
       html: `
         <input id="swal-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to add (e.g., 50.00)">
-        <div class="text-sm text-gray-500 mt-2">Available Net Balance: $${(
-          availableBalance ?? 0
-        ).toLocaleString()}</div>
+        <div class="text-sm text-gray-500 mt-2">Available Net Balance: ${formattedAvailableBalance}</div>
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -198,7 +206,7 @@ export default function SavingsCardModal({
         }
         if (availableBalance !== undefined && amount > availableBalance) {
           Swal.showValidationMessage(
-            `Insufficient funds. You only have $${availableBalance.toLocaleString()} available.`
+            `Insufficient funds. You only have ${formattedAvailableBalance} available.`
           );
           return false;
         }
@@ -226,11 +234,16 @@ export default function SavingsCardModal({
           Swal.fire({
             icon: "success",
             title: "Contribution Added!",
-            text: `$${amountToAdd.toFixed(2)} added to ${localSaving.name}.`,
+            text: `${formatCurrency(amountToAdd, userCurrency)} added to ${
+              localSaving.name
+            }.`,
             timer: 1500,
             showConfirmButton: false,
             customClass: { container: "swal-z-index-fix" },
           });
+
+          // Invalidate to refresh history
+          queryClient.invalidateQueries(["transactions"]);
 
           setLocalSaving((prev) => ({
             ...prev,
@@ -251,12 +264,15 @@ export default function SavingsCardModal({
     });
   };
 
+  // --- RESTORED CUSTOM SWAL FOR WITHDRAWAL (WITH CURRENCY) ---
   const handleQuickWithdraw = () => {
+    const formattedCurrent = formatCurrency(stats.current, userCurrency);
+
     Swal.fire({
       title: "Withdraw Funds",
       html: `
         <input id="swal-withdraw-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to withdraw">
-        <div class="text-sm text-gray-500 mt-2">Available to Withdraw: $${stats.current.toLocaleString()}</div>
+        <div class="text-sm text-gray-500 mt-2">Available to Withdraw: ${formattedCurrent}</div>
       `,
       focusConfirm: false,
       showCancelButton: true,
@@ -314,13 +330,17 @@ export default function SavingsCardModal({
           Swal.fire({
             icon: "success",
             title: "Withdrawn!",
-            text: `$${amountToWithdraw.toFixed(2)} withdrawn from ${
-              localSaving.name
-            }.`,
+            text: `${formatCurrency(
+              amountToWithdraw,
+              userCurrency
+            )} withdrawn from ${localSaving.name}.`,
             timer: 1500,
             showConfirmButton: false,
             customClass: { container: "swal-z-index-fix" },
           });
+
+          // Invalidate to refresh history
+          queryClient.invalidateQueries(["transactions"]);
 
           setLocalSaving((prev) => ({
             ...prev,
@@ -387,6 +407,9 @@ export default function SavingsCardModal({
 
         // Call Parent
         await onDeleteTransaction(tx, localSaving, newAmount);
+
+        // Refresh history
+        queryClient.invalidateQueries(["transactions"]);
       }
     });
   };
@@ -465,8 +488,8 @@ export default function SavingsCardModal({
                 )}
               </h2>
               <p className="text-sm text-gray-500 flex items-center gap-1">
-                <Target size={12} /> Target: $
-                {Number(localSaving.target_amount).toLocaleString()}
+                <Target size={12} /> Target:{" "}
+                {formatCurrency(stats.target, userCurrency)}
               </p>
             </div>
           </div>
@@ -537,7 +560,8 @@ export default function SavingsCardModal({
                   </label>
                   <div className="flex items-baseline justify-center relative w-full">
                     <span className="text-3xl font-medium text-blue-400 absolute left-[15%] top-2">
-                      $
+                      {/* CURRENCY APPLIED */}
+                      {currencySymbol}
                     </span>
                     <input
                       type="number"
@@ -610,7 +634,8 @@ export default function SavingsCardModal({
                   <div
                     className={`text-5xl font-black ${currentTheme.text} tracking-tight`}
                   >
-                    ${stats.current.toLocaleString()}
+                    {/* CURRENCY APPLIED */}
+                    {formatCurrency(stats.current, userCurrency)}
                   </div>
                   {stats.isCompleted && (
                     <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold animate-pulse">
@@ -620,7 +645,8 @@ export default function SavingsCardModal({
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-medium text-gray-500">
-                    <span>$0</span>
+                    {/* CURRENCY APPLIED */}
+                    <span>{formatCurrency(0, userCurrency)}</span>
                     <span>{stats.percentage.toFixed(0)}% reached</span>
                   </div>
                   <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner relative">
@@ -639,7 +665,8 @@ export default function SavingsCardModal({
                       </span>
                     </div>
                     <p className="text-xl font-bold text-gray-800">
-                      ${stats.target.toLocaleString()}
+                      {/* CURRENCY APPLIED */}
+                      {formatCurrency(stats.target, userCurrency)}
                     </p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
@@ -648,7 +675,8 @@ export default function SavingsCardModal({
                       <span className="text-xs font-bold uppercase">To Go</span>
                     </div>
                     <p className="text-xl font-bold text-gray-500">
-                      ${stats.remaining.toLocaleString()}
+                      {/* CURRENCY APPLIED */}
+                      {formatCurrency(stats.remaining, userCurrency)}
                     </p>
                   </div>
                 </div>
@@ -677,7 +705,12 @@ export default function SavingsCardModal({
               </h3>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-              {sortedTransactions.length === 0 ? (
+              {isLoadingHistory ? (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60">
+                  <Loader2 className="animate-spin" size={32} />
+                  <p className="text-sm font-medium">Loading history...</p>
+                </div>
+              ) : sortedTransactions.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-3 opacity-60">
                   <div className="p-4 rounded-full bg-gray-100">
                     <Clock size={32} />
@@ -737,11 +770,9 @@ export default function SavingsCardModal({
                                 : "text-rose-600"
                             }`}
                           >
-                            {isContribution ? "+" : "-"}$
-                            {Number(tx.amount).toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
+                            {isContribution ? "+" : "-"}
+                            {/* CURRENCY APPLIED */}
+                            {formatCurrency(Number(tx.amount), userCurrency)}
                           </span>
                           <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">
                             {isContribution ? "Saved" : "Withdrawn"}

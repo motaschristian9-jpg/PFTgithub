@@ -7,11 +7,6 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class BudgetResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
@@ -25,7 +20,8 @@ class BudgetResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'transactions' => $this->whenLoaded('transactions'),
+            // FIX: Include the calculated sum from the controller
+            'total_spent' => $this->transactions_sum_amount ?? 0,
         ];
     }
 }
