@@ -91,17 +91,21 @@ class TransactionController extends Controller
         return Cache::tags(['user_transactions_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
             $baseQuery = $this->buildTransactionQuery($request, $userId);
 
-            $totalIncome = (clone $baseQuery)->where('type', 'income')->sum('amount');
-            $totalExpenses = (clone $baseQuery)->where('type', 'expense')->sum('amount');
+            // Optimization: Remove eager loading for aggregate queries to improve performance
+            $aggregateQuery = clone $baseQuery;
+            $aggregateQuery->setEagerLoads([]); // Remove eager loads
 
-            $totalExpensesByCategory = (clone $baseQuery)
+            $totalIncome = (clone $aggregateQuery)->where('type', 'income')->sum('amount');
+            $totalExpenses = (clone $aggregateQuery)->where('type', 'expense')->sum('amount');
+
+            $totalExpensesByCategory = (clone $aggregateQuery)
                 ->where('type', 'expense')
                 ->whereHas('category', function ($q) {
                     $q->where('type', 'expense');
                 })
                 ->selectRaw('category_id, SUM(amount) as total')
                 ->groupBy('category_id')
-                ->with('category')
+                ->with('category') // We need category for the name
                 ->get()
                 ->map(function ($item) {
                     return [
