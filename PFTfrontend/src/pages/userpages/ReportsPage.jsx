@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DollarSign,
   TrendingUp,
@@ -21,15 +21,13 @@ import {
   parseISO,
 } from "date-fns";
 
-// IMPORTS: Adjusted to ../../ based on file location src/pages/userpages/
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
 import { useDataContext } from "../../components/DataLoader.jsx";
 import { exportFullReport } from "../../utils/excelExport.js";
-
-// IMPORT CURRENCY UTILITY
+import { showSuccess, showError } from "../../utils/swal";
 import { formatCurrency } from "../../utils/currency";
 
 import {
@@ -57,12 +55,6 @@ const COLORS = [
   "#6366F1", // Indigo
 ];
 
-// NOTE: CustomTooltip and CustomBarTooltip typically cannot access the React Context (useDataContext)
-// directly, as they are rendered outside the main component tree by Recharts.
-// We will rely on the parent component to inject the currency code, or use a default/fallback.
-// For the purpose of this immediate fix, we'll extract the currency code from the parent.
-
-// --- Helper component to get the user currency for tooltips ---
 const CurrencyInjectedTooltip = ({
   payload,
   label,
@@ -86,7 +78,6 @@ const CurrencyInjectedTooltip = ({
       );
     }
 
-    // Pie Chart Tooltip
     return (
       <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
         <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
@@ -101,7 +92,6 @@ const CurrencyInjectedTooltip = ({
   return null;
 };
 
-// --- Recharts Tooltip Wrappers ---
 const CustomTooltip = (props) => (
   <CurrencyInjectedTooltip
     {...props}
@@ -124,12 +114,10 @@ export default function ReportsPage() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // --- Filter State ---
   const [datePreset, setDatePreset] = useState("this_month");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // --- Data Access ---
   const {
     user,
     transactionsData,
@@ -138,9 +126,8 @@ export default function ReportsPage() {
     categoriesData,
   } = useDataContext();
 
-  const userCurrency = user?.currency || "USD"; // Get user currency
+  const userCurrency = user?.currency || "USD";
 
-  // --- Date Logic ---
   useEffect(() => {
     const today = new Date();
     let start = "";
@@ -164,7 +151,6 @@ export default function ReportsPage() {
     }
   }, [datePreset]);
 
-  // --- 1. Category Lookup Map ---
   const categoryLookup = useMemo(() => {
     const map = {};
     if (categoriesData?.data && Array.isArray(categoriesData.data)) {
@@ -175,14 +161,12 @@ export default function ReportsPage() {
     return map;
   }, [categoriesData]);
 
-  // --- 2. Filter Transactions ---
   const allTransactions = useMemo(
     () => transactionsData?.data || [],
     [transactionsData]
   );
 
   const filteredTransactions = useMemo(() => {
-    // If "All Time" (empty strings), return everything
     if (!startDate && !endDate) return allTransactions;
 
     return allTransactions.filter((t) => {
@@ -198,7 +182,6 @@ export default function ReportsPage() {
     });
   }, [allTransactions, startDate, endDate]);
 
-  // --- 3. Filter Budgets & Savings based on Creation Date ---
   const filteredBudgets = useMemo(() => {
     if (!startDate && !endDate) return activeBudgetsData || [];
 
@@ -213,11 +196,9 @@ export default function ReportsPage() {
     });
   }, [activeBudgetsData, startDate, endDate]);
 
-  // --- 4. Process Savings Data (using activeSavingsData from Context) ---
   const processedSavings = useMemo(() => {
     const list = Array.isArray(activeSavingsData) ? activeSavingsData : [];
 
-    // FIX 1: Apply Date Filter to the list first
     const filteredList = list.filter((s) => {
       if (!s.created_at) return true;
       const createdDate = parseISO(s.created_at);
@@ -228,7 +209,6 @@ export default function ReportsPage() {
       return isWithinInterval(createdDate, { start, end });
     });
 
-    // FIX 2: Calculate total savings only from the FILTERED list
     const totalSavings = filteredList.reduce(
       (sum, s) => sum + Number(s.current_amount || 0),
       0
@@ -251,7 +231,6 @@ export default function ReportsPage() {
     };
   }, [activeSavingsData, startDate, endDate]);
 
-  // --- 5. Statistics Calculation ---
   const stats = useMemo(() => {
     let income = 0;
     let expenses = 0;
@@ -263,8 +242,6 @@ export default function ReportsPage() {
     });
 
     const net = income - expenses;
-
-    // Use the total savings calculated in processedSavings
     const totalSavings = processedSavings.totalSavings;
 
     return {
@@ -275,7 +252,6 @@ export default function ReportsPage() {
     };
   }, [filteredTransactions, processedSavings]);
 
-  // --- 6. Chart Data Preparation ---
   const expenseChartData = useMemo(() => {
     const map = {};
     filteredTransactions.forEach((t) => {
@@ -299,9 +275,7 @@ export default function ReportsPage() {
     [stats]
   );
 
-  // --- 7. Budget Compliance (FIXED) ---
   const budgetCompliance = useMemo(() => {
-    // Use local transactions only as a fallback (though likely insufficient for history)
     const spendingMap = {};
     allTransactions.forEach((t) => {
       if (t.type === "expense" && t.budget_id) {
@@ -313,8 +287,6 @@ export default function ReportsPage() {
     return filteredBudgets
       .map((b) => {
         const allocated = Number(b.amount || 0);
-
-        // FIX: Use 'total_spent' from backend to ensure accuracy
         const spent =
           b.total_spent !== undefined
             ? Number(b.total_spent)
@@ -338,23 +310,28 @@ export default function ReportsPage() {
       .sort((a, b) => a.remaining - b.remaining);
   }, [filteredBudgets, allTransactions, categoryLookup]);
 
-  // --- Handlers ---
   const handleExport = async () => {
-    const exportData = {
-      income: filteredTransactions.filter((t) => t.type === "income"),
-      expenses: filteredTransactions.filter((t) => t.type === "expense"),
-      budgets: budgetCompliance,
-      savings: processedSavings.list,
-      stats: stats,
-      range: {
-        from: startDate,
-        to: endDate,
-        preset: datePreset,
-      },
-      expenseAllocation: expenseChartData,
-    };
+    try {
+      const exportData = {
+        income: filteredTransactions.filter((t) => t.type === "income"),
+        expenses: filteredTransactions.filter((t) => t.type === "expense"),
+        budgets: budgetCompliance,
+        savings: processedSavings.list,
+        stats: stats,
+        range: {
+          from: startDate,
+          to: endDate,
+          preset: datePreset,
+        },
+        expenseAllocation: expenseChartData,
+      };
 
-    alert("Export feature initiated.");
+      await exportFullReport(exportData);
+      showSuccess("Exported!", "Financial report downloaded successfully.");
+    } catch (error) {
+      console.error("Export failed:", error);
+      showError("Export Failed", "Could not generate the Excel report.");
+    }
   };
 
   const toggleSidebar = () => {
@@ -395,7 +372,7 @@ export default function ReportsPage() {
 
         <MainView>
           <div className="space-y-6 p-4 sm:p-6 lg:p-0">
-            {/* 1. Header & Controls */}
+            {/* Header & Controls */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-emerald-100/50 p-6 lg:p-8">
@@ -463,7 +440,7 @@ export default function ReportsPage() {
               </div>
             </section>
 
-            {/* 2. Key Metrics Summary */}
+            {/* Key Metrics Summary */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 {
@@ -489,7 +466,7 @@ export default function ReportsPage() {
                 },
                 {
                   label: "Total Savings",
-                  value: stats.totalSavings, // Now correctly summed from filtered list
+                  value: stats.totalSavings,
                   icon: PiggyBank,
                   color: "teal",
                   iconBg: "bg-teal-100",
@@ -506,7 +483,6 @@ export default function ReportsPage() {
                     <p
                       className={`text-2xl font-bold text-${metric.color}-600 mt-1`}
                     >
-                      {/* CURRENCY APPLIED */}
                       {formatCurrency(metric.value, userCurrency)}
                     </p>
                   </div>
@@ -519,7 +495,7 @@ export default function ReportsPage() {
               ))}
             </section>
 
-            {/* 3. Charts Section */}
+            {/* Charts Section */}
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Expense Allocation Pie Chart */}
               <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-6 flex flex-col">
@@ -557,7 +533,6 @@ export default function ReportsPage() {
                             />
                           ))}
                         </Pie>
-                        {/* INJECT CURRENCY CODE */}
                         <Tooltip
                           content={
                             <CustomTooltip userCurrency={userCurrency} />
@@ -604,12 +579,10 @@ export default function ReportsPage() {
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: "#6B7280", fontSize: 12 }}
-                        // Simplify Y-axis label without currency symbol
                         tickFormatter={(value) =>
                           `${(value / 1000).toFixed(0)}k`
                         }
                       />
-                      {/* INJECT CURRENCY CODE */}
                       <Tooltip
                         content={
                           <CustomBarTooltip userCurrency={userCurrency} />
@@ -627,7 +600,7 @@ export default function ReportsPage() {
               </div>
             </section>
 
-            {/* 4. Budget Compliance Table */}
+            {/* Budget Compliance Table */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-blue-200/30 to-teal-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 overflow-hidden">
@@ -677,11 +650,9 @@ export default function ReportsPage() {
                             </td>
                             <td className="p-4 text-gray-500">{b.category}</td>
                             <td className="p-4 text-right text-gray-600">
-                              {/* CURRENCY APPLIED */}
                               {formatCurrency(b.allocated, userCurrency)}
                             </td>
                             <td className="p-4 text-right font-bold text-gray-800">
-                              {/* CURRENCY APPLIED */}
                               {formatCurrency(b.spent, userCurrency)}
                             </td>
                             <td className="p-4 text-center">
@@ -692,7 +663,6 @@ export default function ReportsPage() {
                                     : "bg-emerald-100 text-emerald-800"
                                 }`}
                               >
-                                {/* CURRENCY APPLIED */}
                                 {b.isOver
                                   ? `Over by ${formatCurrency(
                                       Math.abs(b.remaining),
@@ -712,11 +682,11 @@ export default function ReportsPage() {
 
             {/* 5. Savings Goals Summary */}
             <section className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-300/30 to-indigo-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-blue-100/50 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-50/30">
+              <div className="absolute -inset-1 bg-gradient-to-r from-teal-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
+              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-teal-100/50 overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-teal-50/30">
                   <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <PiggyBank size={20} className="text-blue-600" /> Savings
+                    <PiggyBank size={20} className="text-teal-600" /> Savings
                     Goals Summary
                   </h3>
                 </div>
@@ -734,12 +704,12 @@ export default function ReportsPage() {
                             Goal Name
                           </th>
                           <th className="p-4 font-semibold border-b border-gray-200 text-right">
-                            Target Amount
+                            Target
                           </th>
                           <th className="p-4 font-semibold border-b border-gray-200 text-right">
-                            Current Amount
+                            Saved
                           </th>
-                          <th className="p-4 font-semibold border-b border-gray-200 w-1/3">
+                          <th className="p-4 font-semibold border-b border-gray-200 text-center">
                             Progress
                           </th>
                         </tr>
@@ -754,23 +724,25 @@ export default function ReportsPage() {
                               {s.name}
                             </td>
                             <td className="p-4 text-right text-gray-600">
-                              {/* CURRENCY APPLIED */}
                               {formatCurrency(s.target, userCurrency)}
                             </td>
-                            <td className="p-4 text-right font-bold text-blue-600">
-                              {/* CURRENCY APPLIED */}
+                            <td className="p-4 text-right font-bold text-teal-600">
                               {formatCurrency(s.current, userCurrency)}
                             </td>
-                            <td className="p-4 align-middle">
-                              <div className="flex items-center gap-3">
-                                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <td className="p-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                                   <div
-                                    className="h-full bg-blue-500 rounded-full"
+                                    className={`h-full rounded-full ${
+                                      s.percent >= 100
+                                        ? "bg-green-500"
+                                        : "bg-teal-500"
+                                    }`}
                                     style={{ width: `${s.widthPercent}%` }}
                                   />
                                 </div>
-                                <span className="text-xs font-bold text-blue-700 min-w-[3rem] text-right">
-                                  {s.percent.toFixed(1)}%
+                                <span className="text-xs font-medium text-gray-600">
+                                  {s.percent.toFixed(0)}%
                                 </span>
                               </div>
                             </td>
