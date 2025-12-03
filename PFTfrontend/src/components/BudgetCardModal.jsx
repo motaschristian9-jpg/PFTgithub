@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useForm } from "react-hook-form";
-import Swal from "sweetalert2";
 import { useTransactions } from "../hooks/useTransactions.js";
 import {
   Edit2,
@@ -12,16 +11,15 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
-  Check,
   PieChart,
   Clock,
   ArrowRight,
+  Check, // Added missing import
 } from "lucide-react";
 
-// Import Currency Utilities (Assumed path)
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
-// Import Context to grab currency code
 import { useDataContext } from "../components/DataLoader.jsx";
+import { confirmDelete } from "../utils/swal";
 
 export default function BudgetCardModal({
   isOpen,
@@ -32,7 +30,7 @@ export default function BudgetCardModal({
   onDeleteBudget,
   getCategoryName,
 }) {
-  const { user } = useDataContext(); // Access user for currency code
+  const { user } = useDataContext();
   const userCurrency = user?.currency || "USD";
   const currencySymbol = getCurrencySymbol(userCurrency);
 
@@ -40,8 +38,6 @@ export default function BudgetCardModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- FETCH HISTORY ---
-  // Fetches ALL transactions filtered by this budget_id
   const { data: historyDataRaw, isLoading: isLoadingHistory } = useTransactions(
     {
       budget_id: localBudget?.id,
@@ -50,15 +46,13 @@ export default function BudgetCardModal({
       sort_order: "desc",
     },
     {
-      fetchAll: true,
       enabled: isOpen && !!localBudget?.id,
-      staleTime: 0, // Always fetch fresh data
+      staleTime: 0,
     }
   );
 
   const transactions = historyDataRaw?.data || [];
 
-  // Read-only check
   const isReadOnly = localBudget.status !== "active";
 
   const {
@@ -79,7 +73,6 @@ export default function BudgetCardModal({
 
   const startDateValue = watch("start_date");
 
-  // --- EFFECTS ---
   useEffect(() => {
     if (isOpen && budget) {
       setLocalBudget(budget);
@@ -99,7 +92,6 @@ export default function BudgetCardModal({
     };
   }, [isOpen, budget, reset]);
 
-  // Handle Escape
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === "Escape" && isOpen && !isSaving) onClose();
@@ -108,17 +100,14 @@ export default function BudgetCardModal({
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose, isSaving]);
 
-  // --- CALCULATIONS ---
   const stats = useMemo(() => {
     const allocated = Number(localBudget.amount || 0);
 
-    // Priority 1: Sum up the fresh transaction history (most accurate for real-time)
     const spentFromHistory = transactions.reduce(
       (sum, t) => sum + Number(t.amount),
       0
     );
 
-    // Priority 2: Use backend total if history is loading
     const spent = isLoadingHistory
       ? Number(localBudget.total_spent || localBudget.spent || 0)
       : spentFromHistory;
@@ -143,7 +132,6 @@ export default function BudgetCardModal({
     };
   }, [localBudget, transactions, isLoadingHistory]);
 
-  // --- ACTIONS ---
   const handleSaveChanges = async (data) => {
     setIsSaving(true);
     try {
@@ -154,47 +142,23 @@ export default function BudgetCardModal({
         start_date: data.start_date,
         end_date: data.end_date,
       });
-
-      // Using Swal instead of window.alert for consistent UI
-      Swal.fire({
-        icon: "success",
-        title: "Saved!",
-        text: "Budget updated successfully.",
-        timer: 1500,
-        showConfirmButton: false,
-        customClass: { container: "swal-z-index-fix" },
-      });
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating budget", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to update budget.",
-        customClass: { container: "swal-z-index-fix" },
-      });
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteTx = (tx) => {
-    // Using Swal instead of window.confirm
-    Swal.fire({
-      title: "Delete Transaction?",
-      text: "This will remove it from your budget history.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      confirmButtonText: "Yes, delete it!",
-      customClass: { container: "swal-z-index-fix" },
-    }).then((result) => {
-      if (result.isConfirmed) {
-        if (onDeleteTransaction) {
-          onDeleteTransaction(tx);
-        }
-      }
-    });
+  const handleDeleteTx = async (tx) => {
+    const result = await confirmDelete(
+      "Delete Transaction?",
+      "This will remove it from your budget history."
+    );
+
+    if (result.isConfirmed && onDeleteTransaction) {
+      onDeleteTransaction(tx);
+    }
   };
 
   if (!isOpen) return null;
@@ -237,14 +201,12 @@ export default function BudgetCardModal({
       className="fixed inset-0 z-[50] flex justify-center items-center p-4"
       onClick={!isSaving ? onClose : undefined}
     >
-      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
 
       <div
         className="relative z-50 w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER */}
         <div
           className={`px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white`}
         >
@@ -309,17 +271,13 @@ export default function BudgetCardModal({
           </div>
         </div>
 
-        {/* CONTENT SPLIT */}
         <div className="flex flex-col lg:flex-row h-full overflow-hidden">
-          {/* LEFT PANEL: STATS / EDIT FORM */}
           <div className="w-full lg:w-[450px] bg-gray-50/50 flex flex-col border-r border-gray-100 overflow-y-auto">
             {isEditing ? (
-              // --- EDIT MODE ---
               <form
                 onSubmit={handleSubmit(handleSaveChanges)}
                 className="p-6 space-y-6 flex-1"
               >
-                {/* Hero Input */}
                 <div className="flex flex-col items-center justify-center py-4">
                   <label className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
                     Total Budget Limit
@@ -381,9 +339,7 @@ export default function BudgetCardModal({
                 </button>
               </form>
             ) : (
-              // --- VIEW MODE ---
               <div className="p-6 space-y-8">
-                {/* Hero Stats */}
                 <div className="text-center space-y-2">
                   <p
                     className={`text-sm font-bold uppercase tracking-wider ${currentTheme.text}`}
@@ -402,14 +358,12 @@ export default function BudgetCardModal({
                   )}
                 </div>
 
-                {/* Progress Bar */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-medium text-gray-500">
                     <span>{formatCurrency(0, userCurrency)}</span>
                     <span>{stats.percentage.toFixed(0)}% used</span>
                   </div>
                   <div className="h-4 bg-gray-200 rounded-full overflow-hidden shadow-inner relative">
-                    {/* Threshold Marker at 100% */}
                     {stats.isOverspent && (
                       <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-white z-10"></div>
                     )}
@@ -420,7 +374,6 @@ export default function BudgetCardModal({
                   </div>
                 </div>
 
-                {/* Detailed Grid */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
                     <div className="flex items-center gap-2 text-gray-400 mb-1">
@@ -462,7 +415,6 @@ export default function BudgetCardModal({
             )}
           </div>
 
-          {/* RIGHT PANEL: TRANSACTIONS */}
           <div className="flex-1 bg-white flex flex-col h-full overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-50 bg-gray-50/30 flex justify-between items-center">
               <h3 className="font-bold text-gray-700 flex items-center gap-2">

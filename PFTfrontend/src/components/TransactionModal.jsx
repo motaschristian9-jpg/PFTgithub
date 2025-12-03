@@ -12,7 +12,10 @@ import {
   Wallet,
   Check,
 } from "lucide-react";
-import Swal from "sweetalert2";
+
+// --- REPLACED: Use custom alerts instead of direct Swal ---
+import { showSuccess, showError } from "../utils/swal";
+
 import { useModalFormHooks } from "../hooks/useModalFormHooks.js";
 import { useDataContext } from "./DataLoader.jsx";
 import { useUpdateSaving } from "../hooks/useSavings.js";
@@ -524,14 +527,11 @@ export default function TransactionModal({
             userCurrency
           );
 
-          Swal.fire({
-            icon: "success",
-            title: "Success!",
-            text: `Transaction saved & ${formattedDeduction} allocated to "${selectedGoal.name}".`,
-            timer: 2500,
-            showConfirmButton: false,
-            timerProgressBar: true,
-          });
+          // --- UPDATED: Custom Success Alert for Savings Split ---
+          showSuccess(
+            "Success!",
+            `Transaction saved & ${formattedDeduction} allocated to "${selectedGoal.name}".`
+          );
 
           if (onTransactionAdded) onTransactionAdded(response);
           onClose();
@@ -539,13 +539,11 @@ export default function TransactionModal({
         }
       }
 
-      Swal.fire({
-        icon: "success",
-        title: editMode ? "Updated!" : "Added!",
-        timer: 1500,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      });
+      // --- UPDATED: Custom Success Alert for Standard Transaction ---
+      showSuccess(
+        editMode ? "Updated!" : "Added!",
+        "Transaction saved successfully."
+      );
 
       if (onTransactionAdded) onTransactionAdded(response);
       onClose();
@@ -562,11 +560,8 @@ export default function TransactionModal({
           setError(fieldName, { type: "server", message: val[0] });
         });
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Something went wrong.",
-        });
+        // --- UPDATED: Custom Error Alert ---
+        showError("Error", "Something went wrong.");
       }
     } finally {
       setLoading(false);

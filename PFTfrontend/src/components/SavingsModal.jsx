@@ -2,10 +2,10 @@ import { useEffect, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useForm, useWatch } from "react-hook-form";
 import { X, Loader2, PiggyBank, Target, Check, TrendingUp } from "lucide-react";
-import Swal from "sweetalert2";
-// CORRECTED IMPORT PATH (Adjusted back to match typical folder depth, assuming standard nested structure)
+
+// Custom Utils
+import { showSuccess, showError } from "../utils/swal";
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
-// Assuming useDataContext is defined elsewhere and provides 'user'
 import { useDataContext } from "./DataLoader.jsx";
 
 export default function SavingsModal({
@@ -16,16 +16,20 @@ export default function SavingsModal({
   saving = null,
 }) {
   const [loading, setLoading] = useState(false);
-  const { user } = useDataContext(); // Access user to get currency code
+  const { user } = useDataContext();
+
+  // --- Safe Currency Handling ---
   const userCurrency = user?.currency || "USD";
-  const currencySymbol = getCurrencySymbol(userCurrency);
+  // Fallback to userCurrency code if symbol helper fails or doesn't exist
+  const currencySymbol = getCurrencySymbol
+    ? getCurrencySymbol(userCurrency)
+    : userCurrency;
 
   const {
     register,
     handleSubmit,
     reset,
     control,
-    getValues,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -37,13 +41,12 @@ export default function SavingsModal({
     mode: "onChange",
   });
 
-  // Watch values for the "Live Preview" card
+  // Watch fields for the visual preview
   const watchedTarget = useWatch({ control, name: "target_amount" });
   const watchedCurrent = useWatch({ control, name: "current_amount" });
   const watchedName = useWatch({ control, name: "name" });
 
-  // --- MEMOIZED CALCULATIONS ---
-
+  // Memoized progress calculation
   const progressPreview = useMemo(() => {
     const target = parseFloat(watchedTarget);
     const current = parseFloat(watchedCurrent);
@@ -51,11 +54,11 @@ export default function SavingsModal({
     return Math.min((current / target) * 100, 100);
   }, [watchedTarget, watchedCurrent]);
 
-  // --- EFFECTS ---
-
+  // --- Reset Form on Open ---
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
+      document.body.style.overflow = "hidden"; // Prevent background scrolling
+
       if (editMode && saving) {
         reset({
           name: saving.name || "",
@@ -71,20 +74,25 @@ export default function SavingsModal({
           description: "",
         });
       }
+    } else {
+      document.body.style.overflow = "";
     }
+
+    // Cleanup on unmount
     return () => {
-      document.body.style.overflow = "unset";
+      document.body.style.overflow = "";
     };
   }, [isOpen, editMode, saving, reset]);
 
-  // Close on Escape
+  // Handle Escape Key
   useEffect(() => {
-    const handleEscape = (e) => e.key === "Escape" && isOpen && onClose();
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isOpen) onClose();
+    };
+
     if (isOpen) document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
-
-  // --- HANDLERS ---
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -98,25 +106,18 @@ export default function SavingsModal({
       await onSave(payload);
       reset();
 
-      Swal.fire({
-        icon: "success",
-        title: editMode ? "Goal Updated!" : "Goal Set!",
-        text: `Your savings goal has been successfully ${
+      // Use Custom Swal
+      showSuccess(
+        editMode ? "Goal Updated!" : "Goal Set!",
+        `Your savings goal has been successfully ${
           editMode ? "updated" : "created"
-        }.`,
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      });
+        }.`
+      );
 
       onClose();
     } catch (error) {
       console.error("Failed to save saving:", error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Something went wrong. Please try again.",
-      });
+      showError("Error", "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -132,14 +133,16 @@ export default function SavingsModal({
       className="fixed inset-0 z-[9999] flex justify-center items-center p-4 sm:p-6"
       onClick={onClose}
     >
+      {/* Backdrop */}
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
 
+      {/* Modal Card */}
       <div
         className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden ring-1 ring-black/5">
-          {/* HEADER WITH HERO INPUT */}
+          {/* Header */}
           <div className={`px-6 pt-6 pb-8 bg-gradient-to-b ${bgGradient}`}>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -158,7 +161,7 @@ export default function SavingsModal({
               </button>
             </div>
 
-            {/* HERO INPUT: TARGET AMOUNT */}
+            {/* Hero Input */}
             <div className="relative flex flex-col items-center justify-center mt-2">
               <label
                 className={`text-xs font-semibold uppercase tracking-wider mb-1 text-${accentColor}-600/80`}
@@ -169,7 +172,6 @@ export default function SavingsModal({
                 <span
                   className={`text-3xl font-medium text-${accentColor}-500 absolute left-[15%] sm:left-[20%] top-2`}
                 >
-                  {/* CURRENCY APPLIED */}
                   {currencySymbol}
                 </span>
                 <input
@@ -178,10 +180,7 @@ export default function SavingsModal({
                   step="0.01"
                   {...register("target_amount", {
                     required: "Target amount is required",
-                    min: {
-                      value: 0.01,
-                      message: "Target must be greater than 0",
-                    },
+                    min: { value: 0.01, message: "Target must be > 0" },
                   })}
                   disabled={loading}
                   className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 text-gray-800"
@@ -195,12 +194,12 @@ export default function SavingsModal({
             </div>
           </div>
 
-          {/* FORM BODY */}
+          {/* Form Body */}
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="px-6 pb-6 space-y-5"
           >
-            {/* Goal Name */}
+            {/* Name */}
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Goal Name
@@ -213,12 +212,9 @@ export default function SavingsModal({
                 <input
                   type="text"
                   placeholder="e.g. New MacBook, Vacation"
-                  {...register("name", {
-                    required: "Goal name is required",
-                    maxLength: { value: 100, message: "Name too long" },
-                  })}
+                  {...register("name", { required: "Goal name is required" })}
                   disabled={loading}
-                  className="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-transparent transition-all outline-none"
+                  className="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
                 />
               </div>
               {errors.name && (
@@ -244,23 +240,11 @@ export default function SavingsModal({
                   step="0.01"
                   {...register("current_amount", {
                     min: { value: 0, message: "Cannot be negative" },
-                    validate: (value) => {
-                      const target = parseFloat(getValues("target_amount"));
-                      if (target && parseFloat(value) > target) {
-                        return "Cannot exceed target amount";
-                      }
-                      return true;
-                    },
                   })}
                   disabled={loading}
-                  className="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-transparent transition-all outline-none"
+                  className="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none"
                 />
               </div>
-              {errors.current_amount && (
-                <p className="text-red-500 text-xs">
-                  {errors.current_amount.message}
-                </p>
-              )}
             </div>
 
             {/* Description */}
@@ -273,45 +257,41 @@ export default function SavingsModal({
                 placeholder="What is this for?"
                 {...register("description")}
                 disabled={loading}
-                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white focus:border-transparent transition-all outline-none resize-none"
+                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all outline-none resize-none"
               />
             </div>
 
-            {/* LIVE PREVIEW CARD (Visual Delight) */}
-            {watchedTarget &&
-              watchedName &&
-              !errors.current_amount &&
-              !errors.target_amount && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-2">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-emerald-800 uppercase">
-                      Preview
-                    </span>
-                    <span className="text-xs font-medium text-emerald-600">
-                      {progressPreview.toFixed(0)}% Complete
-                    </span>
-                  </div>
-                  <div className="w-full bg-emerald-200/50 rounded-full h-2 mb-2">
-                    <div
-                      className="bg-emerald-500 h-2 rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${progressPreview}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-emerald-700">
-                    <span>{watchedName}</span>
-                    <span>
-                      {/* CURRENCY APPLIED */}
-                      {formatCurrency(
-                        parseFloat(watchedCurrent || 0),
-                        userCurrency
-                      )}{" "}
-                      /{formatCurrency(parseFloat(watchedTarget), userCurrency)}
-                    </span>
-                  </div>
+            {/* Preview Card */}
+            {watchedTarget && watchedName && (
+              <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-bold text-emerald-800 uppercase">
+                    Preview
+                  </span>
+                  <span className="text-xs font-medium text-emerald-600">
+                    {progressPreview.toFixed(0)}% Complete
+                  </span>
                 </div>
-              )}
+                <div className="w-full bg-emerald-200/50 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-emerald-500 h-2 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progressPreview}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-emerald-700">
+                  <span>{watchedName}</span>
+                  <span>
+                    {formatCurrency(
+                      parseFloat(watchedCurrent || 0),
+                      userCurrency
+                    )}{" "}
+                    / {formatCurrency(parseFloat(watchedTarget), userCurrency)}
+                  </span>
+                </div>
+              </div>
+            )}
 
-            {/* Action Button */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -326,7 +306,7 @@ export default function SavingsModal({
               ) : (
                 <>
                   <Check size={20} strokeWidth={3} />
-                  {editMode ? "Update Goal" : "Start Saving"}
+                  {editMode ? "Update Goal" : "Set Goal"}
                 </>
               )}
             </button>

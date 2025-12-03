@@ -17,40 +17,37 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import axios from "../../api/axios"; // Ensure axios is imported for delete fetch
+import axios from "../../api/axios";
 
-// FIXED IMPORTS: Keeping user defined paths
 import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
-import { useDataContext } from "../../components/DataLoader.jsx";
 import SavingsModal from "../../components/SavingsModal.jsx";
 import SavingsCardModal from "../../components/SavingsCardModal.jsx";
-import Swal from "sweetalert2";
 
+import { useDataContext } from "../../components/DataLoader.jsx";
 import {
   useSavingsHistory,
   useCreateSaving,
   useUpdateSaving,
   useDeleteSaving,
 } from "../../hooks/useSavings.js";
-
 import {
   useCreateTransaction,
   useDeleteTransaction,
 } from "../../hooks/useTransactions.js";
 
-// Import Currency Utility
+import { confirmDelete, showSuccess, showError } from "../../utils/swal";
 import { formatCurrency } from "../../utils/currency";
 
 export default function SavingsPage() {
   const queryClient = useQueryClient();
 
-  // UI State
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
@@ -61,18 +58,16 @@ export default function SavingsPage() {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [selectedSaving, setSelectedSaving] = useState(null);
 
-  // Filter & Pagination State
   const [activeTab, setActiveTab] = useState("active");
   const [historyPage, setHistoryPage] = useState(1);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
 
-  // Data Hooks
   const { user, activeSavingsData, transactionsData, categoriesData } =
     useDataContext();
 
-  const userCurrency = user?.currency || "USD"; // Get user's currency
+  const userCurrency = user?.currency || "USD";
 
   const historyFilters = useMemo(
     () => ({ search, sortBy, sortDir }),
@@ -88,15 +83,12 @@ export default function SavingsPage() {
   const createTransactionMutation = useCreateTransaction();
   const deleteTransactionMutation = useDeleteTransaction();
 
-  // --- Calculations ---
-
   const availableBalance = useMemo(() => {
     const income = Number(transactionsData?.totals?.income || 0);
     const expenses = Number(transactionsData?.totals?.expenses || 0);
     return Math.max(0, income - expenses);
   }, [transactionsData]);
 
-  // 1. Process ACTIVE Savings
   const activeSavings = useMemo(() => {
     let result = activeSavingsData || [];
     if (search) {
@@ -124,7 +116,6 @@ export default function SavingsPage() {
     return result;
   }, [activeSavingsData, search, sortBy, sortDir]);
 
-  // 2. Process HISTORY Savings
   const historySavings = useMemo(
     () => historySavingsRaw?.data || [],
     [historySavingsRaw]
@@ -134,7 +125,6 @@ export default function SavingsPage() {
     [historySavingsRaw]
   );
 
-  // Stats Calculation
   const stats = useMemo(() => {
     const listToCalculate =
       activeTab === "active" ? activeSavings : historySavings;
@@ -190,46 +180,6 @@ export default function SavingsPage() {
     };
   };
 
-  // --- FILTER TRANSACTIONS FOR SELECTED GOAL (Visual only) ---
-  const getSavingsGoalTransactions = (goalId) => {
-    if (!transactionsData || !transactionsData.data || !goalId) return [];
-
-    // 1. Try finding in active list
-    let currentGoal = activeSavingsData?.find((g) => g.id === goalId);
-
-    // 2. If not found, check selected saving (could be from history modal)
-    if (!currentGoal && selectedSaving?.id === goalId) {
-      currentGoal = selectedSaving;
-    }
-
-    // 3. If still not found, check history list
-    if (!currentGoal) {
-      currentGoal = historySavings?.find((h) => h.id === goalId);
-    }
-
-    const goalNameLower = currentGoal ? currentGoal.name.toLowerCase() : "";
-
-    return transactionsData.data
-      .filter((t) => {
-        const idMatch = t.saving_goal_id && t.saving_goal_id == goalId;
-        const nameMatch =
-          goalNameLower &&
-          (t.name?.toLowerCase().includes(goalNameLower) ||
-            t.description?.toLowerCase().includes(goalNameLower));
-
-        return idMatch || nameMatch;
-      })
-      .map((t) => ({
-        id: t.id,
-        date: t.date || t.transaction_date || t.created_at,
-        amount: t.amount,
-        type: t.type,
-        description: t.description || t.name,
-      }))
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-  };
-
-  // --- HELPER: FIND CATEGORY WITH FALLBACKS ---
   const findCategory = (keywords, type) => {
     if (!categoriesData?.data) return null;
     let cat = categoriesData.data.find(
@@ -246,7 +196,6 @@ export default function SavingsPage() {
     return cat ? cat.id : null;
   };
 
-  // --- HANDLER: WITHDRAWAL ---
   const handleCreateWithdrawalTransaction = async (
     withdrawalAmount,
     savingGoalName
@@ -256,7 +205,7 @@ export default function SavingsPage() {
       "income"
     );
     if (!categoryId) {
-      Swal.fire("Error", "No Income category found.", "error");
+      showError("Error", "No Income category found.");
       return false;
     }
     const payload = {
@@ -279,7 +228,6 @@ export default function SavingsPage() {
     }
   };
 
-  // --- HANDLER: CONTRIBUTION ---
   const handleCreateContributionTransaction = async (
     contributionAmount,
     savingGoalName
@@ -289,7 +237,7 @@ export default function SavingsPage() {
       "expense"
     );
     if (!categoryId) {
-      Swal.fire("Error", "No Expense category found.", "error");
+      showError("Error", "No Expense category found.");
       return false;
     }
     const payload = {
@@ -319,14 +267,17 @@ export default function SavingsPage() {
       return newValue;
     });
   };
+
   const handleCreate = () => {
     setSelectedSaving(null);
     setIsFormModalOpen(true);
   };
+
   const handleCardClick = (saving) => {
     setSelectedSaving(saving);
     setIsCardModalOpen(true);
   };
+
   const handleDirectEdit = (saving, e) => {
     e?.stopPropagation();
     setSelectedSaving(saving);
@@ -337,25 +288,43 @@ export default function SavingsPage() {
     const initialAmount = parseFloat(data.current_amount || 0);
     try {
       if (selectedSaving) {
+        // UPDATE
         await updateMutation.mutateAsync({ id: selectedSaving.id, data });
+
+        // OPTIMIZED: Close and Show Success immediately, don't wait for invalidations
+        setIsFormModalOpen(false);
+        setSelectedSaving(null);
+        showSuccess("Updated!", "Savings goal updated successfully.");
       } else {
+        // CREATE
         const newSaving = await createMutation.mutateAsync(data);
+
+        // OPTIMIZED: Show Success IMMEDIATELY after goal creation
+        setIsFormModalOpen(false);
+        setSelectedSaving(null);
+        showSuccess("Created!", "Savings goal created successfully.");
+
+        // BACKGROUND TASK: Handle initial deposit (Fire and Forget)
         if (initialAmount > 0) {
-          setSelectedSaving(newSaving);
-          await handleCreateContributionTransaction(
+          // We do NOT await this, so the UI doesn't freeze waiting for the second API call
+          handleCreateContributionTransaction(
             initialAmount,
             newSaving.name
+          ).catch((err) =>
+            console.error("Background transaction failed:", err)
           );
         }
       }
+
+      // Sync data in background
       queryClient.invalidateQueries(["savings"]);
-      setIsFormModalOpen(false);
-      setSelectedSaving(null);
     } catch (error) {
       console.error("Error saving:", error);
+      showError("Error", "Failed to save savings goal.");
     }
   };
 
+  // Used by the card modal to sync state back to the page
   const handleCardUpdate = async (updatedData) => {
     try {
       const payload = {
@@ -364,7 +333,7 @@ export default function SavingsPage() {
         current_amount: updatedData.current_amount,
         description: updatedData.description,
       };
-      await updateMutation.mutateAsync({ id: updatedData.id, data: payload });
+      // Note: The modal calls the mutation itself now, this is just for local sync
       setSelectedSaving((prev) => ({ ...prev, ...payload }));
       queryClient.invalidateQueries(["savings"]);
     } catch (error) {
@@ -385,40 +354,28 @@ export default function SavingsPage() {
       setSelectedSaving((prev) => ({ ...prev, current_amount: newBalance }));
       queryClient.invalidateQueries(["transactions"]);
       queryClient.invalidateQueries(["savings"]);
-      Swal.fire({
-        icon: "success",
-        title: "Deleted",
-        text: "Transaction deleted and balance updated.",
-        timer: 1500,
-        showConfirmButton: false,
-        customClass: { container: "swal-z-index-fix" },
-      });
+      showSuccess("Deleted", "Transaction deleted and balance updated.");
     } catch (error) {
       console.error("Error deleting transaction:", error);
-      Swal.fire("Error", "Failed to delete transaction.", "error");
+      showError("Error", "Failed to delete transaction.");
     }
   };
 
-  // --- 3. UPDATED "REFUND & DELETE" LOGIC ---
   const handleDelete = async (id) => {
-    // A. Identify the goal (Search Active, then Selected, then History)
     let goalToDelete = activeSavingsData?.find((s) => s.id === id);
 
     if (!goalToDelete && selectedSaving?.id === id) {
       goalToDelete = selectedSaving;
     }
 
-    // FIX: Check History if not found in active
     if (!goalToDelete) {
-      goalToDelete = historySavings?.find((s) => s.id === id);
+      goalToDelete = historySavingsRaw?.data?.find((s) => s.id === id);
     }
 
     if (!goalToDelete) return;
 
-    // B. Fetch Transactions from API (Bypass Pagination Limit)
     let linkedTransactions = [];
     try {
-      // Using direct axios call to ensure we get all history
       const response = await axios.get("/transactions", {
         params: {
           saving_goal_id: id,
@@ -433,11 +390,8 @@ export default function SavingsPage() {
 
     const hasFunds = linkedTransactions.length > 0;
 
-    // C. Build the Alert Message
     let title = "Delete Goal?";
     let text = "This action cannot be undone.";
-    let confirmText = "Yes, delete it";
-    let icon = "warning";
 
     const formattedCurrentAmount = formatCurrency(
       Number(goalToDelete.current_amount),
@@ -446,48 +400,22 @@ export default function SavingsPage() {
 
     if (hasFunds) {
       title = "Return Funds to Balance?";
-      text = `This goal has ${linkedTransactions.length} transaction(s) totaling ${formattedCurrentAmount}. \n\nDeleting this will remove these transactions and return the money to your Available Balance.`;
-      confirmText = "Yes, Refund & Delete";
+      text = `This goal has ${linkedTransactions.length} transaction(s) totaling ${formattedCurrentAmount}. Deleting this will remove these transactions and return the money to your Available Balance.`;
     }
 
-    // D. Fire Confirmation with Swal
-    const result = await Swal.fire({
-      title: title,
-      text: text,
-      icon: icon,
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: confirmText,
-      customClass: { container: "swal-z-index-fix" },
-    });
+    const result = await confirmDelete(title, text);
 
     if (result.isConfirmed) {
       try {
-        // E. Refund Step: Delete linked transactions first
         if (hasFunds) {
-          // Show loading indication
-          Swal.fire({
-            title: "Refunding...",
-            text: "Returning funds to main balance",
-            allowOutsideClick: false,
-            didOpen: () => {
-              Swal.showLoading();
-            },
-            customClass: { container: "swal-z-index-fix" },
-          });
-
-          // Execute deletions in parallel
           const deletePromises = linkedTransactions.map((tx) =>
             deleteTransactionMutation.mutateAsync(tx.id)
           );
           await Promise.all(deletePromises);
         }
 
-        // F. Delete the Goal
         await deleteMutation.mutateAsync(id);
 
-        // G. Refresh and Cleanup
         await queryClient.invalidateQueries(["savings"]);
         await queryClient.invalidateQueries(["transactions"]);
 
@@ -495,23 +423,15 @@ export default function SavingsPage() {
         setIsFormModalOpen(false);
         setSelectedSaving(null);
 
-        Swal.fire({
-          icon: "success",
-          title: "Deleted",
-          text: hasFunds
+        showSuccess(
+          "Deleted",
+          hasFunds
             ? "Goal deleted and funds returned to balance."
-            : "Goal deleted successfully.",
-          timer: 1500,
-          showConfirmButton: false,
-          customClass: { container: "swal-z-index-fix" },
-        });
+            : "Goal deleted successfully."
+        );
       } catch (error) {
         console.error("Delete failed", error);
-        Swal.fire(
-          "Error",
-          "Failed to delete goal or refund transactions.",
-          "error"
-        );
+        showError("Error", "Failed to delete goal or refund transactions.");
       }
     }
   };
@@ -523,7 +443,6 @@ export default function SavingsPage() {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-emerald-50">
-      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-emerald-300/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-emerald-100/30 to-green-200/20 rounded-full blur-2xl"></div>
@@ -552,7 +471,6 @@ export default function SavingsPage() {
 
         <MainView>
           <div className="space-y-8 p-4 sm:p-6 lg:p-0">
-            {/* Header & Actions */}
             <section className="relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-green-200/30 to-emerald-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6 lg:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -578,7 +496,6 @@ export default function SavingsPage() {
               </div>
             </section>
 
-            {/* Filter Bar */}
             <section className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4">
               <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
                 <div className="relative w-full lg:max-w-md group">
@@ -627,7 +544,6 @@ export default function SavingsPage() {
               </div>
             </section>
 
-            {/* Stats Section */}
             <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-sm border border-green-100 flex items-center justify-between">
                 <div>
@@ -672,7 +588,6 @@ export default function SavingsPage() {
               </div>
             </section>
 
-            {/* Tabs & Content */}
             <div className="space-y-6">
               <div className="flex space-x-1 bg-white/50 p-1 rounded-xl w-fit border border-green-100">
                 <button
@@ -786,39 +701,39 @@ export default function SavingsPage() {
                                       </span>
                                     </div>
                                   </div>
-                                </div>
-                                <div>
-                                  <div className="mb-4">
-                                    <div className="flex justify-between items-center mb-1.5">
-                                      <span className="text-xs font-semibold text-gray-500 uppercase">
-                                        Progress
-                                      </span>
+                                  <div>
+                                    <div className="mb-4">
+                                      <div className="flex justify-between items-center mb-1.5">
+                                        <span className="text-xs font-semibold text-gray-500 uppercase">
+                                          Progress
+                                        </span>
+                                        <span
+                                          className={`text-xs font-bold ${statusInfo.textClass}`}
+                                        >
+                                          {percent.toFixed(1)}%
+                                        </span>
+                                      </div>
+                                      <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                        <div
+                                          className={`h-full rounded-full transition-all duration-500 ease-out ${statusInfo.barColor}`}
+                                          style={{ width: `${widthPercent}%` }}
+                                        ></div>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-2">
                                       <span
-                                        className={`text-xs font-bold ${statusInfo.textClass}`}
+                                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.colorClass}`}
                                       >
-                                        {percent.toFixed(1)}%
+                                        {statusInfo.label}
                                       </span>
-                                    </div>
-                                    <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                      <div
-                                        className={`h-full rounded-full transition-all duration-500 ease-out ${statusInfo.barColor}`}
-                                        style={{ width: `${widthPercent}%` }}
-                                      ></div>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center justify-between pt-2">
-                                    <span
-                                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium ${statusInfo.colorClass}`}
-                                    >
-                                      {statusInfo.label}
-                                    </span>
-                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      <div className="text-xs font-medium text-gray-400 flex items-center">
-                                        View Details
-                                        <ArrowRight
-                                          size={12}
-                                          className="ml-1"
-                                        />
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="text-xs font-medium text-gray-400 flex items-center">
+                                          View Details
+                                          <ArrowRight
+                                            size={12}
+                                            className="ml-1"
+                                          />
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -982,7 +897,7 @@ export default function SavingsPage() {
         onSave={handleSave}
         editMode={!!selectedSaving}
         saving={selectedSaving}
-        availableBalance={availableBalance} // Pass available balance to modal
+        availableBalance={availableBalance}
       />
 
       <SavingsCardModal
@@ -992,9 +907,6 @@ export default function SavingsPage() {
         onEditSaving={handleCardUpdate}
         onDeleteSaving={handleDelete}
         availableBalance={availableBalance}
-        transactions={
-          selectedSaving ? getSavingsGoalTransactions(selectedSaving.id) : []
-        }
         handleCreateWithdrawalTransaction={handleCreateWithdrawalTransaction}
         handleCreateContributionTransaction={
           handleCreateContributionTransaction

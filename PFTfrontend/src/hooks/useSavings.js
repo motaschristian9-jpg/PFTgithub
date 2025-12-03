@@ -1,14 +1,25 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import axios from "../api/axios";
 
-// API Functions
-const getActiveSavings = () => {
-  return axios
-    .get("/savings", { params: { status: "active" } })
-    .then((res) => res.data);
+const KEYS = {
+  all: ["savings"],
+  active: ["savings", "active"],
+  history: (page, filters) => ["savings", "history", page, filters],
 };
 
-const getSavingsHistory = (page = 1, filters = {}) => {
+const getActiveSavings = async () => {
+  const { data } = await axios.get("/savings", {
+    params: { status: "active" },
+  });
+  return data;
+};
+
+const getSavingsHistory = async (page = 1, filters = {}) => {
   const params = {
     status: "history",
     page,
@@ -16,20 +27,20 @@ const getSavingsHistory = (page = 1, filters = {}) => {
     sort_by: filters.sortBy,
     sort_dir: filters.sortDir,
   };
-  return axios.get("/savings", { params }).then((res) => res.data);
+  const { data } = await axios.get("/savings", { params });
+  return data;
 };
 
-export const createSaving = (data) =>
+const createSaving = (data) =>
   axios.post("/savings", data).then((res) => res.data);
-export const updateSaving = (id, data) =>
+const updateSaving = ({ id, data }) =>
   axios.put(`/savings/${id}`, data).then((res) => res.data);
-export const deleteSaving = (id) =>
+const deleteSaving = (id) =>
   axios.delete(`/savings/${id}`).then((res) => res.data);
 
-// Hooks
 export const useActiveSavings = () => {
   return useQuery({
-    queryKey: ["savings", "active"],
+    queryKey: KEYS.active,
     queryFn: getActiveSavings,
     staleTime: 5 * 60 * 1000,
     select: (data) => {
@@ -41,40 +52,99 @@ export const useActiveSavings = () => {
 
 export const useSavingsHistory = (page, filters) => {
   return useQuery({
-    queryKey: ["savings", "history", page, filters],
+    queryKey: KEYS.history(page, filters),
     queryFn: () => getSavingsHistory(page, filters),
-    keepPreviousData: true,
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
   });
 };
 
-// Mutations
+const invalidateSavingsQueries = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: KEYS.all });
+};
+
 export const useCreateSaving = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: createSaving,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["savings", "active"] });
+      invalidateSavingsQueries(queryClient);
     },
   });
 };
 
 export const useUpdateSaving = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: ({ id, data }) => updateSaving(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["savings"] });
+    mutationFn: updateSaving,
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.all });
+
+      const previousSavings = queryClient.getQueryData(KEYS.all);
+
+      queryClient.setQueriesData({ queryKey: KEYS.all }, (oldData) => {
+        if (!oldData) return oldData;
+
+        if (oldData.data) {
+          return {
+            ...oldData,
+            data: oldData.data.map((item) =>
+              item.id === id ? { ...item, ...data } : item
+            ),
+          };
+        }
+
+        return Array.isArray(oldData)
+          ? oldData.map((item) =>
+              item.id === id ? { ...item, ...data } : item
+            )
+          : oldData;
+      });
+
+      return { previousSavings };
+    },
+    onError: (err, newSaving, context) => {
+      if (context?.previousSavings) {
+        // handled by onSettled invalidation
+      }
+    },
+    onSettled: () => {
+      invalidateSavingsQueries(queryClient);
     },
   });
 };
 
 export const useDeleteSaving = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: deleteSaving,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["savings"] });
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.all });
+
+      const previousSavings = queryClient.getQueryData(KEYS.all);
+
+      queryClient.setQueriesData({ queryKey: KEYS.all }, (oldData) => {
+        if (!oldData) return oldData;
+
+        if (oldData.data) {
+          return {
+            ...oldData,
+            data: oldData.data.filter((item) => item.id !== id),
+          };
+        }
+
+        return Array.isArray(oldData)
+          ? oldData.filter((item) => item.id !== id)
+          : oldData;
+      });
+
+      return { previousSavings };
+    },
+    onSettled: () => {
+      invalidateSavingsQueries(queryClient);
     },
   });
 };

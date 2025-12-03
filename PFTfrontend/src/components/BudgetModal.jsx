@@ -11,7 +11,9 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react";
-import Swal from "sweetalert2";
+
+// --- REPLACED: Use custom alerts instead of direct Swal ---
+import { showSuccess, showError } from "../utils/swal";
 
 // Import Currency Utilities and DataLoader Context
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
@@ -137,16 +139,12 @@ export default function BudgetModal({
       await onSave(data);
       reset();
 
-      Swal.fire({
-        icon: "success",
-        title: editMode ? "Budget Updated!" : "Budget Created!",
-        text: `Your budget has been successfully ${
-          editMode ? "updated" : "added"
-        }.`,
-        timer: 2000,
-        showConfirmButton: false,
-        timerProgressBar: true,
-      });
+      // --- UPDATED: Custom Success Alert ---
+      showSuccess(
+        editMode ? "Budget Updated!" : "Budget Created!",
+        `Your budget has been successfully ${editMode ? "updated" : "added"}.`
+      );
+
       onClose();
     } catch (error) {
       console.error("Failed to save budget:", error);
@@ -159,11 +157,8 @@ export default function BudgetModal({
           });
         }
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: "Failed to save budget",
-        });
+        // --- UPDATED: Custom Error Alert ---
+        showError("Error", "Failed to save budget");
       }
     } finally {
       setLoading(false);
@@ -176,7 +171,7 @@ export default function BudgetModal({
   const accentColor = "blue";
   const bgGradient = "from-blue-50 to-white";
 
-  const modalContent = (
+  return createPortal(
     <div
       className="fixed inset-0 z-[50] flex justify-center items-center p-4 sm:p-6"
       onClick={onClose}
@@ -416,8 +411,7 @@ export default function BudgetModal({
           </form>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
-
-  return createPortal(modalContent, document.body);
 }

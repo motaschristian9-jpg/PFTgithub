@@ -10,8 +10,6 @@ import {
   AlertTriangle,
   Wallet,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   History,
   LayoutGrid,
   Search,
@@ -26,7 +24,9 @@ import Topbar from "../../layout/Topbar.jsx";
 import Sidebar from "../../layout/Sidebar.jsx";
 import Footer from "../../layout/Footer.jsx";
 import MainView from "../../layout/MainView.jsx";
-import Swal from "sweetalert2";
+import BudgetModal from "../../components/BudgetModal.jsx";
+import BudgetCardModal from "../../components/BudgetCardModal.jsx";
+
 import { useDataContext } from "../../components/DataLoader.jsx";
 import {
   useBudgetHistory,
@@ -34,17 +34,13 @@ import {
   useUpdateBudget,
   useDeleteBudget,
 } from "../../hooks/useBudget.js";
-
-// Import Hooks
 import {
   useDeleteTransaction,
   useUpdateTransaction,
 } from "../../hooks/useTransactions.js";
 
-import BudgetModal from "../../components/BudgetModal.jsx";
-import BudgetCardModal from "../../components/BudgetCardModal.jsx";
-
-// Import Currency Utility
+// --- Custom Alerts & Utils ---
+import { confirmDelete, showSuccess, showError } from "../../utils/swal";
 import { formatCurrency } from "../../utils/currency";
 
 export default function BudgetPage() {
@@ -69,11 +65,11 @@ export default function BudgetPage() {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortDir, setSortDir] = useState("desc");
 
-  // Destructure from DataLoader Context
+  // --- Data Context ---
   const { categoriesData, user, transactionsData, activeBudgetsData } =
     useDataContext();
 
-  const userCurrency = user?.currency || "USD"; // Get user's currency
+  const userCurrency = user?.currency || "USD";
 
   const historyFilters = useMemo(
     () => ({
@@ -91,16 +87,12 @@ export default function BudgetPage() {
   const createBudgetMutation = useCreateBudget();
   const updateBudgetMutation = useUpdateBudget();
   const deleteBudgetMutation = useDeleteBudget();
-
-  // This hook is for UNLINKING (setting budget_id to null)
   const updateTransactionMutation = useUpdateTransaction();
-
-  // This hook is for DELETING specific transactions (trash icon in modal)
   const deleteTransactionMutation = useDeleteTransaction();
 
   // --- Process Data ---
 
-  // 1. Active Budgets
+  // 1. Active Budgets (Client-side filtering from Context Data)
   const activeBudgets = useMemo(() => {
     let result = activeBudgetsData || [];
 
@@ -133,35 +125,24 @@ export default function BudgetPage() {
     return result;
   }, [activeBudgetsData, search, sortBy, sortDir]);
 
-  // 2. History Budgets
+  // 2. History Budgets (Server-side pagination)
   const historyBudgets = useMemo(
     () => historyBudgetsRaw?.data || [],
     [historyBudgetsRaw]
   );
-  const historyMeta = useMemo(
-    () => historyBudgetsRaw?.meta || {},
-    [historyBudgetsRaw]
-  );
 
-  // 3. Transactions
+  // 3. Transactions (From Context)
   const allTransactions = useMemo(
     () => transactionsData?.data || [],
     [transactionsData]
   );
 
-  const categoryMap = useMemo(() => {
-    const map = {};
-    if (categoriesData?.data) {
-      categoriesData.data.forEach((cat) => {
-        map[cat.id] = cat.name;
-      });
-    }
-    return map;
-  }, [categoriesData]);
+  const getCategoryName = (catId) => {
+    const cat = categoriesData?.data?.find((c) => c.id === catId);
+    return cat ? cat.name : "Uncategorized";
+  };
 
-  const getCategoryName = (catId) => categoryMap[catId] || "Uncategorized";
-
-  // Calculate spending based on locally loaded transactions (Fallback)
+  // Fallback spending map using client-side data
   const spendingMap = useMemo(() => {
     const map = {};
     allTransactions.forEach((t) => {
@@ -172,22 +153,27 @@ export default function BudgetPage() {
     return map;
   }, [allTransactions]);
 
-  // --- CRITICAL FIX: getBudgetSpent ---
   const getBudgetSpent = (budget) => {
-    // 1. Priority: Use the Backend Calculation (total_spent)
+    // 1. Priority: Backend Sum (from withSum query)
+    if (
+      budget.transactions_sum_amount !== undefined &&
+      budget.transactions_sum_amount !== null
+    ) {
+      return parseFloat(budget.transactions_sum_amount);
+    }
     if (budget.total_spent !== undefined && budget.total_spent !== null) {
       return parseFloat(budget.total_spent);
     }
 
-    // 2. Fallback: Use Frontend calculation (spendingMap)
-    if (spendingMap[budget.id] !== undefined && spendingMap[budget.id] > 0) {
+    // 2. Fallback: Client-side Map
+    if (spendingMap[budget.id] !== undefined) {
       return spendingMap[budget.id];
     }
 
     return 0;
   };
 
-  // --- STATS CALCULATION ---
+  // --- Stats Calculation ---
   const budgetStats = useMemo(() => {
     const listToCalculate =
       activeTab === "active" ? activeBudgets : historyBudgets;
@@ -263,14 +249,6 @@ export default function BudgetPage() {
     };
   };
 
-  const toggleSidebar = () => {
-    setSidebarOpen((prev) => {
-      const newValue = !prev;
-      localStorage.setItem("sidebarOpen", JSON.stringify(newValue));
-      return newValue;
-    });
-  };
-
   const handleBudgetCardModalOpen = (budget) => {
     const spent = getBudgetSpent(budget);
     const remaining = Number(budget.amount) - spent;
@@ -279,7 +257,7 @@ export default function BudgetPage() {
   };
 
   // ===========================================================
-  // HANDLE DELETE LOGIC (Unlink & Delete)
+  // HANDLE DELETE LOGIC (Optimized & Consistent)
   // ===========================================================
   const handleDelete = async (budgetIdOrObject) => {
     const id =
@@ -287,47 +265,28 @@ export default function BudgetPage() {
         ? budgetIdOrObject.id
         : budgetIdOrObject;
 
-    // A. Check for Transactions attached to this budget
+    // Check for attached transactions
     const linkedTransactions = allTransactions.filter(
       (t) => t.budget_id == id && t.type === "expense"
     );
     const hasTransactions = linkedTransactions.length > 0;
 
-    // B. Build Alert Message
+    // Build Custom Alert Props
     let title = "Delete Budget?";
-    let text = "You won't be able to revert this!";
-    let confirmText = "Yes, delete it!";
+    let text = "This action cannot be undone.";
 
     if (hasTransactions) {
-      title = "Delete Budget & Preserve History?";
-      text = `This budget has ${linkedTransactions.length} transaction(s). Deleting the budget will keep these transactions in your history, but they will no longer be attached to this limit.`;
-      confirmText = "Yes, Unlink & Delete";
+      title = "Delete & Preserve History?";
+      text = `This budget has ${linkedTransactions.length} transaction(s). They will be unlinked but kept in your history.`;
     }
 
-    const result = await Swal.fire({
-      title: title,
-      text: text,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: confirmText,
-      customClass: { container: "swal-z-index-fix" },
-    });
+    // 1. Custom Confirmation
+    const result = await confirmDelete(title, text);
 
     if (result.isConfirmed) {
       try {
-        // C. Unlink Transactions Step
+        // 2. Unlink Transactions (if any)
         if (hasTransactions) {
-          Swal.fire({
-            title: "Unlinking...",
-            text: "Preserving transaction history",
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading(),
-            customClass: { container: "swal-z-index-fix" },
-          });
-
-          // Sanitize Payload: Only send fields the API expects for an update
           const unlinkPromises = linkedTransactions.map((tx) => {
             const cleanPayload = {
               name: tx.name,
@@ -344,37 +303,23 @@ export default function BudgetPage() {
               data: cleanPayload,
             });
           });
-
-          // Wait for all updates to complete
           await Promise.all(unlinkPromises);
-
-          // Safety delay to ensure database commit before delete is processed
-          await new Promise((resolve) => setTimeout(resolve, 500));
         }
 
-        // D. Delete the Budget
+        // 3. Delete Budget
         await deleteBudgetMutation.mutateAsync(id);
 
-        // E. Refresh Data
-        await queryClient.invalidateQueries(["budgets"]);
-        await queryClient.invalidateQueries(["transactions"]);
-
+        // 4. Cleanup UI
         if (budgetCardModalOpen) {
           setBudgetCardModalOpen(false);
           setSelectedBudget(null);
         }
 
-        Swal.fire({
-          icon: "success",
-          title: "Deleted!",
-          text: "Budget deleted successfully.",
-          timer: 1500,
-          showConfirmButton: false,
-          customClass: { container: "swal-z-index-fix" },
-        });
+        // 5. Success Message
+        showSuccess("Deleted!", "Budget deleted successfully.");
       } catch (error) {
         console.error("Delete failed", error);
-        Swal.fire("Error", "Failed to delete budget", "error");
+        showError("Error", "Failed to delete budget.");
       }
     }
   };
@@ -401,20 +346,18 @@ export default function BudgetPage() {
         await createBudgetMutation.mutateAsync(budgetData);
       }
 
-      queryClient.invalidateQueries(["budgets"]);
       setEditingBudget(null);
       setModalOpen(false);
+      showSuccess(
+        budgetData.id ? "Updated!" : "Created!",
+        "Budget saved successfully."
+      );
     } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.response?.data?.message || "Failed to save budget",
-        customClass: { container: "swal-z-index-fix" },
-      });
+      const msg = error.response?.data?.message || "Failed to save budget";
+      showError("Error", msg);
     }
   };
 
-  // --- DELETE SINGLE TRANSACTION LOGIC (Using Delete Hook) ---
   const handleDeleteTransaction = async (transaction) => {
     try {
       await deleteTransactionMutation.mutateAsync(transaction.id);
@@ -427,29 +370,22 @@ export default function BudgetPage() {
           remaining: prev.remaining + amount,
         }));
       }
-
-      Swal.fire({
-        icon: "success",
-        title: "Deleted!",
-        text: "Transaction deleted successfully.",
-        timer: 1500,
-        showConfirmButton: false,
-        customClass: { container: "swal-z-index-fix" },
-      });
+      showSuccess("Deleted!", "Transaction deleted successfully.");
     } catch (e) {
-      console.error(e);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Failed to delete transaction",
-        customClass: { container: "swal-z-index-fix" },
-      });
+      showError("Error", "Failed to delete transaction");
     }
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => {
+      const newValue = !prev;
+      localStorage.setItem("sidebarOpen", JSON.stringify(newValue));
+      return newValue;
+    });
   };
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100">
-      <style>{` .swal-z-index-fix { z-index: 10000 !important; } `}</style>
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
@@ -823,7 +759,6 @@ export default function BudgetPage() {
                             </tr>
                           ) : (
                             historyBudgets.map((b) => {
-                              // FIX: Use new helper function here
                               const spent = getBudgetSpent(b);
                               const allocated = Number(b.amount);
                               const statusInfo = getBudgetStatusInfo(
