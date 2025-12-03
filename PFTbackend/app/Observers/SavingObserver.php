@@ -55,6 +55,6 @@ class SavingObserver
         $userId = $saving->user_id;
 
         // Clear saving caches
-        Cache::forget('user_' . $userId . '_savings_*');
+        Cache::tags(['user_savings_' . $userId])->flush();
     }
 }

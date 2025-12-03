@@ -38,9 +38,12 @@ class BudgetController extends Controller
         $userId = Auth::id();
         $cacheKey = $this->getCacheKey($request, $userId);
 
-        return Cache::tags(['user_budgets_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
-            $this->updateBudgetStatuses();
+        // Move status updates out of cache to ensure they run regularly, or consider a scheduled job.
+        // For now, to fix the bug where they don't run if cached, we run them before cache check.
+        // Optimization: Run only if we haven't checked recently, or optimize the query.
+        $this->updateBudgetStatuses();
 
+        return Cache::tags(['user_budgets_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
             $query = Budget::where('user_id', $userId)
                 ->withSum([
                     'transactions' => function ($q) {
@@ -88,19 +91,27 @@ class BudgetController extends Controller
         $userId = Auth::id();
         $today = Carbon::now()->format('Y-m-d');
 
-        Budget::where('user_id', $userId)
+        // Expire outdated budgets
+        $expiredCount = Budget::where('user_id', $userId)
             ->where('status', 'active')
             ->where('end_date', '<', $today)
             ->update(['status' => 'expired']);
 
-        $activeBudgets = Budget::where('user_id', $userId)
+        if ($expiredCount > 0) {
+            $this->clearUserCache($userId);
+        }
+
+        // Check for reached budgets - Optimized to avoid N+1
+        // We need to find budgets where total transaction amount >= budget amount
+        // We can do this with a subquery or join, but Laravel's withSum helps
+        $budgetsToCheck = Budget::where('user_id', $userId)
             ->where('status', 'active')
+            ->withSum('transactions', 'amount')
             ->get();
 
-        foreach ($activeBudgets as $budget) {
-            $totalSpent = Transaction::where('budget_id', $budget->id)->sum('amount');
-
-            if ($totalSpent >= $budget->amount) {
+        foreach ($budgetsToCheck as $budget) {
+            // transactions_sum_amount is added by withSum
+            if (($budget->transactions_sum_amount ?? 0) >= $budget->amount) {
                 $budget->update(['status' => 'reached']);
             }
         }

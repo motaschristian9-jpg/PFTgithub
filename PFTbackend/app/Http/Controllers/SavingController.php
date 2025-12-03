@@ -32,9 +32,10 @@ class SavingController extends Controller
         $userId = Auth::id();
         $cacheKey = $this->getCacheKey($request, $userId);
 
-        return Cache::tags(['user_savings_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
-            $this->syncStatuses();
+        // Sync statuses before cache check
+        $this->syncStatuses();
 
+        return Cache::tags(['user_savings_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
             $query = Saving::where('user_id', $userId);
             $status = $request->get('status', 'active');
 

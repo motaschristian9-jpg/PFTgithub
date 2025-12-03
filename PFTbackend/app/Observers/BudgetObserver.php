@@ -75,12 +75,9 @@ class BudgetObserver
         $userId = $budget->user_id;
 
         // Clear budget caches
-        Cache::forget('user_' . $userId . '_budgets_*');
+        Cache::tags(['user_budgets_' . $userId])->flush();
 
         // Clear transaction caches since budgets are linked to transactions via category_id
-        Cache::forget('user_' . $userId . '_transactions_*');
-
-        // Clear monthly summary caches
-        Cache::forget('user_' . $userId . '_monthly_summary_*');
+        Cache::tags(['user_transactions_' . $userId])->flush();
     }
 }
