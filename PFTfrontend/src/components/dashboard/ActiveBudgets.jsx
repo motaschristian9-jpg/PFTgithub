@@ -2,9 +2,16 @@ import React from "react";
 import { Target, PieChart } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
+import { motion } from "framer-motion";
+
 const ActiveBudgets = ({ budgets, userCurrency }) => {
   return (
-    <div className="rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100">
+    <motion.div 
+      className="rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold text-gray-900">Active Budgets</h3>
@@ -82,7 +89,7 @@ const ActiveBudgets = ({ budgets, userCurrency }) => {
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

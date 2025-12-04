@@ -1,4 +1,20 @@
 import React from "react";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
 import { useDataContext } from "../../components/DataLoader.jsx";
 import { useDashboardStats } from "../../hooks/useDashboardStats";
 import DashboardStats from "../../components/dashboard/DashboardStats";
@@ -21,9 +37,14 @@ const Dashboard = () => {
   } = useDashboardStats();
 
   return (
-    <div className="space-y-6 p-6 lg:p-8 max-w-[1600px] mx-auto">
+    <motion.div
+      className="space-y-6 p-6 lg:p-8 max-w-[1600px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header Section */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+      <motion.div variants={itemVariants} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">
             Dashboard
@@ -37,26 +58,28 @@ const Dashboard = () => {
               {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
            </span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Grid */}
-      <DashboardStats stats={stats} userCurrency={userCurrency} />
+      <motion.div variants={itemVariants}>
+        <DashboardStats stats={stats} userCurrency={userCurrency} />
+      </motion.div>
 
       {/* Charts & Activity Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <motion.div variants={itemVariants} className="lg:col-span-2">
           <DashboardCharts data={lineChartData} />
-        </div>
-        <div>
+        </motion.div>
+        <motion.div variants={itemVariants}>
           <RecentTransactions 
             transactions={recentTransactions} 
             userCurrency={userCurrency} 
           />
-        </div>
+        </motion.div>
       </div>
 
       {/* Budgets & Savings */}
-      <div className="space-y-6">
+      <motion.div variants={itemVariants} className="space-y-6">
         <ActiveBudgets 
           budgets={budgetProgressData} 
           userCurrency={userCurrency} 
@@ -65,8 +88,8 @@ const Dashboard = () => {
           savings={processedSavings} 
           userCurrency={userCurrency} 
         />
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

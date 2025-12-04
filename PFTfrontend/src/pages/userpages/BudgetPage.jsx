@@ -1,3 +1,21 @@
+import React from "react";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
+
 import BudgetModal from "../../components/BudgetModal.jsx";
 import BudgetCardModal from "../../components/BudgetCardModal.jsx";
 import BudgetHeader from "../../components/budgets/BudgetHeader.jsx";
@@ -51,58 +69,74 @@ export default function BudgetPage() {
   const userCurrency = user?.currency || "USD";
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
-      <BudgetHeader
-        onAddBudget={() => {
-          setEditingBudget(null);
-          setModalOpen(true);
-        }}
-      />
-
-      <BudgetStats
-        stats={budgetStats}
-        activeTab={activeTab}
-        userCurrency={userCurrency}
-      />
-
-      {activeTab === "active" && (
-        <BudgetCharts 
-          budgets={activeBudgets} 
-          userCurrency={userCurrency} 
-          getBudgetSpent={getBudgetSpent}
+    <motion.div 
+      className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div variants={itemVariants}>
+        <BudgetHeader
+          onAddBudget={() => {
+            setEditingBudget(null);
+            setModalOpen(true);
+          }}
         />
-      )}
+      </motion.div>
 
-      <BudgetFilters
-        search={search}
-        setSearch={setSearch}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        categoryId={categoryId}
-        setCategoryId={setCategoryId}
-        categoriesData={categoriesData}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        sortDir={sortDir}
-        setSortDir={setSortDir}
-      />
-
-      {activeTab === "active" ? (
-        <ActiveBudgetsList
-          budgets={activeBudgets}
-          getBudgetSpent={getBudgetSpent}
-          getBudgetStatusInfo={getBudgetStatusInfo}
-          getCategoryName={getCategoryName}
-          handleBudgetCardModalOpen={handleBudgetCardModalOpen}
+      <motion.div variants={itemVariants}>
+        <BudgetStats
+          stats={budgetStats}
+          activeTab={activeTab}
           userCurrency={userCurrency}
         />
-      ) : (
-        <>
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        {activeTab === "active" ? (
+          <BudgetCharts 
+            budgets={activeBudgets} 
+            userCurrency={userCurrency} 
+            getBudgetSpent={getBudgetSpent}
+          />
+        ) : (
           <BudgetHistoryCharts 
             budgets={historyBudgets} 
             userCurrency={userCurrency} 
             getBudgetSpent={getBudgetSpent}
           />
+        )}
+      </motion.div>
+
+      <motion.div variants={itemVariants}>
+        <BudgetFilters
+          search={search}
+          setSearch={setSearch}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          categoryId={categoryId}
+          setCategoryId={setCategoryId}
+          categoriesData={categoriesData}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          sortDir={sortDir}
+          setSortDir={setSortDir}
+        />
+      </motion.div>
+
+      {activeTab === "active" ? (
+        <motion.div variants={itemVariants}>
+          <ActiveBudgetsList
+            budgets={activeBudgets}
+            getBudgetSpent={getBudgetSpent}
+            getBudgetStatusInfo={getBudgetStatusInfo}
+            getCategoryName={getCategoryName}
+            handleBudgetCardModalOpen={handleBudgetCardModalOpen}
+            userCurrency={userCurrency}
+          />
+        </motion.div>
+      ) : (
+        <motion.div variants={itemVariants}>
           <BudgetHistoryTable
             budgets={historyBudgets}
             loading={historyLoading}
@@ -116,7 +150,7 @@ export default function BudgetPage() {
             setHistoryPage={setHistoryPage}
             totalPages={historyTotalPages}
           />
-        </>
+        </motion.div>
       )}
 
       <BudgetModal
@@ -145,6 +179,6 @@ export default function BudgetPage() {
         getCategoryName={getCategoryName}
         isReadOnly={activeTab === "history"}
       />
-    </div>
+    </motion.div>
   );
 }

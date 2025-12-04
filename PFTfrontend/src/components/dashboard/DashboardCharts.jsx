@@ -36,9 +36,16 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+import { motion } from "framer-motion";
+
 const DashboardCharts = ({ data }) => {
   return (
-    <div className="flex h-[400px] flex-col rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100">
+    <motion.div 
+      className="flex h-[400px] flex-col rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h3 className="text-lg font-bold text-gray-900">Financial Overview</h3>
@@ -120,7 +127,7 @@ const DashboardCharts = ({ data }) => {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

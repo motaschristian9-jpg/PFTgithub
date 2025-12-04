@@ -361,6 +361,251 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Security Section */}
+      <section id="security" className="py-24 bg-gray-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[100px]" />
+        </div>
+        
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/50 border border-blue-800 text-blue-300 text-xs font-bold uppercase tracking-wide mb-6">
+                <Shield size={14} />
+                Bank-Grade Security
+              </div>
+              <h2 className="text-3xl md:text-5xl font-bold mb-6">
+                Your data is safe <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+                  and sound.
+                </span>
+              </h2>
+              <p className="text-lg text-gray-400 mb-8 leading-relaxed">
+                We take security seriously. From the moment you sign up, your financial data 
+                is protected by industry-leading security protocols.
+              </p>
+              
+              <div className="space-y-6">
+                {[
+                  { title: "Secure Authentication", desc: "Powered by Laravel Sanctum for robust token-based protection." },
+                  { title: "Password Hashing", desc: "Passwords are hashed using Bcrypt/Argon2 standards. We never see your password." },
+                  { title: "Data Privacy", desc: "Your data belongs to you. We never sell or share your personal information." },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-blue-400 shrink-0">
+                      <CheckCircle2 size={24} />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold mb-1">{item.title}</h4>
+                      <p className="text-gray-400 text-sm">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="bg-gray-800 rounded-3xl p-8 border border-gray-700 shadow-2xl relative z-10">
+                <div className="flex items-center gap-4 mb-8 border-b border-gray-700 pb-6">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center text-green-400">
+                    <Shield size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-lg">Security Status</h4>
+                    <p className="text-green-400 text-sm flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      Active & Monitored
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
+                    <span className="text-gray-300 text-sm">Encryption</span>
+                    <span className="text-blue-400 text-sm font-mono">TLS 1.3 / HTTPS</span>
+                  </div>
+                  <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
+                    <span className="text-gray-300 text-sm">Database</span>
+                    <span className="text-blue-400 text-sm font-mono">Isolated & Protected</span>
+                  </div>
+                  <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
+                    <span className="text-gray-300 text-sm">Backups</span>
+                    <span className="text-blue-400 text-sm font-mono">Daily Encrypted</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Decor elements */}
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl" />
+              <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-violet-500/20 rounded-full blur-2xl" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Roadmap Section */}
+      <section id="roadmap" className="py-24 bg-white relative">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+              Building for the <span className="text-blue-600">future</span>
+            </h2>
+            <p className="text-lg text-gray-600">
+              We're constantly improving. Here's what's coming next to MoneyTracker.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                quarter: "Q1 2026",
+                title: "Data Export",
+                desc: "Download your complete financial history in CSV and PDF formats for tax season.",
+                status: "In Progress",
+                color: "bg-blue-100 text-blue-700"
+              },
+              {
+                quarter: "Q2 2026",
+                title: "Recurring Transactions",
+                desc: "Set up automated recurring income and expenses so you never have to enter bills manually.",
+                status: "Planned",
+                color: "bg-violet-100 text-violet-700"
+              },
+              {
+                quarter: "Q3 2026",
+                title: "Multi-Currency",
+                desc: "Track assets and spending in multiple currencies with real-time conversion rates.",
+                status: "Planned",
+                color: "bg-teal-100 text-teal-700"
+              }
+            ].map((item, i) => (
+              <div key={i} className="bg-gray-50 rounded-3xl p-8 border border-gray-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+                <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 ${item.color}`}>
+                  {item.status}
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-gray-600 text-sm mb-4">{item.desc}</p>
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Target: {item.quarter}
+                </div>
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/0 to-white/50 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-24 bg-gray-50 relative overflow-hidden">
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+              Loved by <span className="text-blue-600">thousands</span>
+            </h2>
+            <p className="text-lg text-gray-600">
+              Don't just take our word for it. Here's what our community has to say.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Sarah Johnson",
+                role: "Freelance Designer",
+                image: "https://i.pravatar.cc/150?img=1",
+                quote: "MoneyTracker completely transformed how I manage my freelance income. The tax estimation feature is a lifesaver!",
+                rating: 5
+              },
+              {
+                name: "Michael Chen",
+                role: "Software Engineer",
+                image: "https://i.pravatar.cc/150?img=11",
+                quote: "The cleanest budgeting app I've ever used. No clutter, just the insights I need to grow my savings.",
+                rating: 5
+              },
+              {
+                name: "Emily Davis",
+                role: "Small Business Owner",
+                image: "https://i.pravatar.cc/150?img=5",
+                quote: "I finally understand where my money is going. The visual reports are stunning and so easy to understand.",
+                rating: 4
+              }
+            ].map((testimonial, i) => (
+              <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-1 text-amber-400 mb-6">
+                  {[...Array(5)].map((_, starIndex) => (
+                    <Star 
+                      key={starIndex} 
+                      size={18} 
+                      fill={starIndex < testimonial.rating ? "currentColor" : "none"} 
+                      className={starIndex < testimonial.rating ? "text-amber-400" : "text-gray-300"}
+                    />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-6 leading-relaxed">"{testimonial.quote}"</p>
+                <div className="flex items-center gap-4">
+                  <img src={testimonial.image} alt={testimonial.name} className="w-12 h-12 rounded-full object-cover" />
+                  <div>
+                    <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
+                    <p className="text-sm text-gray-500">{testimonial.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-24 bg-white">
+        <div className="container mx-auto px-6 max-w-4xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-lg text-gray-600">
+              Got questions? We've got answers.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                question: "Is MoneyTracker really free?",
+                answer: "Yes! Our core features are completely free forever. We also offer a Premium plan for power users who need advanced automation and unlimited history."
+              },
+              {
+                question: "Is my financial data safe?",
+                answer: "We prioritize your security. Your password is securely hashed using industry standards, and we never sell your personal information to third parties."
+              },
+              {
+                question: "Can I export my data?",
+                answer: "Yes, you can export your transaction history and reports to CSV or PDF formats at any time."
+              },
+              {
+                question: "Does it connect to my bank account?",
+                answer: "Currently, we focus on manual entry for maximum privacy and control, but we are working on optional bank syncing for the near future."
+              }
+            ].map((faq, i) => (
+              <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden hover:border-blue-200 transition-colors">
+                <details className="group">
+                  <summary className="flex items-center justify-between p-6 cursor-pointer bg-white">
+                    <h3 className="text-lg font-semibold text-gray-900">{faq.question}</h3>
+                    <span className="text-gray-400 group-open:rotate-180 transition-transform duration-300">
+                      <ChevronRight />
+                    </span>
+                  </summary>
+                  <div className="px-6 pb-6 text-gray-600 leading-relaxed">
+                    {faq.answer}
+                  </div>
+                </details>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 px-6">
         <div className="container mx-auto max-w-5xl">
@@ -419,8 +664,17 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-gray-900 mb-6">Company</h4>
               <ul className="space-y-4 text-gray-500">
-                {["About", "Careers", "Blog", "Contact"].map(item => (
-                  <li key={item}><a href="#" className="hover:text-blue-600 transition-colors">{item}</a></li>
+                {[
+                  { label: "About", path: "/about" },
+                  { label: "Careers", path: "/careers" },
+                  { label: "Blog", path: "/blog" },
+                  { label: "Contact", path: "/contact" }
+                ].map(item => (
+                  <li key={item.label}>
+                    <button onClick={() => handleNavigation(item.path)} className="hover:text-blue-600 transition-colors">
+                      {item.label}
+                    </button>
+                  </li>
                 ))}
               </ul>
             </div>

@@ -30,6 +30,7 @@ Route::get('/test-queue', function () {
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])->name('verification.verify');
+Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail']);
 
 // Password Reset Routes (Public/Unprotected)
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail']);
@@ -47,7 +48,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Auth-related protected routes
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail']);
 
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
 

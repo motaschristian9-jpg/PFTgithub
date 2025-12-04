@@ -1,6 +1,7 @@
 import React from "react";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { motion } from "framer-motion";
 
 const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
   const getTheme = () => {
@@ -47,7 +48,13 @@ const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
   const theme = getTheme();
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <motion.div 
+      className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+      }}
+    >
       {/* Decorative Background */}
       <div
         className={`absolute -right-4 -top-4 h-24 w-24 rounded-bl-full transition-transform group-hover:scale-110 ${theme.bg}`}
@@ -62,13 +69,26 @@ const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
           {formatCurrency(amount, currency)}
         </h3>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
 const DashboardStats = ({ stats, userCurrency }) => {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <motion.div 
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+      initial="hidden"
+      animate="visible"
+    >
       <StatCard
         title="Total Income"
         amount={stats.income}
@@ -97,7 +117,7 @@ const DashboardStats = ({ stats, userCurrency }) => {
         type="savings"
         currency={userCurrency}
       />
-    </div>
+    </motion.div>
   );
 };
 

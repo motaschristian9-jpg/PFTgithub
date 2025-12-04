@@ -23,6 +23,12 @@ const EmailVerificationPage = lazy(() => import("./pages/authpages/EmailVerifica
 const ResetPasswordPage = lazy(() => import("./pages/authpages/ResetPasswordPage.jsx"));
 const ForgotPasswordPage = lazy(() => import("./pages/authpages/ForgotPasswordPage.jsx"));
 const GoogleCallbackPage = lazy(() => import("./pages/authpages/GoogleCallbackPage.jsx"));
+const AboutPage = lazy(() => import("./pages/AboutPage.jsx"));
+const CareersPage = lazy(() => import("./pages/CareersPage.jsx"));
+const BlogPage = lazy(() => import("./pages/BlogPage.jsx"));
+const ContactPage = lazy(() => import("./pages/ContactPage.jsx"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage.jsx"));
+const TermsOfServicePage = lazy(() => import("./pages/TermsOfServicePage.jsx"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage.jsx"));
 
 const queryClient = new QueryClient({
@@ -47,6 +53,12 @@ function App() {
               {/* Public routes under "/" */}
               <Route path="/" element={<PublicRoutes />}>
                 <Route index element={<LandingPage />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="careers" element={<CareersPage />} />
+                <Route path="blog" element={<BlogPage />} />
+                <Route path="contact" element={<ContactPage />} />
+                <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+                <Route path="terms-of-service" element={<TermsOfServicePage />} />
                 <Route path="login" element={<LoginPage />} />
                 <Route path="signup" element={<SignupPage />} />
                 <Route

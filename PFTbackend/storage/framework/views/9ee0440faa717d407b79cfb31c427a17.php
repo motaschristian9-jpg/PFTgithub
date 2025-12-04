@@ -4,7 +4,7 @@
     <title>Email Verified</title>
     <script>
         setTimeout(function() {
-            window.location.href = "{{ $redirect_url }}";
+            window.location.href = "<?php echo e($redirect_url); ?>";
         }, 3000);
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,9 +20,10 @@
         </div>
         <h1 class="text-2xl font-bold text-gray-900 mb-2">Email Verified!</h1>
         <p class="text-gray-600 mb-8">Your email has been successfully verified. You will be redirected to the login page shortly.</p>
-        <a href="{{ $redirect_url }}" class="inline-block w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+        <a href="<?php echo e($redirect_url); ?>" class="inline-block w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
             Continue to Login
         </a>
     </div>
 </body>
 </html>
+<?php /**PATH C:\ReactProjects\PFTMoneyTracker\PFTbackend\resources\views/emails/verified-redirect.blade.php ENDPATH**/ ?>

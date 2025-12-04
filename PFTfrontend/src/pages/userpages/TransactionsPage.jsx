@@ -1,4 +1,20 @@
 import React from "react";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
 import { useTransactionsPageLogic } from "../../hooks/useTransactionsPageLogic";
 import TransactionModal from "../../components/TransactionModal.jsx";
 import TransactionsHeader from "../../components/transactions/TransactionsHeader";
@@ -48,56 +64,69 @@ export default function TransactionsPage() {
   const netBalance = totalIncome - totalExpenses;
 
   return (
-    <div className="space-y-6 p-6 lg:p-8 max-w-[1600px] mx-auto">
-      <TransactionsHeader
-        onAddTransaction={() => {
-          setEditingTransaction(null);
-          setModalOpen(true);
-        }}
-      />
+    <motion.div 
+      className="space-y-6 p-6 lg:p-8 max-w-[1600px] mx-auto"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <motion.div variants={itemVariants}>
+        <TransactionsHeader
+          onAddTransaction={() => {
+            setEditingTransaction(null);
+            setModalOpen(true);
+          }}
+        />
+      </motion.div>
 
-      <TransactionsStats
-        totalIncome={totalIncome}
-        totalExpenses={totalExpenses}
-        netBalance={netBalance}
-        userCurrency={userCurrency}
-      />
+      <motion.div variants={itemVariants}>
+        <TransactionsStats
+          totalIncome={totalIncome}
+          totalExpenses={totalExpenses}
+          netBalance={netBalance}
+          userCurrency={userCurrency}
+        />
+      </motion.div>
 
-      <TransactionsFilters
-        search={search}
-        setSearch={setSearch}
-        setPage={setPage}
-        pagination={pagination}
-        type={type}
-        setType={setType}
-        setCategoryId={setCategoryId}
-        categoryId={categoryId}
-        filteredCategories={filteredCategories}
-        datePreset={datePreset}
-        setDatePreset={setDatePreset}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
-      />
+      <motion.div variants={itemVariants}>
+        <TransactionsFilters
+          search={search}
+          setSearch={setSearch}
+          setPage={setPage}
+          pagination={pagination}
+          type={type}
+          setType={setType}
+          setCategoryId={setCategoryId}
+          categoryId={categoryId}
+          filteredCategories={filteredCategories}
+          datePreset={datePreset}
+          setDatePreset={setDatePreset}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+        />
+      </motion.div>
 
-      <TransactionsTable
-        isLoading={isLoading}
-        isFetching={isFetching}
-        isError={isError}
-        transactions={transactions}
-        pagination={pagination}
-        handleSort={handleSort}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        handleEdit={handleEdit}
-        handleDelete={handleDelete}
-        userCurrency={userCurrency}
-        isCreatingTransaction={isCreatingTransaction}
-        updatingTransactionId={updatingTransactionId}
-      />
+      <motion.div variants={itemVariants}>
+        <TransactionsTable
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isError={isError}
+          transactions={transactions}
+          pagination={pagination}
+          handleSort={handleSort}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          handleEdit={handleEdit}
+          handleDelete={handleDelete}
+          userCurrency={userCurrency}
+          isCreatingTransaction={isCreatingTransaction}
+          updatingTransactionId={updatingTransactionId}
+        />
+      </motion.div>
 
       <TransactionModal
         isOpen={modalOpen}
@@ -109,6 +138,6 @@ export default function TransactionsPage() {
         editMode={!!editingTransaction}
         transactionToEdit={editingTransaction}
       />
-    </div>
+    </motion.div>
   );
 }

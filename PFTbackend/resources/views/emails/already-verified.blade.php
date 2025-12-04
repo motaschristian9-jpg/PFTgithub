@@ -1,77 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Already Verified</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: white;
-        }
-        .container {
-            text-align: center;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 2rem;
-            border-radius: 10px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            max-width: 400px;
-        }
-        .info-icon {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        .message {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
-        }
-        .help-text {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-bottom: 1.5rem;
-        }
-        .button {
-            background: white;
-            color: #4ecdc4;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .button:hover {
-            background: rgba(255, 255, 255, 0.9);
-            transform: translateY(-2px);
-        }
-    </style>
+    <title>Already Verified</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <div class="info-icon">ℹ️</div>
-        <div class="message">Email Already Verified</div>
-        <div class="help-text">
-            Your email address has already been verified. You can now sign in to your account.
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md max-w-md w-full text-center">
+        <div class="mb-6 flex justify-center">
+            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
         </div>
-        <a href="http://localhost:5173/login" class="button">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Already Verified</h1>
+        <p class="text-gray-600 mb-8">Your email is already verified. You can proceed to login.</p>
+        <a href="http://localhost:5173/login" class="inline-block w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
             Go to Login
         </a>
     </div>
-
-    <script>
-        // Auto redirect after 3 seconds
-        setTimeout(function() {
-            window.location.href = 'http://localhost:5173/login';
-        }, 3000);
-    </script>
 </body>
 </html>
