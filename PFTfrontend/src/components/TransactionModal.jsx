@@ -264,6 +264,7 @@ export default function TransactionModal({
     budgetStatus,
     todayString,
     onSubmit,
+    validateAmount,
   } = useTransactionModalLogic({
     isOpen,
     onClose,
@@ -315,7 +316,7 @@ export default function TransactionModal({
                   placeholder="0.00"
                   {...register("amount", {
                     required: "Required",
-                    min: { value: 0.01, message: "> 0" },
+                    validate: validateAmount,
                   })}
                   className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 tracking-tight outline-none text-gray-900"
                   autoFocus

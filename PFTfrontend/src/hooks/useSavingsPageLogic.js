@@ -146,18 +146,25 @@ export const useSavingsPageLogic = () => {
 
   const findTransferCategory = (type) => {
     if (!categoriesData?.data) return null;
-    // Try to find a specific "Transfer" or "Savings" category first
+
+    // Prioritize "Others" as requested
     let cat = categoriesData.data.find(
+      (c) => c.name.toLowerCase() === "others" && c.type === type
+    );
+    if (cat) return cat.id;
+    
+    // Fallback to "Other" (singular)
+    cat = categoriesData.data.find(
+      (c) => c.name.toLowerCase() === "other" && c.type === type
+    );
+    if (cat) return cat.id;
+
+    // Fallback to "Transfer" or "Savings"
+    cat = categoriesData.data.find(
       (c) =>
         c.type === type &&
         (c.name.toLowerCase().includes("transfer") ||
           c.name.toLowerCase().includes("savings"))
-    );
-    if (cat) return cat.id;
-    
-    // Fallback to "Other"
-    cat = categoriesData.data.find(
-      (c) => c.name.toLowerCase() === "other" && c.type === type
     );
     if (cat) return cat.id;
 
@@ -271,7 +278,7 @@ export const useSavingsPageLogic = () => {
           );
         }
       }
-      queryClient.invalidateQueries(["savings"]);
+      // queryClient.invalidateQueries(["savings"]); // Handled by mutation onSettled
     } catch (error) {
       console.error("Error saving:", error);
       showError("Error", "Failed to save savings goal.");
@@ -355,7 +362,6 @@ export const useSavingsPageLogic = () => {
           params: { refund_transactions: hasFunds ? "true" : "false" },
         });
 
-        await queryClient.invalidateQueries(["savings"]);
         await queryClient.invalidateQueries(["transactions"]);
 
         showSuccess(
@@ -402,5 +408,7 @@ export const useSavingsPageLogic = () => {
     historyTotalPages,
     availableBalance,
     totalActiveCount: activeSavingsData?.length || 0,
+    handleCreateContributionTransaction,
+    handleCreateWithdrawalTransaction,
   };
 };

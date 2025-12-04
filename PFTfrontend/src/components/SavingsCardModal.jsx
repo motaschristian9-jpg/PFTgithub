@@ -117,7 +117,12 @@ export default function SavingsCardModal({
             {!isEditing && (
               <>
                 <button
-                  onClick={handleQuickContribute}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleQuickContribute();
+                  }}
                   className="px-4 py-2.5 flex items-center gap-1.5 text-sm font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all duration-200"
                   disabled={isReadOnly}
                 >
@@ -125,7 +130,12 @@ export default function SavingsCardModal({
                   <span className="hidden sm:inline">Add</span>
                 </button>
                 <button
-                  onClick={handleQuickWithdraw}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleQuickWithdraw();
+                  }}
                   className="px-4 py-2.5 flex items-center gap-1.5 text-sm font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-all duration-200"
                   disabled={isReadOnly && stats.current === 0}
                 >

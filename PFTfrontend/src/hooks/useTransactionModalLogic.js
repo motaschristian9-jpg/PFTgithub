@@ -33,6 +33,12 @@ export const useTransactionModalLogic = ({
   const userCurrency = user?.currency || "USD";
   const currencySymbol = getCurrencySymbol(userCurrency);
 
+  const availableBalance = useMemo(() => {
+    const income = Number(transactionsData?.totals?.income || 0);
+    const expenses = Number(transactionsData?.totals?.expenses || 0);
+    return Math.max(0, income - expenses);
+  }, [transactionsData]);
+
   const {
     register,
     handleSubmit,
@@ -155,6 +161,24 @@ export const useTransactionModalLogic = ({
     if (isOpen) document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
+
+  const validateAmount = (value) => {
+    const amount = parseFloat(value);
+    if (isNaN(amount) || amount <= 0) return "Amount must be greater than 0";
+
+    if (type === "expense") {
+      let requiredAmount = amount;
+      if (editMode && transactionToEdit && transactionToEdit.type === "expense") {
+        const originalAmount = parseFloat(transactionToEdit.amount);
+        requiredAmount = amount - originalAmount;
+      }
+
+      if (requiredAmount > availableBalance) {
+        return `Insufficient funds. Available: ${formatCurrency(availableBalance, userCurrency)}`;
+      }
+    }
+    return true;
+  };
 
   const onSubmit = async (data) => {
     setLoading(true);
@@ -298,5 +322,6 @@ export const useTransactionModalLogic = ({
     budgetStatus,
     todayString,
     onSubmit,
+    validateAmount,
   };
 };

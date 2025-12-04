@@ -74,9 +74,11 @@ export const useCreateSaving = () => {
 
       const previousSavings = queryClient.getQueryData(KEYS.active);
 
+      console.log("Optimistic Create: Adding", newSaving);
       queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
         const optimisticSaving = {
           id: `temp-${Date.now()}`,
+          status: "active",
           ...newSaving,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -167,12 +169,12 @@ export const useDeleteSaving = () => {
         if (oldData.data) {
           return {
             ...oldData,
-            data: oldData.data.filter((item) => item.id != id),
+            data: oldData.data.filter((item) => String(item.id) !== String(id)),
           };
         }
 
         return Array.isArray(oldData)
-          ? oldData.filter((item) => item.id != id)
+          ? oldData.filter((item) => String(item.id) !== String(id))
           : oldData;
       });
 

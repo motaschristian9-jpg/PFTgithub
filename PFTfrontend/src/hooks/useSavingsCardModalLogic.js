@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTransactions } from "./useTransactions";
@@ -166,7 +166,12 @@ export const useSavingsCardModalLogic = ({
     }
   };
 
+  const isSwalOpen = useRef(false);
+  
   const handleQuickContribute = () => {
+    if (isSwalOpen.current) return;
+    isSwalOpen.current = true;
+
     const formattedAvailableBalance = formatCurrency(
       availableBalance ?? 0,
       userCurrency
@@ -193,6 +198,9 @@ export const useSavingsCardModalLogic = ({
           "h-10 mt-2 mb-4 rounded-lg border border-gray-300 text-base px-3 w-full box-border",
       },
       buttonsStyling: false,
+      didClose: () => {
+        isSwalOpen.current = false;
+      },
       preConfirm: () => {
         const amount = parseFloat(document.getElementById("swal-amount").value);
         if (isNaN(amount) || amount <= 0) {
@@ -220,17 +228,6 @@ export const useSavingsCardModalLogic = ({
           current_amount: newCurrentAmount.toString(),
         }));
 
-        optimisticUpdateHistory({
-          id: `temp-${Date.now()}`,
-          amount: amountToAdd,
-          type: "expense",
-          date: todayStr,
-          name: `Deposit: ${localSaving.name}`,
-          description: "Contribution (Pending...)",
-          saving_goal_id: localSaving.id,
-          category_id: 0,
-        });
-
         try {
           await updateSavingMutation.mutateAsync({
             id: localSaving.id,
@@ -251,8 +248,6 @@ export const useSavingsCardModalLogic = ({
               localSaving.name
             }.`
           );
-
-          queryClient.invalidateQueries(["transactions"]);
         } catch (error) {
           console.error("Error adding contribution", error);
           showError("Error", "Failed to add contribution.");
@@ -264,6 +259,9 @@ export const useSavingsCardModalLogic = ({
   };
 
   const handleQuickWithdraw = () => {
+    if (isSwalOpen.current) return;
+    isSwalOpen.current = true;
+
     const formattedCurrent = formatCurrency(stats.current, userCurrency);
 
     MySwal.fire({
@@ -287,6 +285,9 @@ export const useSavingsCardModalLogic = ({
           "h-10 mt-2 mb-4 rounded-lg border border-gray-300 text-base px-3 w-full box-border",
       },
       buttonsStyling: false,
+      didClose: () => {
+        isSwalOpen.current = false;
+      },
       preConfirm: () => {
         const amount = parseFloat(
           document.getElementById("swal-withdraw-amount").value
@@ -314,17 +315,6 @@ export const useSavingsCardModalLogic = ({
           current_amount: newCurrentAmount.toString(),
         }));
 
-        optimisticUpdateHistory({
-          id: `temp-${Date.now()}`,
-          amount: amountToWithdraw,
-          type: "income",
-          date: todayStr,
-          name: `Withdrawal: ${localSaving.name}`,
-          description: "Withdrawal (Pending...)",
-          saving_goal_id: localSaving.id,
-          category_id: 0,
-        });
-
         try {
           await updateSavingMutation.mutateAsync({
             id: localSaving.id,
@@ -345,8 +335,6 @@ export const useSavingsCardModalLogic = ({
               localSaving.name
             }.`
           );
-
-          queryClient.invalidateQueries(["transactions"]);
         } catch (error) {
           console.error("Error withdrawing", error);
           showError("Error", "Failed to withdraw funds.");

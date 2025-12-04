@@ -6,6 +6,7 @@ import SavingsCharts from "../../components/savings/SavingsCharts.jsx";
 import SavingsFilters from "../../components/savings/SavingsFilters.jsx";
 import ActiveSavingsList from "../../components/savings/ActiveSavingsList.jsx";
 import SavingsHistoryTable from "../../components/savings/SavingsHistoryTable.jsx";
+import SavingsHistoryCharts from "../../components/savings/SavingsHistoryCharts.jsx";
 
 import { useSavingsPageLogic } from "../../hooks/useSavingsPageLogic";
 
@@ -41,6 +42,8 @@ export default function SavingsPage() {
     historyTotalPages,
     availableBalance,
     totalActiveCount,
+    handleCreateContributionTransaction,
+    handleCreateWithdrawalTransaction,
   } = useSavingsPageLogic();
 
   const userCurrency = user?.currency || "USD";
@@ -53,6 +56,13 @@ export default function SavingsPage() {
 
       {activeTab === "active" && (
         <SavingsCharts savings={activeSavings} userCurrency={userCurrency} />
+      )}
+
+      {activeTab === "history" && (
+        <SavingsHistoryCharts 
+          savings={historySavings} 
+          userCurrency={userCurrency} 
+        />
       )}
 
       <SavingsFilters
@@ -112,6 +122,8 @@ export default function SavingsPage() {
         onDeleteSaving={handleDelete}
         onDeleteTransaction={handleDeleteTransaction}
         availableBalance={availableBalance}
+        handleCreateContributionTransaction={handleCreateContributionTransaction}
+        handleCreateWithdrawalTransaction={handleCreateWithdrawalTransaction}
       />
     </div>
   );
