@@ -1,0 +1,72 @@
+import React from "react";
+import { Activity, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { formatCurrency } from "../../utils/currency";
+
+const RecentTransactions = ({ transactions, userCurrency }) => {
+  return (
+    <div className="flex h-[400px] flex-col rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
+          <p className="text-sm text-gray-500">Latest transactions</p>
+        </div>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400">
+          <Activity size={20} />
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+        {transactions.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center text-gray-400">
+            <Activity size={32} className="mb-2 opacity-20" />
+            <span className="text-sm">No recent transactions</span>
+          </div>
+        ) : (
+          transactions.map((t, index) => (
+            <div
+              key={index}
+              className="group flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-gray-50"
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                    t.type === "income"
+                      ? "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
+                      : "bg-red-100 text-red-600 group-hover:bg-red-200"
+                  }`}
+                >
+                  {t.type === "income" ? (
+                    <ArrowUpRight size={18} />
+                  ) : (
+                    <ArrowDownRight size={18} />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900 truncate max-w-[140px]">
+                    {t.name || t.category_name}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(t.date).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <p
+                className={`text-sm font-bold ${
+                  t.type === "income" ? "text-emerald-600" : "text-gray-900"
+                }`}
+              >
+                {t.type === "income" ? "+" : "-"}
+                {formatCurrency(Number(t.amount), userCurrency).replace(
+                  /^-/,
+                  ""
+                )}
+              </p>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default RecentTransactions;

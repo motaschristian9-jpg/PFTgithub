@@ -1,245 +1,264 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  ChevronRight,
+  CheckCircle2,
+  TrendingUp,
+  Shield,
+  Zap,
+  Globe,
+  Menu,
+  X,
+  PieChart,
+  Wallet,
+  ArrowRight,
+  Star,
+  Users,
+  Activity
+} from "lucide-react";
+import { LogoIcon } from "../components/Logo";
 
-export default function Landing() {
+export default function LandingPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Trigger entrance animations
-    setIsVisible(true);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const handleNavigation = (path) => {
+    navigate(path);
+    setIsMenuOpen(false);
   };
 
-  const smoothScrollTo = (id) => {
+  const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      element.scrollIntoView({ behavior: "smooth" });
       setIsMenuOpen(false);
     }
   };
 
-  const handleNavigation = (path) => {
-    navigate(path);
-  };
-
   return (
-    <div className="bg-gradient-to-br from-white via-green-50 to-green-100 text-gray-900 overflow-x-hidden">
-      {/* Navbar */}
-      <header className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-green-200/50 shadow-sm z-50 transition-all duration-300">
-        <div className="container mx-auto flex items-center justify-between py-4 px-6">
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent hover:from-green-700 hover:to-green-800 transition-all duration-300 cursor-pointer"
-          >
-            MoneyTracker
-          </button>
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+      {/* Background Gradients */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[100px] animate-pulse-slow" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-violet-400/20 rounded-full blur-[120px] animate-pulse-slow delay-1000" />
+      </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-4">
+      {/* Navbar */}
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm py-4"
+            : "bg-transparent py-6"
+        }`}
+      >
+        <div className="container mx-auto px-6 flex items-center justify-between">
+          <div
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2 cursor-pointer group"
+          >
+            <LogoIcon size={32} />
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-700">
+              MoneyTracker
+            </span>
+          </div>
+
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-8">
+            {["Features", "Testimonials", "FAQ"].map((item) => (
+              <button
+                key={item}
+                onClick={() => scrollToSection(item.toLowerCase())}
+                className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+              >
+                {item}
+              </button>
+            ))}
+            <div className="h-6 w-px bg-gray-200" />
             <button
-              onClick={() => smoothScrollTo("get-started")}
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-2.5 rounded-full font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+              onClick={() => handleNavigation("/login")}
+              className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => handleNavigation("/signup")}
+              className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
               Get Started
             </button>
-            <button
-              onClick={() => handleNavigation("/login")}
-              className="border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-6 py-2.5 rounded-full font-medium transition-all duration-300 hover:shadow-lg cursor-pointer"
-            >
-              Sign In
-            </button>
-          </nav>
-
-          {/* Mobile Hamburger Button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden flex flex-col items-center justify-center w-8 h-8 space-y-1 focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            <div
-              className={`w-6 h-0.5 bg-green-600 transition-all duration-300 ${
-                isMenuOpen ? "rotate-45 translate-y-2" : ""
-              }`}
-            ></div>
-            <div
-              className={`w-6 h-0.5 bg-green-600 transition-all duration-300 ${
-                isMenuOpen ? "opacity-0" : ""
-              }`}
-            ></div>
-            <div
-              className={`w-6 h-0.5 bg-green-600 transition-all duration-300 ${
-                isMenuOpen ? "-rotate-45 -translate-y-2" : ""
-              }`}
-            ></div>
-          </button>
-
-          {/* Mobile Menu */}
-          <div
-            className={`md:hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-md border-b border-green-200/50 shadow-lg transition-all duration-300 ${
-              isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
-            }`}
-          >
-            <nav className="container mx-auto px-6 py-4 space-y-4">
-              <button
-                onClick={() => smoothScrollTo("get-started")}
-                className="block w-full text-center bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-6 py-3 rounded-full font-medium shadow-lg transition-all duration-300"
-              >
-                Get Started
-              </button>
-              <button
-                onClick={() => handleNavigation("/login")}
-                className="block w-full text-center border-2 border-green-600 text-green-600 hover:bg-green-600 hover:text-white px-6 py-3 rounded-full font-medium transition-all duration-300"
-              >
-                Sign In
-              </button>
-            </nav>
           </div>
+
+          {/* Mobile Toggle */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
         </div>
-      </header>
+      </nav>
+
+      {/* Mobile Menu Overlay */}
+      <div
+        className={`fixed inset-0 z-40 bg-white/95 backdrop-blur-xl transition-all duration-300 md:hidden flex flex-col items-center justify-center gap-8 ${
+          isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
+        }`}
+      >
+        {["Features", "Testimonials", "FAQ"].map((item) => (
+          <button
+            key={item}
+            onClick={() => scrollToSection(item.toLowerCase())}
+            className="text-2xl font-medium text-gray-800"
+          >
+            {item}
+          </button>
+        ))}
+        <div className="flex flex-col gap-4 w-full px-8 max-w-xs mt-8">
+          <button
+            onClick={() => handleNavigation("/login")}
+            className="w-full py-4 rounded-2xl border border-gray-200 font-semibold text-gray-700"
+          >
+            Log in
+          </button>
+          <button
+            onClick={() => handleNavigation("/signup")}
+            className="w-full py-4 rounded-2xl bg-blue-600 text-white font-semibold shadow-xl shadow-blue-200"
+          >
+            Get Started
+          </button>
+        </div>
+      </div>
 
       {/* Hero Section */}
-      <section className="relative container mx-auto grid md:grid-cols-2 gap-12 items-center py-32 px-6 min-h-screen">
-        {/* Background decoration */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/30 to-green-300/20 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/40 to-green-200/30 rounded-full blur-2xl"></div>
-        </div>
-
-        <div className="relative z-10 space-y-8">
-          <div
-            className={`space-y-6 transition-all duration-1000 ${
-              isVisible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-10"
-            }`}
-          >
-            <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium border border-green-200">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-              #1 Personal Finance Tracker
+      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
+        <div className="container mx-auto grid lg:grid-cols-2 gap-16 items-center">
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide mb-8 animate-fade-in-up">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              v2.0 is now live
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight">
-              Take Control of Your
-              <span className="bg-gradient-to-r from-green-600 via-green-500 to-green-700 bg-clip-text text-transparent">
-                {" "}
-                Money
+            <h1 className="text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight mb-8 text-gray-900 animate-fade-in-up delay-100">
+              Master your money,{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-500">
+                effortlessly.
               </span>
-              <br />
-              with Ease
             </h1>
-            <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
-              MoneyTracker helps you manage income, expenses, budgets, and
-              savings—all in one beautifully designed platform.
+            <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-lg animate-fade-in-up delay-200">
+              The all-in-one platform to track expenses, set budgets, and grow your savings. 
+              Beautifully designed for modern life.
             </p>
-          </div>
-
-          <div
-            className={`flex flex-col sm:flex-row gap-4 transition-all duration-1000 delay-300 ${
-              isVisible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-10"
-            }`}
-          >
-            <button
-              onClick={() => smoothScrollTo("get-started")}
-              className="group bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 text-center cursor-pointer"
-            >
-              Get Started Free
-              <span className="inline-block ml-2 transition-transform group-hover:translate-x-1">
-                →
-              </span>
-            </button>
-            <button
-              onClick={() => smoothScrollTo("features")}
-              className="group border-2 border-green-600 text-green-600 hover:bg-green-50 px-8 py-4 rounded-full font-semibold text-lg transition-all duration-300 text-center hover:shadow-lg cursor-pointer"
-            >
-              Learn More
-              <span className="inline-block ml-2 transition-transform group-hover:translate-x-1">
-                →
-              </span>
-            </button>
-          </div>
-
-          <div
-            className={`flex items-center space-x-8 pt-8 transition-all duration-1000 delay-500 ${
-              isVisible
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 translate-y-10"
-            }`}
-          >
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">10K+</div>
-              <div className="text-sm text-gray-500">Active Users</div>
+            <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-300">
+              <button
+                onClick={() => handleNavigation("/signup")}
+                className="group flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-2xl hover:shadow-gray-200 hover:-translate-y-1"
+              >
+                Start for free
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              <button
+                onClick={() => scrollToSection("features")}
+                className="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-full font-semibold text-lg transition-all hover:bg-gray-50 hover:border-gray-300"
+              >
+                See how it works
+              </button>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">4.9★</div>
-              <div className="text-sm text-gray-500">Rating</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-700">$2M+</div>
-              <div className="text-sm text-gray-500">Tracked</div>
+            
+            <div className="mt-12 flex items-center gap-4 text-sm font-medium text-gray-500 animate-fade-in-up delay-400">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
+                    <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1 text-amber-400">
+                  {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={14} fill="currentColor" />)}
+                </div>
+                <span>Loved by 10,000+ users</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="relative z-10 hidden md:block">
-          <div
-            className={`relative transition-all duration-1000 delay-700 ${
-              isVisible
-                ? "opacity-100 translate-x-0"
-                : "opacity-0 translate-x-10"
-            }`}
-          >
-            <div className="absolute -inset-4 bg-gradient-to-r from-green-200 to-green-300 rounded-3xl blur opacity-30"></div>
-            <div className="relative bg-white rounded-3xl shadow-2xl p-8 border border-green-100">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Dashboard Overview
-                  </h3>
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          {/* 3D Dashboard Preview */}
+          <div className="relative z-10 lg:h-[600px] flex items-center justify-center perspective-1000 animate-fade-in-up delay-500">
+            <div className="relative w-full max-w-lg transform rotate-y-neg-12 rotate-x-5 hover:rotate-y-0 hover:rotate-x-0 transition-transform duration-700 ease-out preserve-3d">
+              {/* Main Card */}
+              <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 relative z-20">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <p className="text-sm text-gray-500 font-medium">Total Balance</p>
+                    <h3 className="text-3xl font-bold text-gray-900">$24,500.00</h3>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                    <TrendingUp size={24} />
+                  </div>
+                </div>
+                
+                {/* Chart Placeholder */}
+                <div className="h-48 bg-gradient-to-b from-blue-50 to-transparent rounded-xl border border-blue-100 mb-6 relative overflow-hidden">
+                  <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end justify-between px-4 pb-2 opacity-50">
+                    {[40, 70, 45, 90, 65, 85, 50].map((h, i) => (
+                      <div key={i} style={{ height: `${h}%` }} className="w-8 bg-blue-500 rounded-t-lg" />
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-green-50 rounded-xl border border-green-100">
-                    <span className="font-medium text-gray-700">
-                      Total Balance
-                    </span>
-                    <span className="text-2xl font-bold text-green-700">
-                      $12,450
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-xl">
-                      <div className="text-sm text-gray-500">Income</div>
-                      <div className="text-lg font-bold text-green-600">
-                        +$3,200
+                  {[
+                    { icon: Zap, label: "Netflix Subscription", date: "Today", amount: "-$14.99", color: "text-red-500" },
+                    { icon: CheckCircle2, label: "Freelance Project", date: "Yesterday", amount: "+$450.00", color: "text-blue-600" },
+                    { icon: Globe, label: "Grocery Store", date: "Yesterday", amount: "-$85.20", color: "text-red-500" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">
+                          <item.icon size={18} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900">{item.label}</p>
+                          <p className="text-xs text-gray-500">{item.date}</p>
+                        </div>
                       </div>
+                      <span className={`text-sm font-bold ${item.color}`}>{item.amount}</span>
                     </div>
-                    <div className="p-4 bg-gray-50 rounded-xl">
-                      <div className="text-sm text-gray-500">Expenses</div>
-                      <div className="text-lg font-bold text-red-500">
-                        -$1,850
-                      </div>
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Savings Goal</span>
-                      <span className="text-green-600 font-medium">72%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full"
-                        style={{ width: "72%" }}
-                      ></div>
-                    </div>
+              {/* Floating Elements */}
+              <div className="absolute -top-12 -right-12 bg-white p-4 rounded-2xl shadow-xl border border-gray-100 animate-float z-30">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center text-teal-600">
+                    <PieChart size={20} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold uppercase">Savings Goal</p>
+                    <p className="text-lg font-bold text-gray-900">MacBook Pro</p>
+                  </div>
+                </div>
+                <div className="mt-3 w-48 h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full w-[75%] bg-teal-500 rounded-full" />
+                </div>
+              </div>
+
+              <div className="absolute -bottom-8 -left-8 bg-gray-900 text-white p-5 rounded-2xl shadow-2xl animate-float delay-700 z-30">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-violet-500 rounded-full flex items-center justify-center">
+                    <CheckCircle2 size={20} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium opacity-80">Budget Status</p>
+                    <p className="text-lg font-bold">On Track</p>
                   </div>
                 </div>
               </div>
@@ -248,343 +267,170 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="relative py-24 px-6">
-        <div className="absolute inset-0 bg-gradient-to-b from-white to-green-50"></div>
-        <div className="relative container mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              ✨ Powerful Features
+      {/* Bento Grid Features */}
+      <section id="features" className="py-24 bg-white relative">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+              Everything you need to <br />
+              <span className="text-blue-600">build wealth.</span>
+            </h2>
+            <p className="text-lg text-gray-600">
+              Powerful tools to help you take control of your financial future, 
+              packaged in a simple, intuitive interface.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* Large Card - Dashboard */}
+            <div className="md:col-span-2 bg-blue-50 rounded-3xl p-8 md:p-12 border border-blue-100 hover:border-blue-200 transition-colors group overflow-hidden relative">
+              <div className="relative z-10">
+                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm mb-6 group-hover:scale-110 transition-transform">
+                  <TrendingUp size={28} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Interactive Dashboard</h3>
+                <p className="text-gray-600 max-w-md">
+                  Get a bird's-eye view of your finances. Track income, expenses, and savings 
+                  in real-time with beautiful, interactive charts.
+                </p>
+              </div>
+              <div className="absolute right-[-20px] bottom-[-20px] opacity-50 group-hover:opacity-100 transition-opacity">
+                <TrendingUp size={200} className="text-blue-100/50" />
+              </div>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Everything You Need to
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Master your finances with our comprehensive suite of tools
-              designed for modern money management.
-            </p>
-          </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                emoji: "💰",
-                title: "Smart Tracking",
-                desc: "Automatically categorize and track your income & expenses with AI-powered insights.",
-                color: "from-green-500 to-green-600",
-              },
-              {
-                emoji: "📊",
-                title: "Budget Monitoring",
-                desc: "Set smart budgets and get real-time alerts when you're approaching limits.",
-                color: "from-green-600 to-green-700",
-              },
-              {
-                emoji: "🎯",
-                title: "Savings Goals",
-                desc: "Set and track multiple savings goals with visual progress indicators.",
-                color: "from-green-400 to-green-500",
-              },
-              {
-                emoji: "📈",
-                title: "Visual Reports",
-                desc: "Beautiful charts and reports that make your financial data easy to understand.",
-                color: "from-green-700 to-green-800",
-              },
-              {
-                emoji: "🔔",
-                title: "Smart Alerts",
-                desc: "Never miss important financial milestones with intelligent notifications.",
-                color: "from-green-500 to-green-600",
-              },
-              {
-                emoji: "📝",
-                title: "Manual Entry",
-                desc: "Quickly add your income and expenses with our intuitive input forms.",
-                color: "from-green-600 to-green-700",
-              },
-            ].map((feature, i) => (
-              <div
-                key={i}
-                className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl p-8 border border-green-100 hover:border-green-200 transition-all duration-300 hover:-translate-y-2"
-              >
-                <div
-                  className={`w-16 h-16 bg-gradient-to-r ${feature.color} rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  {feature.emoji}
+            {/* Tall Card - Budgeting */}
+            <div className="md:row-span-2 bg-violet-900 rounded-3xl p-8 md:p-12 text-white flex flex-col justify-between group overflow-hidden relative">
+              <div className="relative z-10">
+                <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-violet-300 mb-6 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                  <PieChart size={28} />
                 </div>
-                <h3 className="text-xl font-bold mb-3 text-gray-900">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+                <h3 className="text-2xl font-bold mb-4">Smart Budgeting</h3>
+                <p className="text-violet-200">
+                  Set monthly limits for every category. We'll track your spending and 
+                  alert you when you're close to your limit.
+                </p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Us Section */}
-      <section className="relative py-24 px-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-green-50 to-white"></div>
-        <div className="relative container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-6">
-              Why Choose MoneyTracker?
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Join thousands who trust us with their financial journey
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              {
-                icon: "✅",
-                title: "Simple & Intuitive",
-                desc: "Clean interface designed for everyone",
-                bg: "from-green-100 to-green-200",
-              },
-              {
-                icon: "🔒",
-                title: "Secure & Private",
-                desc: "Your data is encrypted and stored securely",
-                bg: "from-green-200 to-green-300",
-              },
-              {
-                icon: "⚡",
-                title: "Real-Time Updates",
-                desc: "Live tracking across all devices",
-                bg: "from-green-300 to-green-400",
-              },
-              {
-                icon: "🌍",
-                title: "Access Anywhere",
-                desc: "Web, mobile, and desktop apps",
-                bg: "from-green-400 to-green-500",
-              },
-            ].map((point, i) => (
-              <div
-                key={i}
-                className="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-green-100"
-              >
-                <div
-                  className={`w-20 h-20 bg-gradient-to-r ${point.bg} rounded-full flex items-center justify-center text-3xl mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  {point.icon}
+              <div className="mt-8 relative h-40 bg-violet-800/50 rounded-2xl border border-white/5 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <PieChart size={80} className="text-violet-500/20" />
                 </div>
-                <h3 className="font-bold text-lg mb-3 text-gray-900">
-                  {point.title}
-                </h3>
-                <p className="text-gray-600">{point.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Steps Section */}
-      <section className="relative py-24 px-6">
-        <div className="absolute inset-0 bg-gradient-to-b from-white to-green-50"></div>
-        <div className="relative container mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-6">
-              Get Started in 3 Simple Steps
-            </h2>
-            <p className="text-xl text-gray-600">
-              Your journey to financial freedom starts here
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 relative">
-            {/* Connection lines */}
-            <div className="hidden md:block absolute top-1/2 left-1/3 right-1/3 h-0.5 bg-gradient-to-r from-green-300 to-green-500 transform -translate-y-1/2"></div>
-
-            {[
-              {
-                step: "1",
-                icon: "✍️",
-                title: "Create Account",
-                desc: "Sign up for free in under 30 seconds. No credit card required.",
-              },
-              {
-                step: "2",
-                icon: "💳",
-                title: "Add Your Data",
-                desc: "Manually add your income and expenses with our simple, intuitive forms.",
-              },
-              {
-                step: "3",
-                icon: "📊",
-                title: "Track & Optimize",
-                desc: "Monitor progress, set goals, and optimize your financial health.",
-              },
-            ].map((item, i) => (
-              <div key={i} className="relative text-center group">
-                <div className="relative bg-white rounded-3xl shadow-xl hover:shadow-2xl p-8 border border-green-100 transition-all duration-300 hover:-translate-y-2">
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-                    {item.step}
+                {/* Mock Progress Bar */}
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="flex justify-between text-xs font-medium mb-2 opacity-80">
+                    <span>Food & Dining</span>
+                    <span>85%</span>
                   </div>
-
-                  <div className="mt-8 space-y-4">
-                    <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-green-200 rounded-2xl flex items-center justify-center text-3xl mx-auto group-hover:scale-110 transition-transform duration-300">
-                      {item.icon}
-                    </div>
-                    <h3 className="font-bold text-xl text-gray-900">
-                      {item.title}
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed">{item.desc}</p>
+                  <div className="h-2 bg-violet-950 rounded-full overflow-hidden">
+                    <div className="h-full w-[85%] bg-violet-400 rounded-full" />
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Medium Card - Savings */}
+            <div className="bg-teal-50 rounded-3xl p-8 border border-teal-100 hover:border-teal-200 transition-colors group">
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 shadow-sm mb-6 group-hover:scale-110 transition-transform">
+                <Users size={28} /> 
+                {/* Note: Using Users as placeholder for Target if not imported, but Target is better. 
+                    I'll check imports. Target is not imported. I'll use Users or Star or CheckCircle2.
+                    Actually, I can add Target to imports in a separate edit or just use CheckCircle2 for now.
+                    Let's use CheckCircle2 which implies "Goal Achieved".
+                */}
+                <CheckCircle2 size={28} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Goal Tracking</h3>
+              <p className="text-gray-600 text-sm">
+                Create custom savings goals for your dreams. Track your progress 
+                and reach your targets faster.
+              </p>
+            </div>
+
+            {/* Medium Card - Reports */}
+            <div className="bg-indigo-50 rounded-3xl p-8 border border-indigo-100 hover:border-indigo-200 transition-colors shadow-sm group">
+              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
+                <Activity size={28} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Detailed Reports</h3>
+              <p className="text-gray-600 text-sm">
+                Analyze your spending habits with comprehensive breakdowns 
+                and exportable reports.
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section id="get-started" className="relative py-24 px-6">
-        <div className="absolute inset-0 bg-gradient-to-r from-green-600 via-green-500 to-green-700"></div>
-        <div className="absolute inset-0 bg-black/10"></div>
-
-        <div className="relative container mx-auto text-center text-white">
-          <div className="max-w-4xl mx-auto space-y-8">
-            <div className="space-y-6">
-              <h2 className="text-4xl md:text-5xl font-bold leading-tight">
-                Ready to Transform Your Financial Future?
-              </h2>
-              <p className="text-xl md:text-2xl opacity-90 leading-relaxed">
-                Join over 10,000 users who are already taking control of their
-                money with MoneyTracker.
-              </p>
+      <section className="py-24 px-6">
+        <div className="container mx-auto max-w-5xl">
+          <div className="bg-gray-900 rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden">
+            {/* Decor */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+              <div className="absolute top-[-50%] left-[-20%] w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px]" />
+              <div className="absolute bottom-[-50%] right-[-20%] w-[800px] h-[800px] bg-violet-500/20 rounded-full blur-[120px]" />
             </div>
 
-            <div className="flex justify-center pt-8">
+            <div className="relative z-10">
+              <h2 className="text-4xl md:text-6xl font-bold text-white mb-8 tracking-tight">
+                Ready to take control?
+              </h2>
+              <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
+                Join thousands of users who are building a better financial future with MoneyTracker.
+              </p>
               <button
                 onClick={() => handleNavigation("/signup")}
-                className="group bg-white text-green-600 hover:bg-gray-100 px-10 py-4 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+                className="bg-white text-gray-900 px-10 py-5 rounded-full font-bold text-lg transition-all hover:scale-105 hover:shadow-2xl hover:shadow-white/20"
               >
-                Start Free Today
-                <span className="inline-block ml-2 transition-transform group-hover:translate-x-1">
-                  →
-                </span>
+                Create Free Account
               </button>
-            </div>
-
-            <div className="pt-8 text-sm opacity-75">
-              ✨ Completely free forever • No hidden fees • Start tracking
-              immediately
+              <p className="mt-8 text-sm text-gray-500">
+                No credit card required • Free forever plan available
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16 px-6">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-12">
-            <div className="space-y-4">
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                className="text-2xl font-bold bg-gradient-to-r from-green-400 to-green-500 bg-clip-text text-transparent"
-              >
-                MoneyTracker
-              </button>
-              <p className="text-gray-400 leading-relaxed">
-                The smart way to manage your personal finances and build wealth
-                for the future.
-              </p>
-              <div className="flex space-x-4">
-                {["Facebook", "Twitter", "Instagram", "LinkedIn"].map(
-                  (social) => (
-                    <a
-                      key={social}
-                      href="#"
-                      className="w-10 h-10 bg-gray-800 hover:bg-green-600 rounded-full flex items-center justify-center transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <span className="sr-only">{social}</span>
-                      <div className="w-4 h-4 bg-gray-400"></div>
-                    </a>
-                  )
-                )}
+      <footer className="bg-white border-t border-gray-200 py-16 px-6">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid md:grid-cols-4 gap-12 mb-16">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center gap-2 mb-6">
+                <LogoIcon size={32} />
+                <span className="text-xl font-bold text-gray-900">MoneyTracker</span>
               </div>
+              <p className="text-gray-500 max-w-sm">
+                The smartest way to manage your personal finances. 
+                Built with security and simplicity in mind.
+              </p>
             </div>
-
+            
             <div>
-              <h4 className="font-semibold text-lg mb-6 text-green-400">
-                Product
-              </h4>
-              <ul className="space-y-3 text-gray-400">
-                {["Features", "Pricing", "Security", "Integrations"].map(
-                  (item) => (
-                    <li key={item}>
-                      <a
-                        href="#"
-                        className="hover:text-green-400 transition-colors duration-300"
-                      >
-                        {item}
-                      </a>
-                    </li>
-                  )
-                )}
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-lg mb-6 text-green-400">
-                Company
-              </h4>
-              <ul className="space-y-3 text-gray-400">
-                {["About Us", "Careers", "Contact", "Blog"].map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
-                      className="hover:text-green-400 transition-colors duration-300"
-                    >
-                      {item}
-                    </a>
-                  </li>
+              <h4 className="font-bold text-gray-900 mb-6">Product</h4>
+              <ul className="space-y-4 text-gray-500">
+                {["Features", "Pricing", "Security", "Roadmap"].map(item => (
+                  <li key={item}><a href="#" className="hover:text-blue-600 transition-colors">{item}</a></li>
                 ))}
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold text-lg mb-6 text-green-400">
-                Support
-              </h4>
-              <ul className="space-y-3 text-gray-400">
-                {[
-                  "Help Center",
-                  "Documentation",
-                  "Privacy Policy",
-                  "Terms of Service",
-                ].map((item) => (
-                  <li key={item}>
-                    <a
-                      href="#"
-                      className="hover:text-green-400 transition-colors duration-300"
-                    >
-                      {item}
-                    </a>
-                  </li>
+              <h4 className="font-bold text-gray-900 mb-6">Company</h4>
+              <ul className="space-y-4 text-gray-500">
+                {["About", "Careers", "Blog", "Contact"].map(item => (
+                  <li key={item}><a href="#" className="hover:text-blue-600 transition-colors">{item}</a></li>
                 ))}
               </ul>
             </div>
           </div>
-
-          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm">
-              © 2025 MoneyTracker. All rights reserved.
-            </p>
-            <div className="flex space-x-6 mt-4 md:mt-0 text-sm text-gray-400">
-              <a href="#" className="hover:text-green-400 transition-colors">
-                Privacy
-              </a>
-              <a href="#" className="hover:text-green-400 transition-colors">
-                Terms
-              </a>
-              <a href="#" className="hover:text-green-400 transition-colors">
-                Cookies
-              </a>
+          
+          <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
+            <p>© 2025 MoneyTracker. All rights reserved.</p>
+            <div className="flex gap-8">
+              <a href="#" className="hover:text-gray-600">Privacy Policy</a>
+              <a href="#" className="hover:text-gray-600">Terms of Service</a>
             </div>
           </div>
         </div>

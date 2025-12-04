@@ -225,6 +225,31 @@ class AuthController extends Controller
         ], 'Notifications acknowledged.');
     }
 
+    /**
+     * @OA\Delete(
+     * path="/api/user",
+     * summary="Delete the authenticated user's account",
+     * tags={"Authentication"},
+     * security={{"sanctum":{}}},
+     * @OA\Response(response=200, description="Account deleted successfully"),
+     * @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+
+        // Optional: Delete related data explicitly if no cascading delete in DB
+        // $user->transactions()->delete();
+        // $user->budgets()->delete();
+        // $user->savings()->delete();
+        // $user->categories()->delete();
+
+        $user->delete();
+
+        return $this->success(null, 'Account deleted successfully.');
+    }
+
     public function verifyEmail(Request $request, $id, $hash)
     {
         $user = User::findOrFail($id);

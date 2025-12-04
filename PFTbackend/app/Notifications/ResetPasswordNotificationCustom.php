@@ -6,7 +6,9 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
 
-class ResetPasswordNotificationCustom extends Notification
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class ResetPasswordNotificationCustom extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -28,10 +30,6 @@ class ResetPasswordNotificationCustom extends Notification
 
         return (new MailMessage)
             ->subject('Reset Your Password')
-            ->greeting('Hello!')
-            ->line('You are receiving this email because we received a password reset request for your account.')
-            ->action('Reset Password', $resetUrl)
-            ->line('If you did not request a password reset, no further action is required.')
-            ->salutation('Regards, ' . config('app.name'));
+            ->view('emails.reset-password', ['url' => $resetUrl]);
     }
 }

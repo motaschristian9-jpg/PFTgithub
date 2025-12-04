@@ -21,6 +21,9 @@ class CreateTransactionsRequest extends FormRequest
             'date' => 'required|date|before_or_equal:today',
             'category_id' => 'nullable|integer',
             'budget_id' => 'nullable|integer',
+            'savings_amount' => 'nullable|numeric|min:0',
+            'transfer_category_id' => 'nullable|integer|exists:categories,id',
+            'saving_goal_id' => 'nullable|integer|exists:savings,id',
         ];
     }
 }

@@ -1,0 +1,68 @@
+import React from "react";
+import { Banknote, TrendingUp, CheckCircle2 } from "lucide-react";
+import { formatCurrency } from "../../utils/currency";
+
+const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClass }) => {
+  // Extract base color from classes (e.g., "text-emerald-600" -> "emerald")
+  const getColorTheme = () => {
+    if (colorClass.includes("emerald") || colorClass.includes("green")) return { bg: "bg-emerald-50", text: "text-emerald-600", icon: "text-emerald-200" };
+    if (colorClass.includes("violet")) return { bg: "bg-violet-50", text: "text-violet-600", icon: "text-violet-200" };
+    if (colorClass.includes("red")) return { bg: "bg-red-50", text: "text-red-600", icon: "text-red-200" };
+    if (colorClass.includes("blue")) return { bg: "bg-blue-50", text: "text-blue-600", icon: "text-blue-200" };
+    return { bg: "bg-gray-50", text: "text-gray-600", icon: "text-gray-200" };
+  };
+
+  const theme = getColorTheme();
+
+  return (
+    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+      {/* Decorative Background */}
+      <div
+        className={`absolute -right-4 -top-4 h-24 w-24 rounded-bl-full transition-transform group-hover:scale-110 ${theme.bg}`}
+      />
+      
+      {/* Icon */}
+      <Icon className={`absolute right-3 top-3 ${theme.icon}`} size={24} />
+
+      <div className="relative z-10">
+        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+        <h3 className={`text-2xl font-bold tracking-tight ${theme.text}`}>
+          {value}
+        </h3>
+      </div>
+    </div>
+  );
+};
+
+const BudgetStats = ({ stats, activeTab, userCurrency }) => {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <StatCard
+        title={activeTab === "active" ? "Active Allocated" : "History Allocated"}
+        value={formatCurrency(stats.totalAllocated, userCurrency)}
+        icon={Banknote}
+        colorClass="text-violet-600"
+        bgClass="bg-violet-50"
+        iconColorClass="text-violet-600"
+      />
+      <StatCard
+        title={activeTab === "active" ? "Active Spent" : "History Spent"}
+        value={formatCurrency(stats.totalSpent, userCurrency)}
+        icon={TrendingUp}
+        colorClass="text-violet-600"
+        bgClass="bg-violet-50"
+        iconColorClass="text-violet-600"
+      />
+      <StatCard
+        title={activeTab === "active" ? "Active Count" : "History Count"}
+        value={stats.count}
+        icon={CheckCircle2}
+        colorClass="text-violet-600"
+        bgClass="bg-violet-50"
+        iconColorClass="text-violet-600"
+      />
+    </div>
+  );
+};
+
+export default BudgetStats;

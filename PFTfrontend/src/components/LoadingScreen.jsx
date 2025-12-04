@@ -1,32 +1,38 @@
-import { Wallet } from "lucide-react";
+import { LogoIcon } from "./Logo";
 
 const LoadingScreen = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100 flex items-center justify-center">
-      {/* Background decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/20 to-green-300/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/30 to-green-200/20 rounded-full blur-2xl"></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-50">
+      {/* Subtle Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-200/20 rounded-full blur-[100px] opacity-50 animate-pulse-slow"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-violet-200/40 rounded-full blur-[80px] opacity-50 animate-pulse-slow delay-700"></div>
       </div>
 
-      {/* Loading Content */}
-      <div className="relative z-10 flex flex-col items-center space-y-6">
-        {/* Icon with Spinner */}
-        <div className="relative">
-          <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <Wallet className="text-white" size={32} />
+      <div className="relative flex flex-col items-center justify-center">
+        {/* Logo Container */}
+        <div className="relative w-24 h-24 mb-6 flex items-center justify-center">
+          {/* Pulsing Rings */}
+          <div className="absolute inset-0 bg-blue-500/20 rounded-3xl animate-ping opacity-75 duration-1000"></div>
+          <div className="absolute inset-0 bg-violet-500/10 rounded-3xl animate-pulse duration-2000"></div>
+          
+          {/* Logo Icon */}
+          <div className="relative z-10">
+            <LogoIcon size={80} />
           </div>
-          {/* Spinner Overlay */}
-          <div className="absolute inset-0 rounded-2xl border-4 border-green-200 border-t-green-600 animate-spin"></div>
         </div>
 
-        {/* App Name */}
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
-          MoneyTracker
-        </h1>
-
-        {/* Loading Text */}
-        <p className="text-gray-600 text-sm">Loading your financial dashboard...</p>
+        {/* Text */}
+        <div className="text-center space-y-3">
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            Money<span className="text-blue-600">Tracker</span>
+          </h1>
+          <div className="flex items-center justify-center gap-1.5">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce delay-0"></div>
+            <div className="w-2 h-2 bg-violet-600 rounded-full animate-bounce delay-150"></div>
+            <div className="w-2 h-2 bg-teal-600 rounded-full animate-bounce delay-300"></div>
+          </div>
+        </div>
       </div>
     </div>
   );

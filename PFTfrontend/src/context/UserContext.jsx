@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { getUser } from "../api/auth";
 
 const UserContext = createContext(null);
 
@@ -8,13 +9,37 @@ export const UserProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load user from localStorage on mount
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-    setIsLoading(false);
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem("user");
+      const token = localStorage.getItem("token"); // Assuming token is stored in localStorage
+
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        setIsAuthenticated(true);
+      }
+
+      if (token) {
+        try {
+          const userData = await getUser();
+          setUser(userData);
+          setIsAuthenticated(true);
+          localStorage.setItem("user", JSON.stringify(userData));
+        } catch (error) {
+          console.error("Failed to fetch fresh user data:", error);
+          // Optional: if 401, clear user. For now, we keep the stored user to allow offline/optimistic access
+          // or we could clear it if we want to force re-login on invalid token
+          if (error.response?.status === 401) {
+             setUser(null);
+             setIsAuthenticated(false);
+             localStorage.removeItem("user");
+             localStorage.removeItem("token");
+          }
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   useEffect(() => {

@@ -11,7 +11,7 @@ import { useAuth } from "../hooks/useAuth.js";
 import { useTransactions } from "../hooks/useTransactions.js";
 import { useCategories } from "../hooks/useCategories.js";
 import { useActiveBudgets } from "../hooks/useBudget.js";
-import { useActiveSavings } from "../hooks/useSavings.js";
+import { useActiveSavings, useSavingsHistory } from "../hooks/useSavings.js";
 import { formatCurrency } from "../utils/currency.js";
 import { parseISO, isAfter } from "date-fns";
 import { acknowledgeNotificationsAPI } from "../api/auth";
@@ -57,6 +57,11 @@ const DataLoader = ({ children }) => {
     isLoading: savingsLoading,
     error: savingsError,
   } = useActiveSavings();
+
+  const { data: historySavingsRaw } = useSavingsHistory(1, {
+    sortBy: "updated_at",
+    sortDir: "desc",
+  });
 
   const isLoading =
     userLoading ||
@@ -128,7 +133,9 @@ const DataLoader = ({ children }) => {
     const userCurrency = user?.currency || "USD";
 
     const budgetsList = getList(activeBudgetsDataRaw);
-    const savingsList = getList(activeSavingsDataRaw);
+    const activeSavingsList = getList(activeSavingsDataRaw);
+    const historySavingsList = getList(historySavingsRaw);
+    const savingsList = [...activeSavingsList, ...historySavingsList];
 
     const getBudgetSpent = (budget) => {
       if (budget.transactions_sum_amount !== undefined) {
@@ -151,8 +158,8 @@ const DataLoader = ({ children }) => {
       if (percent >= 100) {
         notificationList.push({
           id: `s-${s.id}-complete`,
-          type: "success",
-          message: `Goal **${
+          type: "savings-success",
+          message: `🎉 Goal **${
             s.name
           }** is Complete! You reached ${formatCurrency(
             target,
@@ -163,7 +170,7 @@ const DataLoader = ({ children }) => {
       } else if (percent >= 85) {
         notificationList.push({
           id: `s-${s.id}-near`,
-          type: "warning",
+          type: "savings-warning",
           message: `Goal **${s.name}** is ${percent.toFixed(
             0
           )}% complete. Only ${formatCurrency(
@@ -184,8 +191,8 @@ const DataLoader = ({ children }) => {
       if (spent > allocated) {
         notificationList.push({
           id: `b-${b.id}-overspent`,
-          type: "error",
-          message: `**${
+          type: "budget-error",
+          message: `🚨 **${
             b.name
           }** Budget is Overspent! You are over by ${formatCurrency(
             spent - allocated,
@@ -196,7 +203,7 @@ const DataLoader = ({ children }) => {
       } else if (percent >= 85) {
         notificationList.push({
           id: `b-${b.id}-near`,
-          type: "warning",
+          type: "budget-warning",
           message: `**${b.name}** Budget is ${percent.toFixed(
             0
           )}% used. Only ${formatCurrency(
@@ -213,7 +220,7 @@ const DataLoader = ({ children }) => {
       const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
       return dateB - dateA;
     });
-  }, [user, activeBudgetsDataRaw, activeSavingsDataRaw]);
+  }, [user, activeBudgetsDataRaw, activeSavingsDataRaw, historySavingsRaw]);
 
   useEffect(() => {
     if (userLoading || !user) return;

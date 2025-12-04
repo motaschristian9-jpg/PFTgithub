@@ -15,57 +15,41 @@ class SavingController extends Controller
 {
     use AuthorizesRequests;
 
-    private function getCacheKey(Request $request, $userId)
-    {
-        $params = $request->all();
-        ksort($params);
-        return 'savings_' . $userId . '_' . md5(json_encode($params));
-    }
-
-    private function clearUserCache($userId)
-    {
-        Cache::tags(['user_savings_' . $userId])->flush();
-    }
-
     public function index(Request $request)
     {
         $userId = Auth::id();
-        $cacheKey = $this->getCacheKey($request, $userId);
-
-        // Sync statuses before cache check
+        // Sync statuses before returning data
         $this->syncStatuses();
 
-        return Cache::tags(['user_savings_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
-            $query = Saving::where('user_id', $userId);
-            $status = $request->get('status', 'active');
+        $query = Saving::where('user_id', $userId);
+        $status = $request->get('status', 'active');
 
-            if ($request->has('search') && $request->search) {
-                $query->where('name', 'like', '%' . $request->search . '%');
-            }
+        if ($request->has('search') && $request->search) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
 
-            $sortBy = $request->get('sort_by', 'created_at');
-            $sortDir = $request->get('sort_dir', 'desc');
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDir = $request->get('sort_dir', 'desc');
 
-            $allowedSorts = ['name', 'target_amount', 'current_amount', 'target_date', 'created_at', 'updated_at'];
+        $allowedSorts = ['name', 'target_amount', 'current_amount', 'target_date', 'created_at', 'updated_at'];
 
-            if (in_array($sortBy, $allowedSorts)) {
-                $query->orderBy($sortBy, $sortDir);
-            } else {
-                $query->orderBy('created_at', 'desc');
-            }
+        if (in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
 
-            if ($status === 'history') {
-                $query->whereIn('status', ['completed', 'cancelled']);
-                return new SavingCollection($query->paginate(10));
-            }
+        if ($status === 'history') {
+            $query->whereIn('status', ['completed', 'cancelled']);
+            return new SavingCollection($query->paginate(10));
+        }
 
-            if ($status === 'active') {
-                $query->where('status', 'active');
-                return new SavingCollection($query->get());
-            }
-
+        if ($status === 'active') {
+            $query->where('status', 'active');
             return new SavingCollection($query->get());
-        });
+        }
+
+        return new SavingCollection($query->get());
     }
 
     public function store(CreateSavingsRequest $request)
@@ -78,8 +62,6 @@ class SavingController extends Controller
         }
 
         $saving = Auth::user()->savings()->create($data);
-
-        $this->clearUserCache(Auth::id());
 
         return new SavingResource($saving);
     }
@@ -98,29 +80,61 @@ class SavingController extends Controller
 
         $saving->save();
 
-        $this->clearUserCache(Auth::id());
-
         return new SavingResource($saving->fresh());
     }
 
     private function syncStatuses()
     {
         $userId = Auth::id();
+        $cacheKey = 'saving_status_check_' . $userId;
+
+        // Optimization: Only run status updates once per hour
+        if (Cache::has($cacheKey)) {
+            return;
+        }
 
         Saving::where('user_id', $userId)
             ->where('status', 'active')
             ->whereColumn('current_amount', '>=', 'target_amount')
             ->update(['status' => 'completed']);
+
+        // Set cache to prevent re-running for 1 hour
+        Cache::put($cacheKey, true, 3600);
     }
 
-    public function destroy(Saving $saving)
+    public function destroy(Request $request, Saving $saving)
     {
         $this->authorize('delete', $saving);
+
+        $refundParam = $request->query('refund_transactions');
+        $shouldRefund = filter_var($refundParam, FILTER_VALIDATE_BOOLEAN);
+
+        if ($shouldRefund) {
+            $saving->transactions()
+                ->where(function ($query) {
+                    $query->where('type', 'expense')
+                          ->orWhere(function ($q) {
+                              $q->where('type', 'income')
+                                ->where('name', 'like', 'Withdrawal:%');
+                          });
+                })
+                ->delete();
+        }
+
         $saving->delete();
 
         $this->clearUserCache(Auth::id());
 
         return response()->json(['success' => true]);
+    }
+
+    private function clearUserCache($userId)
+    {
+        // Clear transactions list
+        Cache::tags(['user_transactions_' . $userId])->flush();
+
+        // Clear budgets list because budgets calculate 'total spent' from transactions
+        Cache::tags(['user_budgets_' . $userId])->flush();
     }
 
     public function show(Saving $saving)

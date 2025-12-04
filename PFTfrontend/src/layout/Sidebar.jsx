@@ -4,13 +4,12 @@ import { ChevronLeft } from "lucide-react";
 import {
   LayoutDashboard,
   List,
-  DollarSign,
-  CreditCard,
   PieChart,
   Target,
   BarChart2,
   Settings,
 } from "lucide-react";
+import { Logo, LogoIcon } from "../components/Logo";
 
 export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, toggleMobileMenu }) {
   const location = useLocation();
@@ -19,26 +18,17 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
   useEffect(() => {
     const scrollbarStyles = `
       .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
+        width: 5px;
       }
-
       .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
       }
-
       .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #d1d5db;
-        border-radius: 3px;
-        transition: background 0.2s ease;
+        background: #e5e7eb;
+        border-radius: 10px;
       }
-
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #22c55e;
-      }
-
-      .custom-scrollbar {
-        scrollbar-color: #d1d5db transparent;
-        scrollbar-width: thin;
+        background: #d1d5db;
       }
     `;
 
@@ -96,187 +86,205 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
       {/* Desktop Sidebar */}
       <aside
         className={`${
-          sidebarOpen ? "w-64" : "w-24"
-        } hidden md:block sticky top-0 z-10 h-screen transition-all duration-200 ease-in-out`}
+          sidebarOpen ? "w-72" : "w-20"
+        } hidden md:block sticky top-0 z-20 h-screen transition-all duration-300 ease-in-out`}
       >
-        <div className="h-full bg-white/90 backdrop-blur-sm border-r border-green-100/50 shadow-xl">
-          <div className="p-4">
-            {/* Logo */}
-            <div className="flex items-center justify-between mb-8">
-              {sidebarOpen ? (
-                <>
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-lg">M</span>
-                  </div>
-                  <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
-                    MoneyTracker
-                  </span>
-                  <button
-                    onClick={toggleSidebar}
-                    className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 text-gray-600 hover:text-green-600 cursor-pointer"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                </>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-white font-bold text-lg">M</span>
-                  </div>
-                  <button
-                    onClick={toggleSidebar}
-                    className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 text-gray-600 hover:text-green-600"
-                  >
-                    <ChevronLeft size={18} className="rotate-180" />
-                  </button>
-                </div>
-              )}
-            </div>
+        <div className="h-full bg-white border-r border-gray-100 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] relative">
+          
+          {/* Floating Toggle Button */}
+          <button
+            onClick={toggleSidebar}
+            className="absolute -right-3 top-8 bg-white border border-gray-100 shadow-md p-1.5 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all z-50 flex items-center justify-center group"
+          >
+            <ChevronLeft size={16} className={`transition-transform duration-300 ${!sidebarOpen && "rotate-180"}`} />
+          </button>
 
-            {/* Navigation Groups */}
-            <nav className="space-y-6 overflow-y-auto h-[calc(100vh-140px)] custom-scrollbar">
-              {menuGroups.map((group, groupIdx) => (
-                <div key={groupIdx}>
-                  {sidebarOpen ? (
-                    <>
-                      <h3 className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {group.title}
-                      </h3>
-                      <div className="space-y-2">
-                        {group.items.map((item, itemIdx) => {
-                          const isActive = location.pathname === item.path;
-                          return (
-                            <Link
-                              key={itemIdx}
-                              to={item.path}
-                              className={`group flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 relative overflow-hidden ${
-                                isActive
-                                  ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg"
-                                  : "text-gray-700 hover:text-green-600 hover:bg-green-50"
-                              }`}
-                            >
-                              {isActive && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-green-600/90 to-green-700/90"></div>
-                              )}
-                              <div className="relative z-10 flex items-center space-x-3">
-                                <div
-                                  className={`${isActive ? "text-white" : ""}`}
-                                >
-                                  {item.icon}
-                                </div>
-                                <span
-                                  className={`font-medium ${
-                                    isActive ? "text-white" : ""
-                                  }`}
-                                >
-                                  {item.label}
-                                </span>
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-center py-2">
-                        <div className="w-8 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-                      </div>
-                      <div className="space-y-2">
-                        {group.items.map((item, itemIdx) => {
-                          const isActive = location.pathname === item.path;
-                          return (
-                            <Link
-                              key={itemIdx}
-                              to={item.path}
-                              className={`group flex items-center justify-center px-3 py-3 rounded-xl transition-all duration-200 relative overflow-hidden ${
-                                isActive
-                                  ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg"
-                                  : "text-gray-700 hover:text-green-600 hover:bg-green-50"
-                              }`}
-                            >
-                              {isActive && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-green-600/90 to-green-700/90"></div>
-                              )}
-                              <div
-                                className={`relative z-10 flex items-center ${
-                                  isActive ? "text-white" : ""
-                                }`}
-                              >
-                                {item.icon}
-                              </div>
-                              <div className="absolute left-16 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                                {item.label}
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </nav>
+          {/* Header */}
+          <div className={`flex items-center h-20 px-6 ${sidebarOpen ? "justify-start" : "justify-center"}`}>
+            {sidebarOpen ? (
+              <Logo className="animate-in fade-in duration-300" />
+            ) : (
+              <LogoIcon size={32} className="animate-in fade-in duration-300" />
+            )}
           </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto custom-scrollbar py-6 px-3 space-y-8">
+            {menuGroups.map((group, groupIdx) => (
+              <div key={groupIdx}>
+                {sidebarOpen && (
+                  <h3 className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider animate-in fade-in duration-300">
+                    {group.title}
+                  </h3>
+                )}
+                <div className="space-y-1">
+                  {group.items.map((item, itemIdx) => {
+                    const isActive = location.pathname === item.path;
+                    
+                    // Helper to get theme colors based on path
+                    const getThemeColors = (path) => {
+                      if (path.includes("/budget")) return {
+                        activeBg: "bg-violet-50",
+                        activeText: "text-violet-700",
+                        activeIcon: "text-violet-600",
+                        hoverBg: "hover:bg-violet-50",
+                        hoverText: "hover:text-violet-700"
+                      };
+                      if (path.includes("/saving")) return {
+                        activeBg: "bg-teal-50",
+                        activeText: "text-teal-700",
+                        activeIcon: "text-teal-600",
+                        hoverBg: "hover:bg-teal-50",
+                        hoverText: "hover:text-teal-700"
+                      };
+                      if (path.includes("/report")) return {
+                        activeBg: "bg-indigo-50",
+                        activeText: "text-indigo-700",
+                        activeIcon: "text-indigo-600",
+                        hoverBg: "hover:bg-indigo-50",
+                        hoverText: "hover:text-indigo-700"
+                      };
+                      if (path.includes("/setting")) return {
+                        activeBg: "bg-gray-100",
+                        activeText: "text-gray-900",
+                        activeIcon: "text-gray-600",
+                        hoverBg: "hover:bg-gray-100",
+                        hoverText: "hover:text-gray-900"
+                      };
+                      // Default / Dashboard / Transactions (Blue)
+                      return {
+                        activeBg: "bg-blue-50",
+                        activeText: "text-blue-700",
+                        activeIcon: "text-blue-600",
+                        hoverBg: "hover:bg-blue-50",
+                        hoverText: "hover:text-blue-700"
+                      };
+                    };
+
+                    const theme = getThemeColors(item.path);
+
+                    return (
+                      <Link
+                        key={itemIdx}
+                        to={item.path}
+                        className={`group flex items-center relative px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                          isActive
+                            ? `${theme.activeBg} ${theme.activeText} shadow-sm font-medium`
+                            : `text-gray-500 ${theme.hoverBg} ${theme.hoverText} hover:bg-opacity-50`
+                        } ${!sidebarOpen && "justify-center"}`}
+                      >
+                        <div className={`relative z-10 flex items-center ${sidebarOpen ? "gap-3" : ""}`}>
+                          <span className={`${isActive ? theme.activeIcon : "text-gray-400 group-hover:text-current"} transition-colors`}>
+                            {item.icon}
+                          </span>
+                          {sidebarOpen && (
+                            <span className="text-sm whitespace-nowrap">
+                              {item.label}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Tooltip for collapsed state */}
+                        {!sidebarOpen && (
+                          <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                            {item.label}
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
         </div>
       </aside>
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-white/95 backdrop-blur-sm border-r border-green-100/50 shadow-xl transform transition-transform duration-300 ease-in-out z-30 md:hidden ${
+        className={`fixed inset-y-0 left-0 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="p-6">
-          {/* Mobile Logo */}
-          <div className="flex items-center justify-between mb-8">
-            <span className="text-xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
-              MoneyTracker
-            </span>
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-100">
+            <Logo />
             <button
               onClick={toggleMobileMenu}
-              className="p-2 rounded-lg hover:bg-green-50 transition-colors duration-200 text-gray-600 hover:text-green-600"
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-all"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} />
             </button>
           </div>
 
-          {/* Mobile Navigation Groups */}
-          <nav className="space-y-6 overflow-y-auto h-[calc(100vh-140px)] custom-scrollbar">
+          <nav className="flex-1 overflow-y-auto custom-scrollbar py-6 px-4 space-y-8">
             {menuGroups.map((group, groupIdx) => (
               <div key={groupIdx}>
-                <h3 className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <h3 className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   {group.title}
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {group.items.map((item, itemIdx) => {
                     const isActive = location.pathname === item.path;
+                    
+                    // Helper to get theme colors based on path (Duplicated for now, could be extracted)
+                    const getThemeColors = (path) => {
+                      if (path.includes("/budget")) return {
+                        activeBg: "bg-violet-50",
+                        activeText: "text-violet-700",
+                        activeIcon: "text-violet-600",
+                        hoverBg: "hover:bg-violet-50",
+                        hoverText: "hover:text-violet-700"
+                      };
+                      if (path.includes("/saving")) return {
+                        activeBg: "bg-teal-50",
+                        activeText: "text-teal-700",
+                        activeIcon: "text-teal-600",
+                        hoverBg: "hover:bg-teal-50",
+                        hoverText: "hover:text-teal-700"
+                      };
+                      if (path.includes("/report")) return {
+                        activeBg: "bg-indigo-50",
+                        activeText: "text-indigo-700",
+                        activeIcon: "text-indigo-600",
+                        hoverBg: "hover:bg-indigo-50",
+                        hoverText: "hover:text-indigo-700"
+                      };
+                      if (path.includes("/setting")) return {
+                        activeBg: "bg-gray-100",
+                        activeText: "text-gray-900",
+                        activeIcon: "text-gray-600",
+                        hoverBg: "hover:bg-gray-100",
+                        hoverText: "hover:text-gray-900"
+                      };
+                      return {
+                        activeBg: "bg-blue-50",
+                        activeText: "text-blue-700",
+                        activeIcon: "text-blue-600",
+                        hoverBg: "hover:bg-blue-50",
+                        hoverText: "hover:text-blue-700"
+                      };
+                    };
+
+                    const theme = getThemeColors(item.path);
+
                     return (
                       <Link
                         key={itemIdx}
                         to={item.path}
                         onClick={toggleMobileMenu}
-                        className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 relative overflow-hidden ${
+                        className={`group flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
                           isActive
-                            ? "bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg"
-                            : "text-gray-700 hover:text-green-600 hover:bg-green-50"
+                            ? `${theme.activeBg} ${theme.activeText} shadow-sm font-medium`
+                            : `text-gray-500 ${theme.hoverBg} ${theme.hoverText} hover:bg-opacity-50`
                         }`}
                       >
-                        {isActive && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-green-600/90 to-green-700/90"></div>
-                        )}
-                        <div className="relative z-10 flex items-center space-x-3">
-                          <div className={`${isActive ? "text-white" : ""}`}>
-                            {item.icon}
-                          </div>
-                          <span
-                            className={`font-medium ${
-                              isActive ? "text-white" : ""
-                            }`}
-                          >
-                            {item.label}
-                          </span>
-                        </div>
+                        <span className={`${isActive ? theme.activeIcon : "text-gray-400 group-hover:text-current"} transition-colors`}>
+                          {item.icon}
+                        </span>
+                        <span className="text-sm">
+                          {item.label}
+                        </span>
                       </Link>
                     );
                   })}

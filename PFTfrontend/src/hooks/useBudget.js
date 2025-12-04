@@ -69,7 +69,41 @@ export const useCreateBudget = () => {
 
   return useMutation({
     mutationFn: createBudget,
-    onSuccess: () => {
+    onMutate: async (newBudget) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.active });
+
+      const previousBudgets = queryClient.getQueryData(KEYS.active);
+
+      queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
+        const optimisticBudget = {
+          id: `temp-${Date.now()}`,
+          ...newBudget,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        if (!oldData) return { data: [optimisticBudget] };
+
+        if (oldData.data) {
+          return {
+            ...oldData,
+            data: [optimisticBudget, ...oldData.data],
+          };
+        }
+
+        return Array.isArray(oldData)
+          ? [optimisticBudget, ...oldData]
+          : [optimisticBudget];
+      });
+
+      return { previousBudgets };
+    },
+    onError: (err, newBudget, context) => {
+      if (context?.previousBudgets) {
+        queryClient.setQueriesData({ queryKey: KEYS.active }, context.previousBudgets);
+      }
+    },
+    onSettled: () => {
       invalidateBudgetQueries(queryClient);
     },
   });
@@ -81,11 +115,11 @@ export const useUpdateBudget = () => {
   return useMutation({
     mutationFn: updateBudget,
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: KEYS.all });
+      await queryClient.cancelQueries({ queryKey: KEYS.active });
 
-      const previousBudgets = queryClient.getQueryData(KEYS.all);
+      const previousBudgets = queryClient.getQueryData(KEYS.active);
 
-      queryClient.setQueriesData({ queryKey: KEYS.all }, (oldData) => {
+      queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
         if (!oldData) return oldData;
 
         if (oldData.data) {
@@ -119,11 +153,11 @@ export const useDeleteBudget = () => {
   return useMutation({
     mutationFn: deleteBudget,
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: KEYS.all });
+      await queryClient.cancelQueries({ queryKey: KEYS.active });
 
-      const previousBudgets = queryClient.getQueryData(KEYS.all);
+      const previousBudgets = queryClient.getQueryData(KEYS.active);
 
-      queryClient.setQueriesData({ queryKey: KEYS.all }, (oldData) => {
+      queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
         if (!oldData) return oldData;
 
         if (oldData.data) {

@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { useForm, Controller, useWatch } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import {
   X,
   Loader2,
@@ -11,49 +10,47 @@ import {
   TrendingUp,
   Wallet,
   Check,
+  ArrowRightLeft,
+  DollarSign,
+  Tag,
+  Type,
 } from "lucide-react";
 
-// --- REPLACED: Use custom alerts instead of direct Swal ---
-import { showSuccess, showError } from "../utils/swal";
-
-import { useModalFormHooks } from "../hooks/useModalFormHooks.js";
-import { useDataContext } from "./DataLoader.jsx";
-import { useUpdateSaving } from "../hooks/useSavings.js";
-import {
-  useCreateTransaction,
-  useUpdateTransaction,
-} from "../hooks/useTransactions.js";
-
-// IMPORT CURRENCY UTILITY
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+import { useTransactionModalLogic } from "../hooks/useTransactionModalLogic";
 
-// ... (Keep TypeSwitcher and BudgetStatusCard components exactly as they were) ...
-const TypeSwitcher = ({ type, setType }) => (
-  <div className="flex p-1.5 bg-gray-100 rounded-2xl mb-6 relative">
-    <button
-      type="button"
-      onClick={() => setType("income")}
-      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-        type === "income"
-          ? "bg-white text-emerald-700 shadow-sm ring-1 ring-black/5"
-          : "text-gray-500 hover:text-gray-700"
-      }`}
-    >
-      <TrendingUp size={16} />
-      Income
-    </button>
-    <button
-      type="button"
-      onClick={() => setType("expense")}
-      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${
-        type === "expense"
-          ? "bg-white text-rose-700 shadow-sm ring-1 ring-black/5"
-          : "text-gray-500 hover:text-gray-700"
-      }`}
-    >
-      <CreditCard size={16} />
-      Expense
-    </button>
+const TypeTabs = ({ type, setType, editMode }) => (
+  <div className="flex p-1 bg-gray-100/80 rounded-lg mb-4 relative w-full max-w-[200px] mx-auto">
+    {(!editMode || type === "income") && (
+      <button
+        type="button"
+        disabled={editMode}
+        onClick={() => setType("income")}
+        className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+          type === "income"
+            ? "bg-white text-emerald-600 shadow-sm ring-1 ring-black/5"
+            : "text-gray-500 hover:text-gray-700"
+        } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
+      >
+        <TrendingUp size={14} />
+        Income
+      </button>
+    )}
+    {(!editMode || type === "expense") && (
+      <button
+        type="button"
+        disabled={editMode}
+        onClick={() => setType("expense")}
+        className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+          type === "expense"
+            ? "bg-white text-rose-600 shadow-sm ring-1 ring-black/5"
+            : "text-gray-500 hover:text-gray-700"
+        } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
+      >
+        <CreditCard size={14} />
+        Expense
+      </button>
+    )}
   </div>
 );
 
@@ -63,63 +60,52 @@ const BudgetStatusCard = ({ budget, userCurrency }) => {
   const spent = budget.spent || 0;
   const allocated = parseFloat(budget.amount);
   const remaining = allocated - spent;
-
   const percentage = Math.min((spent / allocated) * 100, 100);
   const isOver = remaining < 0;
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-4 shadow-sm relative overflow-hidden animate-in fade-in slide-in-from-bottom-2">
-      <div
-        className={`absolute top-0 left-0 w-1 h-full ${
-          isOver ? "bg-red-500" : "bg-green-500"
-        }`}
-      ></div>
-      <div className="flex justify-between items-start mb-3">
+    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 relative overflow-hidden group">
+      <div className="flex justify-between items-center mb-1.5 relative z-10">
         <div className="flex items-center gap-2">
-          <PieChart size={16} className="text-gray-500" />
-          <span className="font-semibold text-gray-700 text-sm">
+          <div className="p-1 bg-white rounded-md shadow-sm text-violet-600">
+            <PieChart size={14} />
+          </div>
+          <span className="font-semibold text-gray-700 text-xs">
             {budget.name}
           </span>
         </div>
         <span
-          className={`text-xs px-2 py-1 rounded-full font-medium ${
-            isOver ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+          className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
+            isOver
+              ? "bg-red-50 text-red-700 border-red-100"
+              : "bg-violet-50 text-violet-700 border-violet-100"
           }`}
         >
-          {isOver ? "Over Budget" : "On Track"}
+          {isOver ? "Over" : "On Track"}
         </span>
       </div>
-      <div className="flex justify-between items-end text-sm mb-2">
-        <span className="text-gray-500">
-          Spent:{" "}
-          <span className="text-gray-800 font-medium">
-            {formatCurrency(spent, userCurrency)}
+
+      <div className="relative z-10">
+        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden mb-1">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${
+              isOver ? "bg-red-500" : "bg-violet-500"
+            }`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+        <div className="flex justify-between items-center text-[10px]">
+          <span className="text-gray-400">
+            {formatCurrency(spent, userCurrency)} spent
           </span>
-        </span>
-        <span className="text-gray-500">
-          Limit:{" "}
-          <span className="text-gray-800 font-medium">
-            {formatCurrency(allocated, userCurrency)}
+          <span
+            className={`font-semibold ${
+              isOver ? "text-red-600" : "text-violet-600"
+            }`}
+          >
+            {formatCurrency(remaining, userCurrency)} left
           </span>
-        </span>
-      </div>
-      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-        <div
-          className={`h-1.5 rounded-full transition-all duration-500 ${
-            percentage > 90 ? "bg-red-500" : "bg-emerald-500"
-          }`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <div className="text-right text-xs text-gray-500">
-        Remaining:{" "}
-        <span
-          className={`font-bold ${
-            isOver ? "text-red-600" : "text-emerald-600"
-          }`}
-        >
-          {formatCurrency(Math.abs(remaining), userCurrency)}
-        </span>
+        </div>
       </div>
     </div>
   );
@@ -131,7 +117,7 @@ const SavingsSection = ({
   setSaveToSavings,
   savingsGoals,
   watch,
-  userCurrency, // Added currency prop
+  userCurrency,
 }) => {
   const selectedGoalId = watch("savingsGoalId");
   const selectedGoal = savingsGoals.find((g) => g.id == selectedGoalId);
@@ -139,38 +125,37 @@ const SavingsSection = ({
 
   return (
     <div
-      className={`border rounded-xl transition-all duration-300 ${
+      className={`border rounded-xl transition-all duration-300 overflow-hidden ${
         saveToSavings
-          ? "border-emerald-200 bg-emerald-50/50"
-          : "border-gray-200 bg-gray-50"
+          ? "border-teal-200 bg-teal-50/30"
+          : "border-gray-200 bg-white hover:border-gray-300"
       }`}
     >
-      <label className="flex items-center justify-between p-4 cursor-pointer">
-        <div className="flex items-center gap-3">
+      <label className="flex items-center justify-between p-3 cursor-pointer select-none">
+        <div className="flex items-center gap-2.5">
           <div
-            className={`p-2 rounded-lg ${
+            className={`p-1.5 rounded-lg transition-colors ${
               saveToSavings
-                ? "bg-emerald-100 text-emerald-600"
-                : "bg-gray-200 text-gray-500"
+                ? "bg-teal-100 text-teal-600"
+                : "bg-gray-100 text-gray-500"
             }`}
           >
-            <Wallet size={18} />
+            <Wallet size={16} />
           </div>
           <div>
-            <p className="font-medium text-sm text-gray-700">
+            <p className="font-semibold text-xs text-gray-800">
               Allocate to Savings
             </p>
-            <p className="text-xs text-gray-500">Auto-transfer a portion</p>
           </div>
         </div>
         <div
-          className={`w-11 h-6 flex items-center rounded-full p-1 duration-300 ease-in-out ${
-            saveToSavings ? "bg-emerald-500" : "bg-gray-300"
+          className={`w-9 h-5 flex items-center rounded-full p-0.5 duration-300 ease-in-out ${
+            saveToSavings ? "bg-teal-500" : "bg-gray-200"
           }`}
         >
           <div
-            className={`bg-white w-4 h-4 rounded-full shadow-md transform duration-300 ease-in-out ${
-              saveToSavings ? "translate-x-5" : ""
+            className={`bg-white w-4 h-4 rounded-full shadow-sm transform duration-300 ease-in-out ${
+              saveToSavings ? "translate-x-4" : ""
             }`}
           ></div>
         </div>
@@ -183,84 +168,75 @@ const SavingsSection = ({
       </label>
 
       {saveToSavings && (
-        <div className="px-4 pb-4 pt-0 space-y-3 border-t border-emerald-100/50 animate-in slide-in-from-top-2">
-          <div className="mt-3">
-            <label className="text-xs font-semibold text-emerald-700 uppercase">
-              Select Savings Goal
+        <div className="px-3 pb-3 pt-0 space-y-3 animate-in slide-in-from-top-2">
+          <div className="h-px bg-teal-100 w-full" />
+          
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">
+              Select Goal
             </label>
-            <select
-              {...register("savingsGoalId", {
-                required: saveToSavings ? "Please select a goal" : false,
-              })}
-              className="mt-1 block w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 outline-none"
-            >
-              <option value="">Choose a goal...</option>
-              {savingsGoals.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                {...register("savingsGoalId", {
+                  required: saveToSavings ? "Please select a goal" : false,
+                })}
+                className="block w-full px-2 py-2 bg-white border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 focus:border-transparent outline-none appearance-none"
+              >
+                <option value="">Choose a goal...</option>
+                {savingsGoals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-teal-600">
+                <ArrowRightLeft size={12} className="rotate-90" />
+              </div>
+            </div>
 
             {selectedGoal && (
-              <div className="mt-2 text-xs text-emerald-800 bg-emerald-100/50 p-2 rounded">
-                Current Saved:{" "}
-                <span className="font-bold">
-                  {/* CURRENCY APPLIED */}
-                  {formatCurrency(
-                    Number(selectedGoal.current_amount),
-                    userCurrency
-                  )}
-                </span>
-                <span className="mx-1">/</span>
-                Target:{" "}
-                <span className="font-bold">
-                  {/* CURRENCY APPLIED */}
-                  {formatCurrency(
-                    Number(selectedGoal.target_amount),
-                    userCurrency
-                  )}
+              <div className="flex justify-between items-center text-[10px] bg-white/50 p-1.5 rounded border border-teal-100 mt-1">
+                <span className="text-teal-700">Progress:</span>
+                <span className="font-bold text-teal-800">
+                  {formatCurrency(Number(selectedGoal.current_amount), userCurrency)} 
+                  <span className="text-teal-400 mx-1">/</span>
+                  {formatCurrency(Number(selectedGoal.target_amount), userCurrency)}
                 </span>
               </div>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-semibold text-emerald-700 uppercase">
-                Fixed Amount ({currencySymbol})
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">
+                Amount ({currencySymbol})
               </label>
               <input
                 type="number"
                 step="0.01"
                 {...register("savingsAmount")}
                 placeholder="0.00"
-                className="mt-1 w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                className="block w-full px-2 py-2 bg-white border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none"
               />
             </div>
-            <div>
-              <label className="text-xs font-semibold text-emerald-700 uppercase">
-                Or Percent (%)
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">
+                Percent (%)
               </label>
               <input
                 type="number"
                 step="1"
                 {...register("savingsPercentage")}
-                placeholder="10%"
-                className="mt-1 w-full px-3 py-2 bg-white border border-emerald-200 rounded-lg text-sm outline-none focus:ring-1 focus:ring-emerald-500"
+                placeholder="10"
+                className="block w-full px-2 py-2 bg-white border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none"
               />
             </div>
           </div>
-          <p className="text-[10px] text-emerald-600 italic mt-1">
-            *Money will be deducted from this income and added to the selected
-            goal.
-          </p>
         </div>
       )}
     </div>
   );
 };
-
-// --- MAIN COMPONENT ---
 
 export default function TransactionModal({
   isOpen,
@@ -270,358 +246,67 @@ export default function TransactionModal({
   transactionToEdit = null,
 }) {
   const {
-    activeBudgetsData,
-    transactionsData,
-    activeSavingsData,
-    categoriesData,
-    user, // Get user for currency context
-  } = useDataContext();
-
-  const addTransactionMutation = useCreateTransaction();
-  const updateTransactionMutation = useUpdateTransaction();
-  const updateSavingMutation = useUpdateSaving();
-
-  const [type, setType] = useState("income");
-  const [loading, setLoading] = useState(false);
-  const [saveToSavings, setSaveToSavings] = useState(false);
-
-  const todayString = useMemo(() => new Date().toISOString().split("T")[0], []);
-
-  // Get user's currency preference
-  const userCurrency = user?.currency || "USD";
-  const currencySymbol = getCurrencySymbol(userCurrency);
-
-  const {
+    type,
+    setType,
+    loading,
+    saveToSavings,
+    setSaveToSavings,
+    userCurrency,
+    currencySymbol,
     register,
     handleSubmit,
-    reset,
     control,
     trigger,
-    setError,
     watch,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      name: "",
-      category: "",
-      amount: "",
-      transaction_date: todayString,
-      description: "",
-      savingsGoalId: "",
-      savingsAmount: "",
-      savingsPercentage: "",
-    },
-    mode: "onChange",
+    errors,
+    savingsGoals,
+    sortedCategories,
+    budgetStatus,
+    todayString,
+    onSubmit,
+  } = useTransactionModalLogic({
+    isOpen,
+    onClose,
+    onTransactionAdded,
+    editMode,
+    transactionToEdit,
   });
-
-  const watchedCategory = useWatch({ control, name: "category" });
-  const { expenseCategories, incomeCategories } = useModalFormHooks(type);
-
-  const savingsGoals = useMemo(() => {
-    if (Array.isArray(activeSavingsData)) return activeSavingsData;
-    if (activeSavingsData?.data && Array.isArray(activeSavingsData.data))
-      return activeSavingsData.data;
-    return [];
-  }, [activeSavingsData]);
-
-  const sortedCategories = useMemo(() => {
-    const cats = type === "income" ? incomeCategories : expenseCategories;
-    return [...cats].sort((a, b) =>
-      a.name === "Other"
-        ? 1
-        : b.name === "Other"
-        ? -1
-        : a.name.localeCompare(b.name)
-    );
-  }, [type, incomeCategories, expenseCategories]);
-
-  // Helper to find a transfer category for the automated savings transaction
-  const findTransferCategory = () => {
-    if (!categoriesData?.data) return null;
-    return (
-      categoriesData.data.find(
-        (c) =>
-          c.type === "expense" &&
-          (c.name.toLowerCase().includes("savings") ||
-            c.name.toLowerCase().includes("transfer"))
-      )?.id || categoriesData.data.find((c) => c.type === "expense")?.id
-    );
-  };
-
-  const budgetStatus = useMemo(() => {
-    const budgets = Array.isArray(activeBudgetsData)
-      ? activeBudgetsData
-      : activeBudgetsData?.data || [];
-
-    if (type !== "expense" || !watchedCategory || budgets.length === 0)
-      return null;
-
-    const budget = budgets.find((b) => b.category_id == watchedCategory);
-    if (!budget) return null;
-
-    const relevantTransactions =
-      transactionsData?.data?.filter(
-        (t) => t.budget_id == budget.id && t.type === "expense"
-      ) || [];
-
-    const spent = relevantTransactions.reduce(
-      (sum, t) => sum + parseFloat(t.amount || 0),
-      0
-    );
-
-    return {
-      ...budget,
-      spent,
-      remaining: parseFloat(budget.amount) - spent,
-    };
-  }, [type, watchedCategory, activeBudgetsData, transactionsData]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      setSaveToSavings(false);
-
-      if (editMode && transactionToEdit) {
-        setType(transactionToEdit.type);
-        reset({
-          name: transactionToEdit.name,
-          category: transactionToEdit.category_id?.toString() || "",
-          amount: transactionToEdit.amount.toString(),
-          transaction_date: transactionToEdit.date,
-          description: transactionToEdit.description || "",
-        });
-      } else {
-        setType("income");
-        reset({
-          name: "",
-          category: "",
-          amount: "",
-          transaction_date: todayString,
-          description: "",
-          savingsGoalId: "",
-          savingsAmount: "",
-          savingsPercentage: "",
-        });
-      }
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen, editMode, transactionToEdit, reset, todayString]);
-
-  useEffect(() => {
-    const handleEscape = (e) => e.key === "Escape" && isOpen && onClose();
-    if (isOpen) document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isOpen, onClose]);
-
-  const onSubmit = async (data) => {
-    setLoading(true);
-    setError("savingsAmount", { message: "" });
-    setError("savingsPercentage", { message: "" });
-
-    try {
-      let budgetIdToSend = null;
-      if (budgetStatus) {
-        const txDate = new Date(data.transaction_date);
-        const start = new Date(budgetStatus.start_date);
-        const end = new Date(budgetStatus.end_date);
-        txDate.setHours(0, 0, 0, 0);
-        start.setHours(0, 0, 0, 0);
-        end.setHours(23, 59, 59, 999);
-
-        if (txDate >= start && txDate <= end) {
-          budgetIdToSend = budgetStatus.id;
-        }
-      }
-
-      // --- SAVINGS SPLIT LOGIC ---
-      let savingsDeduction = 0;
-      const totalInputAmount = parseFloat(data.amount);
-      let selectedGoal = null;
-
-      if (type === "income" && saveToSavings && data.savingsGoalId) {
-        selectedGoal = savingsGoals.find((g) => g.id == data.savingsGoalId);
-
-        if (data.savingsAmount && parseFloat(data.savingsAmount) > 0) {
-          savingsDeduction = parseFloat(data.savingsAmount);
-        } else if (
-          data.savingsPercentage &&
-          parseFloat(data.savingsPercentage) > 0
-        ) {
-          savingsDeduction =
-            totalInputAmount * (parseFloat(data.savingsPercentage) / 100);
-        }
-
-        if (savingsDeduction > totalInputAmount) {
-          setError("amount", {
-            type: "manual",
-            message: "Savings deduction exceeds income.",
-          });
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 1. Calculate the Income Amount (Remaining after savings)
-      const finalIncomeAmount = totalInputAmount - savingsDeduction;
-
-      // 2. Prepare Main Payload
-      const payload = {
-        name: data.name,
-        type,
-        amount: finalIncomeAmount,
-        description: data.description,
-        date: data.transaction_date,
-        category_id: data.category ? parseInt(data.category) : null,
-        budget_id: budgetIdToSend,
-      };
-
-      let response;
-      if (editMode && transactionToEdit) {
-        response = await updateTransactionMutation.mutateAsync({
-          id: transactionToEdit.id,
-          data: payload,
-        });
-      } else {
-        response = await addTransactionMutation.mutateAsync(payload);
-
-        // --- HANDLE SAVINGS IF APPLICABLE ---
-        if (
-          type === "income" &&
-          saveToSavings &&
-          savingsDeduction > 0 &&
-          selectedGoal
-        ) {
-          // A. Update the Savings Goal Balance
-          const goalPayload = {
-            name: selectedGoal.name,
-            target_amount: parseFloat(selectedGoal.target_amount),
-            current_amount:
-              parseFloat(selectedGoal.current_amount || 0) + savingsDeduction,
-            description: selectedGoal.description,
-          };
-
-          await updateSavingMutation.mutateAsync({
-            id: selectedGoal.id,
-            data: goalPayload,
-          });
-
-          // B. Create the History Record (Expense/Transfer Transaction)
-          // This is critical for the SavingsCardModal to show history
-          const transferCategoryId = findTransferCategory();
-
-          await addTransactionMutation.mutateAsync({
-            name: `Transfer to ${selectedGoal.name}`,
-            type: "expense", // It's an expense from your 'wallet'
-            amount: savingsDeduction,
-            description: `Auto-allocation from ${data.name}`,
-            date: data.transaction_date,
-            category_id: transferCategoryId,
-            saving_goal_id: selectedGoal.id, // Links it to the goal history
-          });
-
-          // Use formatCurrency for the alert message
-          const formattedDeduction = formatCurrency(
-            savingsDeduction,
-            userCurrency
-          );
-
-          // --- UPDATED: Custom Success Alert for Savings Split ---
-          showSuccess(
-            "Success!",
-            `Transaction saved & ${formattedDeduction} allocated to "${selectedGoal.name}".`
-          );
-
-          if (onTransactionAdded) onTransactionAdded(response);
-          onClose();
-          return;
-        }
-      }
-
-      // --- UPDATED: Custom Success Alert for Standard Transaction ---
-      showSuccess(
-        editMode ? "Updated!" : "Added!",
-        "Transaction saved successfully."
-      );
-
-      if (onTransactionAdded) onTransactionAdded(response);
-      onClose();
-    } catch (error) {
-      console.error(error);
-      if (error.response?.status === 422) {
-        Object.entries(error.response.data.errors).forEach(([key, val]) => {
-          const fieldName =
-            key === "category_id"
-              ? "category"
-              : key === "date"
-              ? "transaction_date"
-              : key;
-          setError(fieldName, { type: "server", message: val[0] });
-        });
-      } else {
-        // --- UPDATED: Custom Error Alert ---
-        showError("Error", "Something went wrong.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (!isOpen) return null;
 
-  const accentColor = type === "income" ? "emerald" : "rose";
-  const AccentIcon = type === "income" ? TrendingUp : CreditCard;
-
   return createPortal(
     <div
-      className="fixed inset-0 z-[50] flex justify-center items-center p-4 sm:p-6"
+      className="fixed inset-0 z-[50] flex justify-center items-end sm:items-center p-0 sm:p-4"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" />
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity duration-300" />
 
       <div
-        className="relative z-10 w-full max-w-md animate-in fade-in zoom-in-95 duration-200"
+        className="relative z-10 w-full sm:max-w-md animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 flex flex-col max-h-[90vh] sm:max-h-[85vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden ring-1 ring-black/5">
-          <div
-            className={`px-6 pt-6 pb-8 bg-gradient-to-b ${
-              type === "income"
-                ? "from-emerald-50 to-white"
-                : "from-rose-50 to-white"
-            }`}
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <div
-                  className={`p-2 rounded-xl bg-${accentColor}-100 text-${accentColor}-600`}
-                >
-                  <AccentIcon size={20} />
-                </div>
+        <div className="bg-white rounded-t-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/20 flex flex-col">
+          {/* Header Section - Fixed */}
+          <div className="relative px-6 pt-6 pb-4 bg-white shrink-0 z-20">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900">
                 {editMode ? "Edit Transaction" : "New Transaction"}
               </h2>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <TypeSwitcher type={type} setType={setType} />
+            <TypeTabs type={type} setType={setType} editMode={editMode} />
 
-            <div className="relative flex flex-col items-center justify-center">
-              <label
-                className={`text-xs font-semibold uppercase tracking-wider mb-1 text-${accentColor}-600/80`}
-              >
-                Enter Amount
-              </label>
-              <div className="flex items-baseline justify-center relative w-full">
+            <div className="flex flex-col items-center justify-center py-1">
+              <div className="relative w-full flex justify-center items-baseline group">
                 <span
-                  className={`text-3xl font-medium text-${accentColor}-500 absolute left-[15%] sm:left-[20%] top-2`}
+                  className="text-3xl font-medium absolute left-[15%] sm:left-[20%] top-1 transition-colors duration-300 text-gray-400"
                 >
-                  {/* CURRENCY APPLIED */}
                   {currencySymbol}
                 </span>
                 <input
@@ -632,31 +317,30 @@ export default function TransactionModal({
                     required: "Required",
                     min: { value: 0.01, message: "> 0" },
                   })}
-                  className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 text-gray-800"
+                  className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 tracking-tight outline-none text-gray-900"
+                  autoFocus
                 />
               </div>
               {errors.amount && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="text-red-500 text-xs mt-1 font-medium bg-red-50 px-2 py-0.5 rounded-full">
                   {errors.amount.message}
                 </p>
               )}
             </div>
           </div>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="px-6 pb-6 space-y-5"
-          >
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Date
-                </label>
-                <div className="relative">
-                  <Calendar
-                    size={16}
-                    className="absolute left-3 top-3.5 text-gray-400 pointer-events-none"
-                  />
+          {/* Form Section - Scrollable */}
+          <div className="overflow-y-auto px-6 pb-6 space-y-4 custom-scrollbar">
+            <form
+              id="transaction-form"
+              onSubmit={handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                    <Calendar size={10} /> Date
+                  </label>
                   <input
                     type="date"
                     max={todayString}
@@ -675,110 +359,112 @@ export default function TransactionModal({
                         return true;
                       },
                     })}
-                    className="block w-full pl-10 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
+                    className="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-700"
                   />
+                  {errors.transaction_date && (
+                    <p className="text-red-500 text-[10px] font-medium">
+                      {errors.transaction_date.message}
+                    </p>
+                  )}
                 </div>
-                {errors.transaction_date && (
-                  <p className="text-red-500 text-xs">
-                    {errors.transaction_date.message}
-                  </p>
-                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                    <Tag size={10} /> Category
+                  </label>
+                  <div className="relative">
+                    <Controller
+                      name="category"
+                      control={control}
+                      rules={{ required: "Required" }}
+                      render={({ field }) => (
+                        <select
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            trigger("transaction_date");
+                          }}
+                          className="block w-full pl-3 pr-7 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none appearance-none cursor-pointer text-gray-700"
+                        >
+                          <option value="" disabled>
+                            Select
+                          </option>
+                          {sortedCategories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-gray-400">
+                      <div className="h-3 w-3 border-l-2 border-b-2 border-current transform -rotate-45 translate-y-[-2px]" />
+                    </div>
+                  </div>
+                  {errors.category && (
+                    <p className="text-red-500 text-[10px] font-medium">
+                      {errors.category.message}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Category
+                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                  <Type size={10} /> Description
                 </label>
-                <div className="relative">
-                  <Controller
-                    name="category"
-                    control={control}
-                    rules={{ required: "Required" }}
-                    render={({ field }) => (
-                      <select
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          trigger("transaction_date");
-                        }}
-                        className="block w-full pl-3 pr-8 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none appearance-none cursor-pointer"
-                      >
-                        <option value="" disabled>
-                          Select
-                        </option>
-                        {sortedCategories.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                    <div className="h-4 w-4 border-l border-b border-gray-400 transform -rotate-45 translate-y-[-2px]" />
-                  </div>
-                </div>
-                {errors.category && (
-                  <p className="text-red-500 text-xs">
-                    {errors.category.message}
-                  </p>
+                <input
+                  type="text"
+                  placeholder="What is this for?"
+                  {...register("name", { required: "Name is required" })}
+                  className="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                />
+                {errors.name && (
+                  <p className="text-red-500 text-[10px] font-medium">{errors.name.message}</p>
                 )}
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Name
-              </label>
-              <input
-                type="text"
-                placeholder="What is this for?"
-                {...register("name", { required: "Name is required" })}
-                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none"
-              />
-              {errors.name && (
-                <p className="text-red-500 text-xs">{errors.name.message}</p>
-              )}
-            </div>
+              <div className="relative group">
+                <FileText
+                  size={14}
+                  className="absolute left-3 top-3 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                />
+                <textarea
+                  placeholder="Add a note (optional)"
+                  rows={2}
+                  {...register("description")}
+                  className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none resize-none text-gray-700"
+                />
+              </div>
 
-            <div className="relative">
-              <FileText
-                size={16}
-                className="absolute left-4 top-3.5 text-gray-400"
-              />
-              <textarea
-                placeholder="Add a note (optional)"
-                rows={2}
-                {...register("description")}
-                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none resize-none"
-              />
-            </div>
-
-            <BudgetStatusCard
-              budget={budgetStatus}
-              userCurrency={userCurrency}
-            />
-
-            {type === "income" && (
-              <SavingsSection
-                register={register}
-                saveToSavings={saveToSavings}
-                setSaveToSavings={setSaveToSavings}
-                savingsGoals={savingsGoals}
-                watch={watch}
+              <BudgetStatusCard
+                budget={budgetStatus}
                 userCurrency={userCurrency}
               />
-            )}
 
+              {type === "income" && (
+                <SavingsSection
+                  register={register}
+                  saveToSavings={saveToSavings}
+                  setSaveToSavings={setSaveToSavings}
+                  savingsGoals={savingsGoals}
+                  watch={watch}
+                  userCurrency={userCurrency}
+                />
+              )}
+            </form>
+          </div>
+
+          {/* Footer Section - Fixed */}
+          <div className="p-6 pt-2 bg-white border-t border-gray-50 shrink-0 z-20">
             <button
               type="submit"
+              form="transaction-form"
               disabled={loading}
               className={`w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
                 loading
                   ? "bg-gray-400 cursor-not-allowed"
-                  : type === "income"
-                  ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-200"
-                  : "bg-rose-600 hover:bg-rose-500 shadow-rose-200"
+                  : "bg-blue-600 hover:bg-blue-500 shadow-blue-200"
               }`}
             >
               {loading ? (
@@ -790,7 +476,7 @@ export default function TransactionModal({
                 </>
               )}
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>,

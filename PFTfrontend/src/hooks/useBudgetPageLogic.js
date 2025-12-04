@@ -1,0 +1,350 @@
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useDataContext } from "../components/DataLoader";
+import {
+  useBudgetHistory,
+  useCreateBudget,
+  useUpdateBudget,
+  useDeleteBudget,
+} from "./useBudget";
+import { useDeleteTransaction } from "./useTransactions";
+import { confirmDelete, showSuccess, showError } from "../utils/swal";
+
+export const useBudgetPageLogic = () => {
+  const queryClient = useQueryClient();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState(null);
+  const [budgetCardModalOpen, setBudgetCardModalOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("active");
+  const [historyPage, setHistoryPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortDir, setSortDir] = useState("desc");
+
+  const { categoriesData, user, transactionsData, activeBudgetsData } =
+    useDataContext();
+
+  const historyFilters = useMemo(
+    () => ({
+      search,
+      categoryId,
+      sortBy,
+      sortDir,
+    }),
+    [search, categoryId, sortBy, sortDir]
+  );
+
+  const { data: historyBudgetsRaw, isLoading: historyLoading } =
+    useBudgetHistory(historyPage, historyFilters);
+
+  const createBudgetMutation = useCreateBudget();
+  const updateBudgetMutation = useUpdateBudget();
+  const deleteBudgetMutation = useDeleteBudget();
+  const deleteTransactionMutation = useDeleteTransaction();
+
+  const allTransactions = useMemo(
+    () => transactionsData?.data || [],
+    [transactionsData]
+  );
+
+  const spendingMap = useMemo(() => {
+    const map = {};
+    allTransactions.forEach((t) => {
+      if (t.type === "expense" && t.budget_id) {
+        map[t.budget_id] = (map[t.budget_id] || 0) + parseFloat(t.amount || 0);
+      }
+    });
+    return map;
+  }, [allTransactions]);
+
+  const getBudgetSpent = (budget) => {
+    if (
+      budget.transactions_sum_amount !== undefined &&
+      budget.transactions_sum_amount !== null
+    ) {
+      return parseFloat(budget.transactions_sum_amount);
+    }
+    if (budget.total_spent !== undefined && budget.total_spent !== null) {
+      return parseFloat(budget.total_spent);
+    }
+
+    if (spendingMap[budget.id] !== undefined) {
+      return spendingMap[budget.id];
+    }
+
+    return 0;
+  };
+
+  const activeBudgets = useMemo(() => {
+    let result = activeBudgetsData || [];
+
+    // Filter out completed/reached budgets (spent >= amount)
+    result = result.filter((b) => {
+      const spent = getBudgetSpent(b);
+      const amount = Number(b.amount);
+      return spent < amount;
+    });
+
+    if (search) {
+      result = result.filter((b) =>
+        b.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    result = [...result].sort((a, b) => {
+      let valA = a[sortBy];
+      let valB = b[sortBy];
+
+      if (sortBy === "amount") {
+        valA = parseFloat(valA);
+        valB = parseFloat(valB);
+      } else if (sortBy === "created_at" || sortBy === "end_date") {
+        valA = new Date(valA);
+        valB = new Date(valB);
+      } else if (sortBy === "name") {
+        valA = valA.toLowerCase();
+        valB = valB.toLowerCase();
+      }
+
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [activeBudgetsData, search, sortBy, sortDir, spendingMap]);
+
+  const historyBudgets = useMemo(() => {
+    const history = historyBudgetsRaw?.data || [];
+    const completedActive = (activeBudgetsData || []).filter((b) => {
+      const spent = getBudgetSpent(b);
+      const amount = Number(b.amount);
+      return spent >= amount;
+    });
+
+    // If searching in history, also filter the completed active ones
+    let filteredCompleted = completedActive;
+    if (search && activeTab === "history") {
+      filteredCompleted = completedActive.filter((b) =>
+        b.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    const combined = [...filteredCompleted, ...history];
+    
+    // Sort combined history by end_date descending by default to show most recent first
+    return combined.sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
+  }, [historyBudgetsRaw, activeBudgetsData, spendingMap, search, activeTab]);
+
+  const historyTotalPages = useMemo(
+    () => historyBudgetsRaw?.last_page || 1,
+    [historyBudgetsRaw]
+  );
+
+  const getCategoryName = (catId) => {
+    const cat = categoriesData?.data?.find((c) => c.id === catId);
+    return cat ? cat.name : "Uncategorized";
+  };
+
+  const budgetStats = useMemo(() => {
+    const listToCalculate =
+      activeTab === "active" ? activeBudgets : historyBudgets;
+
+    const totalAllocated = listToCalculate.reduce(
+      (sum, b) => sum + Number(b.amount),
+      0
+    );
+
+    const totalSpent = listToCalculate.reduce(
+      (sum, b) => sum + getBudgetSpent(b),
+      0
+    );
+
+    return {
+      totalAllocated,
+      totalSpent,
+      count: listToCalculate.length,
+    };
+  }, [activeTab, activeBudgets, historyBudgets]);
+
+  const getBudgetStatusInfo = (spent, total, dbStatus) => {
+    const ratio = total > 0 ? spent / total : 0;
+    if (spent > total)
+      return {
+        label: "Overspent",
+        colorClass: "bg-red-100 text-red-700",
+        textClass: "text-red-700",
+        barColor: "bg-red-600",
+      };
+    if (ratio >= 1 || dbStatus === "reached")
+      return {
+        label: "Limit Reached",
+        colorClass: "bg-red-50 text-red-600",
+        textClass: "text-red-600",
+        barColor: "bg-red-500",
+      };
+    if (dbStatus === "completed")
+      return {
+        label: "Completed",
+        colorClass: "bg-green-100 text-green-700",
+        textClass: "text-green-700",
+        barColor: "bg-green-500",
+      };
+    if (dbStatus === "expired")
+      return {
+        label: "Expired",
+        colorClass: "bg-orange-100 text-orange-700",
+        textClass: "text-orange-700",
+        barColor: "bg-orange-500",
+      };
+    if (ratio > 0.85)
+      return {
+        label: "Near Limit",
+        colorClass: "bg-yellow-100 text-yellow-700",
+        textClass: "text-yellow-700",
+        barColor: "bg-yellow-500",
+      };
+    return {
+      label: "Active",
+      colorClass: "bg-violet-50 text-violet-700",
+      textClass: "text-violet-600",
+      barColor: "bg-violet-500",
+    };
+  };
+
+  const handleBudgetCardModalOpen = (budget) => {
+    const spent = getBudgetSpent(budget);
+    const remaining = Number(budget.amount) - spent;
+    setSelectedBudget({ ...budget, spent, remaining });
+    setBudgetCardModalOpen(true);
+  };
+
+  const handleDelete = async (budgetIdOrObject) => {
+    const id =
+      typeof budgetIdOrObject === "object"
+        ? budgetIdOrObject.id
+        : budgetIdOrObject;
+
+    const linkedTransactions = allTransactions.filter(
+      (t) => t.budget_id == id && t.type === "expense"
+    );
+    const hasTransactions = linkedTransactions.length > 0;
+
+    let title = "Delete Budget?";
+    let text = "This action cannot be undone.";
+
+    if (hasTransactions) {
+      title = "Delete & Preserve History?";
+      text = `This budget has ${linkedTransactions.length} transaction(s). They will be unlinked but kept in your history.`;
+    }
+
+    const result = await confirmDelete(title, text);
+
+    if (result.isConfirmed) {
+      try {
+        await deleteBudgetMutation.mutateAsync(id);
+
+        if (budgetCardModalOpen) {
+          setBudgetCardModalOpen(false);
+          setSelectedBudget(null);
+        }
+
+        showSuccess("Deleted!", "Budget deleted successfully.");
+      } catch (error) {
+        console.error("Delete failed", error);
+        showError("Error", "Failed to delete budget.");
+      }
+    }
+  };
+
+  const handleSaveBudget = async (budgetData) => {
+    try {
+      if (budgetData.id) {
+        const response = await updateBudgetMutation.mutateAsync({
+          id: budgetData.id,
+          data: budgetData,
+        });
+
+        if (selectedBudget && selectedBudget.id === budgetData.id) {
+          const updatedBudget = response.data || response;
+          setSelectedBudget((prev) => ({
+            ...prev,
+            ...updatedBudget,
+            remaining: Number(updatedBudget.amount) - prev.spent,
+          }));
+        }
+      } else {
+        await createBudgetMutation.mutateAsync(budgetData);
+      }
+
+      setEditingBudget(null);
+      setModalOpen(false);
+      showSuccess(
+        budgetData.id ? "Updated!" : "Created!",
+        "Budget saved successfully."
+      );
+    } catch (error) {
+      const msg = error.response?.data?.message || "Failed to save budget";
+      showError("Error", msg);
+    }
+  };
+
+  const handleDeleteTransaction = async (transaction) => {
+    try {
+      await deleteTransactionMutation.mutateAsync(transaction.id);
+
+      if (selectedBudget) {
+        const amount = parseFloat(transaction.amount);
+        setSelectedBudget((prev) => ({
+          ...prev,
+          spent: prev.spent - amount,
+          remaining: prev.remaining + amount,
+        }));
+      }
+      showSuccess("Deleted!", "Transaction deleted successfully.");
+    } catch (e) {
+      showError("Error", "Failed to delete transaction");
+    }
+  };
+
+  return {
+    modalOpen,
+    setModalOpen,
+    editingBudget,
+    setEditingBudget,
+    budgetCardModalOpen,
+    setBudgetCardModalOpen,
+    selectedBudget,
+    setSelectedBudget,
+    activeTab,
+    setActiveTab,
+    historyPage,
+    setHistoryPage,
+    search,
+    setSearch,
+    categoryId,
+    setCategoryId,
+    sortBy,
+    setSortBy,
+    sortDir,
+    setSortDir,
+    user,
+    categoriesData,
+    activeBudgets,
+    historyBudgets,
+    historyLoading,
+    budgetStats,
+    getCategoryName,
+    getBudgetSpent,
+    getBudgetStatusInfo,
+    handleBudgetCardModalOpen,
+    handleDelete,
+    handleSaveBudget,
+    handleDeleteTransaction,
+    historyTotalPages,
+  };
+};

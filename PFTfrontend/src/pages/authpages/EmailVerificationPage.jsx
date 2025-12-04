@@ -1,104 +1,25 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { Mail, RefreshCw, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
-import Swal from "sweetalert2";
-import { resendVerificationEmail } from "../../api/auth";
-import api from "../../api/axios";
+import { Link } from "react-router-dom";
+import { Mail, RefreshCw, Loader2 } from "lucide-react";
+import { useEmailVerificationLogic } from "../../hooks/useEmailVerificationLogic";
 
 export default function EmailVerificationPage() {
-  const [loading, setLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isEmailFromUrl, setIsEmailFromUrl] = useState(false);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-
   const {
+    loading,
+    isVisible,
+    isEmailFromUrl,
     register,
     handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      email: "",
-    },
-  });
-
-  useEffect(() => {
-    // Trigger entrance animations
-    setIsVisible(true);
-
-    // Get email from URL params if available
-    const emailParam = searchParams.get('email');
-    if (emailParam) {
-      setValue("email", decodeURIComponent(emailParam));
-      setIsEmailFromUrl(true);
-    }
-
-    // Check if this is a verification callback from email
-    const id = searchParams.get('id');
-    const hash = searchParams.get('hash');
-    const signature = searchParams.get('signature');
-
-    if (id && hash && signature) {
-      // This is a verification link from email - verify automatically
-      handleEmailVerification(id, hash, signature);
-    }
-  }, [searchParams, setValue]);
-
-  const handleEmailVerification = async (id, hash, signature) => {
-    try {
-      const response = await api.get(`/email/verify/${id}/${hash}?signature=${signature}`);
-      if (response.data.success) {
-        // Redirect directly to the login page URL returned from backend
-        window.location.href = response.data.data.redirect_url;
-      }
-    } catch (err) {
-      Swal.fire("Error", "Invalid or expired verification link.", "error");
-    }
-  };
-
-  const handleResendEmail = async (formData) => {
-    setLoading(true);
-    try {
-      await resendVerificationEmail(formData);
-      Swal.fire("Success!", "Verification email sent. Please check your inbox.", "success");
-    } catch (err) {
-      if (err.response && err.response.data) {
-        let errorMessage = "Failed to resend verification email";
-
-        // Handle Laravel validation errors
-        if (err.response.data.message) {
-          if (typeof err.response.data.message === 'object' && err.response.data.message.email) {
-            // Laravel validation error format: { message: { email: [...] } }
-            errorMessage = err.response.data.message.email[0];
-          } else if (typeof err.response.data.message === 'string') {
-            // Simple string message
-            errorMessage = err.response.data.message;
-          }
-        } else if (err.response.data.error) {
-          // Alternative error format
-          errorMessage = err.response.data.error;
-        }
-
-        Swal.fire("Error", errorMessage, "error");
-      } else {
-        Swal.fire("Error", "Something went wrong. Try again later.", "error");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    errors,
+    handleResendEmail,
+  } = useEmailVerificationLogic();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100 overflow-hidden flex flex-col">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/30 to-green-300/20 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/40 to-green-200/30 rounded-full blur-2xl"></div>
       </div>
 
-      {/* Header / Branding */}
       <header
         className={`relative z-10 flex justify-between items-center py-4 px-6 max-w-6xl mx-auto w-full transition-all duration-1000 ${
           isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10"
@@ -123,9 +44,7 @@ export default function EmailVerificationPage() {
         </Link>
       </header>
 
-      {/* Main Content */}
       <main className="relative z-10 flex flex-1 max-w-6xl mx-auto w-full overflow-hidden">
-        {/* Left side */}
         <div
           className={`hidden lg:flex flex-1 items-center justify-center p-8 transition-all duration-1000 delay-300 ${
             isVisible
@@ -147,7 +66,8 @@ export default function EmailVerificationPage() {
                       </span>
                     </h2>
                     <p className="text-gray-600 text-sm leading-relaxed">
-                      Check your inbox for a verification link to complete your account setup.
+                      Check your inbox for a verification link to complete your
+                      account setup.
                     </p>
                   </div>
 
@@ -177,7 +97,6 @@ export default function EmailVerificationPage() {
           </div>
         </div>
 
-        {/* Right side - Form */}
         <div className="flex-1 flex items-center justify-center p-4 lg:p-6 overflow-y-auto">
           <div
             className={`w-full max-w-md my-auto transition-all duration-1000 delay-500 ${
@@ -189,7 +108,6 @@ export default function EmailVerificationPage() {
             <div className="relative">
               <div className="absolute -inset-2 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
               <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6">
-                {/* Title */}
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-xs font-medium mb-3">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse"></span>
@@ -203,26 +121,32 @@ export default function EmailVerificationPage() {
                   </p>
                 </div>
 
-                {/* Email Icon */}
                 <div className="flex justify-center mb-6">
                   <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
                     <Mail className="w-8 h-8 text-white" />
                   </div>
                 </div>
 
-                {/* Instructions */}
                 <div className="space-y-4 mb-6">
                   <div className="text-center">
                     <p className="text-gray-700 text-sm mb-2">
-                      Didn't receive the email? Check your spam folder or click below to resend.
+                      Didn't receive the email? Check your spam folder or click
+                      below to resend.
                     </p>
                   </div>
 
-                  {/* Email Input for Resend */}
-                  <form className="space-y-3" onSubmit={handleSubmit(handleResendEmail)}>
+                  <form
+                    className="space-y-3"
+                    onSubmit={handleSubmit(handleResendEmail)}
+                  >
                     <div>
                       <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Your Email Address {isEmailFromUrl && <span className="text-green-600 text-xs">(from registration)</span>}
+                        Your Email Address{" "}
+                        {isEmailFromUrl && (
+                          <span className="text-green-600 text-xs">
+                            (from registration)
+                          </span>
+                        )}
                       </label>
                       <input
                         type="email"
@@ -239,16 +163,18 @@ export default function EmailVerificationPage() {
                         }`}
                       />
                       {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors.email.message}
+                        </p>
                       )}
                       {isEmailFromUrl && (
                         <p className="text-xs text-gray-500 mt-1">
-                          This email was provided during registration. You can change it if needed.
+                          This email was provided during registration. You can
+                          change it if needed.
                         </p>
                       )}
                     </div>
 
-                    {/* Resend Button */}
                     <button
                       type="submit"
                       disabled={loading}
@@ -264,19 +190,17 @@ export default function EmailVerificationPage() {
                   </form>
                 </div>
 
-
-
-                {/* Security Note */}
                 <div className="mt-4">
                   <div className="p-3 bg-green-50 border border-green-100 rounded-lg">
                     <p className="text-center text-xs text-green-700 flex items-center justify-center space-x-1">
                       <span className="text-green-600">🔒</span>
-                      <span>Your email verification is secure and encrypted</span>
+                      <span>
+                        Your email verification is secure and encrypted
+                      </span>
                     </p>
                   </div>
                 </div>
 
-                {/* Mobile Sign In Link */}
                 <div className="md:hidden text-center mt-4">
                   <Link
                     to="/login"

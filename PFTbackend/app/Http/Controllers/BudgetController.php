@@ -86,9 +86,16 @@ class BudgetController extends Controller
         });
     }
 
-    private function updateBudgetStatuses()
+    private function updateBudgetStatuses($force = false)
     {
         $userId = Auth::id();
+        $cacheKey = 'budget_status_check_' . $userId;
+
+        // Optimization: Only run status updates once per hour to reduce DB load
+        if (!$force && Cache::has($cacheKey)) {
+            return;
+        }
+
         $today = Carbon::now()->format('Y-m-d');
 
         // Expire outdated budgets
@@ -115,10 +122,16 @@ class BudgetController extends Controller
                 $budget->update(['status' => 'reached']);
             }
         }
+
+        // Set cache to prevent re-running for 1 hour (3600 seconds)
+        Cache::put($cacheKey, true, 3600);
     }
 
     public function store(CreateBudgetRequest $request)
     {
+        // Force update statuses to ensure we don't block creation if a budget just finished
+        $this->updateBudgetStatuses(true);
+
         if ($request->category_id) {
             $exists = Budget::where('user_id', Auth::id())
                 ->where('status', 'active')
@@ -160,7 +173,7 @@ class BudgetController extends Controller
     public function destroy(Budget $budget)
     {
         $this->authorize('delete', $budget);
-        $budget->transactions()->delete();
+        // $budget->transactions()->delete(); // REMOVED: Let DB 'set null' constraint handle unlinking
         $budget->delete();
 
         $this->clearUserCache(Auth::id());

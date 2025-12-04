@@ -95,17 +95,21 @@ class TransactionController extends Controller
             $aggregateQuery = clone $baseQuery;
             $aggregateQuery->setEagerLoads([]); // Remove eager loads
 
-            $totalIncome = (clone $aggregateQuery)->where('type', 'income')->sum('amount');
-            $totalExpenses = (clone $aggregateQuery)->where('type', 'expense')->sum('amount');
+            // Optimization: Combine totals into single query
+            $totals = (clone $aggregateQuery)
+                ->selectRaw("SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income")
+                ->selectRaw("SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expenses")
+                ->first();
+
+            $totalIncome = $totals->total_income ?? 0;
+            $totalExpenses = $totals->total_expenses ?? 0;
 
             $totalExpensesByCategory = (clone $aggregateQuery)
                 ->where('type', 'expense')
-                ->whereHas('category', function ($q) {
-                    $q->where('type', 'expense');
-                })
+                ->whereNotNull('category_id') // Ensure category exists
                 ->selectRaw('category_id, SUM(amount) as total')
                 ->groupBy('category_id')
-                ->with('category') // We need category for the name
+                ->with('category:id,name,type') // Select only necessary fields
                 ->get()
                 ->map(function ($item) {
                     return [
@@ -121,7 +125,7 @@ class TransactionController extends Controller
             $allowedSortFields = ['date', 'amount', 'type', 'name'];
 
             if (in_array($sortBy, $allowedSortFields)) {
-                $query->orderBy($sortBy, $sortOrder);
+                $query->orderBy($sortBy, $sortOrder)->orderBy('id', 'desc');
             }
 
             if ($request->has('all') && $request->all == 'true') {
@@ -168,7 +172,44 @@ class TransactionController extends Controller
             $validatedData['saving_goal_id'] = $request->saving_goal_id;
         }
 
-        $transaction = Auth::user()->transactions()->create($validatedData);
+        $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($validatedData, $request) {
+            \Illuminate\Support\Facades\Log::info('Transaction Store Request:', $validatedData);
+            
+            // 1. Create Main Transaction
+            // CRITICAL: If this is a split (savings allocation), do NOT link the main income to the savings goal.
+            // The savings goal should only be linked to the transfer (expense) transaction.
+            $mainTxData = $validatedData;
+            if ($request->filled('savings_amount') && $request->savings_amount > 0) {
+                unset($mainTxData['saving_goal_id']);
+            }
+            
+            $transaction = Auth::user()->transactions()->create($mainTxData);
+            \Illuminate\Support\Facades\Log::info('Created Main Transaction:', $transaction->toArray());
+
+            // 2. Handle Savings Split (Atomic)
+            if ($request->filled('savings_amount') && $request->filled('saving_goal_id') && $request->savings_amount > 0) {
+                $saving = \App\Models\Saving::find($request->saving_goal_id);
+                
+                if ($saving) {
+                    // Update Goal
+                    $saving->increment('current_amount', $request->savings_amount);
+
+                    // Create Transfer Transaction (Expense)
+                    Auth::user()->transactions()->create([
+                        'name' => 'Transfer to ' . $saving->name,
+                        'type' => 'expense',
+                        'amount' => $request->savings_amount,
+                        'description' => 'Auto-allocation from ' . $transaction->name,
+                        'date' => $transaction->date,
+                        'category_id' => $request->transfer_category_id,
+                        'saving_goal_id' => $saving->id,
+                        'budget_id' => null,
+                    ]);
+                }
+            }
+
+            return $transaction;
+        });
 
         $this->clearUserCache(Auth::id());
 

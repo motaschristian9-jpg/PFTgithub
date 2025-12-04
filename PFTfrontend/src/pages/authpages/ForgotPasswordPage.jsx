@@ -1,280 +1,142 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { Loader2, ArrowLeft } from "lucide-react";
-import Swal from "sweetalert2";
-import { forgotPassword } from "../../api/auth";
+import { Loader2, ArrowLeft, ShieldCheck, Mail } from "lucide-react";
+import { useForgotPasswordLogic } from "../../hooks/useForgotPasswordLogic";
 
 export default function ForgotPasswordPage() {
-  const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-
   const {
+    loading,
+    emailSent,
+    setEmailSent,
+    isVisible,
     register,
     handleSubmit,
-    setError,
-    formState: { errors },
+    errors,
     getValues,
-  } = useForm({
-    defaultValues: {
-      email: "",
-    },
-  });
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  const handleForgotPassword = async (formData) => {
-    setLoading(true);
-    try {
-      await forgotPassword(formData.email);
-
-      setEmailSent(true);
-      Swal.fire({
-        title: "Email Sent!",
-        text: "We've sent a password reset link to your email address.",
-        icon: "success",
-        confirmButtonText: "OK",
-      });
-    } catch (err) {
-      let errorMessage = "Something went wrong. Try again later.";
-      let isGoogleError = false;
-
-      if (err.response && err.response.data) {
-        const responseData = err.response.data;
-
-        // Check for the specific Google login method error message from the backend
-        if (
-          responseData.message &&
-          typeof responseData.message === "string" &&
-          responseData.message.includes("Google")
-        ) {
-          errorMessage = responseData.message;
-          isGoogleError = true;
-        } else if (responseData.errors?.email) {
-          // Handle Laravel validation errors (422)
-          errorMessage = Array.isArray(responseData.errors.email)
-            ? responseData.errors.email[0]
-            : responseData.errors.email;
-        } else if (responseData.message) {
-          // General error message
-          errorMessage = responseData.message;
-        }
-      }
-
-      // Display specific error feedback
-      if (isGoogleError) {
-        Swal.fire({
-          icon: "info",
-          title: "Google Account Detected",
-          text: "This account was created using Google. Please use the 'Continue with Google' button to sign in.",
-          confirmButtonText: "Go to Login",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            window.location.href = "/login";
-          }
-        });
-      } else {
-        // Apply the error message to the email field or show general Swal
-        if (
-          errorMessage.includes("email") ||
-          errorMessage.includes("account found")
-        ) {
-          setError("email", { message: errorMessage });
-        } else {
-          Swal.fire("Error", errorMessage, "error");
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+    handleForgotPassword,
+  } = useForgotPasswordLogic();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-green-100 overflow-hidden flex flex-col">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-green-200/30 to-green-300/20 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-tr from-green-100/40 to-green-200/30 rounded-full blur-2xl"></div>
+    <div className="min-h-screen flex bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
+      {/* Left Side - Form */}
+      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24 relative z-10">
+        <div className="mx-auto w-full max-w-sm lg:w-96">
+          <div className={`transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
+            <Link 
+              to="/login" 
+              tabIndex={-1}
+              className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-8 group"
+            >
+              <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+              Back to login
+            </Link>
+
+            <div className="mb-8">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-6">
+                <ShieldCheck size={24} />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+                Forgot password?
+              </h2>
+              <p className="text-sm text-gray-600">
+                No worries, we'll send you reset instructions.
+              </p>
+            </div>
+
+            {!emailSent ? (
+              <form onSubmit={handleSubmit(handleForgotPassword)} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Email address
+                  </label>
+                  <input
+                    type="email"
+                    {...register("email", {
+                      required: "Email is required",
+                      pattern: {
+                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                        message: "Invalid email address",
+                      },
+                    })}
+                    className={`block w-full rounded-xl border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all ${
+                      errors.email ? "ring-red-500 focus:ring-red-500" : ""
+                    }`}
+                    placeholder="Enter your email"
+                  />
+                  {errors.email && (
+                    <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex w-full justify-center rounded-xl bg-gray-900 px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Send Reset Link"}
+                </button>
+              </form>
+            ) : (
+              <div className="text-center bg-blue-50 rounded-2xl p-6 border border-blue-100">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4">
+                  <Mail size={24} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  We sent a password reset link to <br />
+                  <span className="font-medium text-gray-900">{getValues("email")}</span>
+                </p>
+                <div className="text-xs text-gray-500">
+                  Didn't receive the email?{" "}
+                  <button
+                    onClick={() => setEmailSent(false)}
+                    className="text-blue-600 hover:text-blue-700 font-medium underline"
+                  >
+                    Click to resend
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <p className="mt-8 text-center text-sm text-gray-500">
+              Don't have an account?{" "}
+              <Link 
+                to="/signup" 
+                tabIndex={-1}
+                className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+              >
+                Sign up for free
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Header / Branding */}
-      <header
-        className={`relative z-10 flex justify-between items-center py-4 px-6 max-w-6xl mx-auto w-full flex-shrink-0 transition-all duration-1000 ${
-          isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10"
-        }`}
-      >
-        <Link to="/" className="flex items-center space-x-3 group">
-          <div className="w-10 h-10 bg-gradient-to-r from-green-600 to-green-700 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-            <span className="text-white font-bold text-lg">M</span>
-          </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
-            MoneyTracker
-          </span>
-        </Link>
-      </header>
+      {/* Right Side - Visual */}
+      <div className="hidden lg:flex flex-1 relative bg-gray-900 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 to-gray-800" />
+        
+        {/* Abstract Shapes */}
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px] animate-pulse-slow" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-violet-400/10 rounded-full blur-[100px] animate-pulse-slow delay-1000" />
 
-      {/* Main Content */}
-      <main className="relative z-10 flex flex-1 max-w-6xl mx-auto w-full overflow-hidden">
-        {/* Left side */}
-        <div
-          className={`hidden lg:flex flex-1 items-center justify-center p-8 transition-all duration-1000 delay-300 ${
-            isVisible
-              ? "opacity-100 translate-x-0"
-              : "opacity-0 -translate-x-10"
-          }`}
-        >
-          <div className="text-center space-y-6 max-w-sm">
-            <div className="relative">
-              <div className="absolute -inset-3 bg-gradient-to-r from-green-200/50 to-green-300/30 rounded-2xl blur opacity-60"></div>
-              <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-green-100">
-                <div className="space-y-4">
-                  <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                    <span className="text-2xl">🔑</span>
-                  </div>
-                  <div className="space-y-3">
-                    <h2 className="text-2xl font-bold text-gray-800 leading-tight">
-                      Reset Your Password
-                    </h2>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      Enter your email address and we'll send you a link to
-                      reset your password.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="relative z-10 flex flex-col justify-center px-12 text-white max-w-2xl mx-auto text-center">
+          <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center text-blue-400 backdrop-blur-sm mx-auto mb-8 animate-float">
+            <ShieldCheck size={40} />
           </div>
+          
+          <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
+            Secure Account <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-200">
+              Recovery
+            </span>
+          </h2>
+          
+          <p className="text-lg text-gray-400 leading-relaxed max-w-md mx-auto">
+            We use industry-standard encryption to keep your account safe. 
+            Resetting your password is quick and secure.
+          </p>
         </div>
-
-        {/* Right side - Form */}
-        <div className="flex-1 flex items-center justify-center p-4 lg:p-6 overflow-y-auto">
-          <div
-            className={`w-full max-w-md my-auto transition-all duration-1000 delay-500 ${
-              isVisible
-                ? "opacity-100 translate-x-0"
-                : "opacity-0 translate-x-10"
-            }`}
-          >
-            <div className="relative">
-              <div className="absolute -inset-2 bg-gradient-to-r from-green-200/30 to-green-300/20 rounded-2xl blur opacity-40"></div>
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-green-100/50 p-6">
-                {/* Back Link */}
-                <div className="mb-4">
-                  <Link
-                    to="/login"
-                    className="inline-flex items-center text-green-600 hover:text-green-700 text-sm font-medium transition-colors duration-300"
-                  >
-                    <ArrowLeft size={16} className="mr-2" />
-                    Back to Login
-                  </Link>
-                </div>
-
-                {/* Title */}
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-xs font-medium mb-3">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                    Forgot Password
-                  </div>
-                  <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                    Reset Your Password
-                  </h1>
-                  <p className="text-gray-600 text-sm">
-                    Enter your email address and we'll send you a reset link
-                  </p>
-                </div>
-
-                {!emailSent ? (
-                  /* Form */
-                  <form
-                    className="space-y-4"
-                    onSubmit={handleSubmit(handleForgotPassword)}
-                  >
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        {...register("email", {
-                          required: "Email is required",
-                          pattern: {
-                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                            message: "Invalid email address",
-                          },
-                        })}
-                        placeholder="you@example.com"
-                        className={`w-full px-3 py-2.5 bg-white border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-300 hover:border-green-300 text-sm ${
-                          errors.email ? "border-red-500" : "border-gray-200"
-                        }`}
-                      />
-                      {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.email.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full flex justify-center items-center bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-2.5 rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm cursor-pointer"
-                    >
-                      {loading ? (
-                        <Loader2 className="animate-spin h-4 w-4" />
-                      ) : (
-                        "Send Reset Link"
-                      )}
-                    </button>
-                  </form>
-                ) : (
-                  /* Success Message */
-                  <div className="text-center space-y-4">
-                    <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                      <span className="text-2xl">✅</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                        Check Your Email
-                      </h3>
-                      <p className="text-gray-600 text-sm mb-4">
-                        We've sent a password reset link to{" "}
-                        <span className="font-medium text-gray-800">
-                          {getValues("email")}
-                        </span>
-                      </p>
-                      <p className="text-gray-500 text-xs">
-                        Didn't receive the email? Check your spam folder or{" "}
-                        <button
-                          onClick={() => setEmailSent(false)}
-                          className="text-green-600 hover:text-green-700 font-medium"
-                        >
-                          try again
-                        </button>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Links */}
-                <div className="mt-6 text-center">
-                  <Link
-                    to="/signup"
-                    className="text-gray-600 hover:text-green-600 transition-colors duration-300 font-medium text-sm"
-                  >
-                    Don't have an account?{" "}
-                    <span className="text-green-600 font-semibold hover:text-green-700">
-                      Sign Up
-                    </span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
+      </div>
     </div>
   );
 }

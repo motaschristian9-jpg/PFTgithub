@@ -35,14 +35,14 @@ const createSaving = (data) =>
   axios.post("/savings", data).then((res) => res.data);
 const updateSaving = ({ id, data }) =>
   axios.put(`/savings/${id}`, data).then((res) => res.data);
-const deleteSaving = (id) =>
-  axios.delete(`/savings/${id}`).then((res) => res.data);
+const deleteSaving = ({ id, params }) =>
+  axios.delete(`/savings/${id}`, { params }).then((res) => res.data);
 
 export const useActiveSavings = () => {
   return useQuery({
     queryKey: KEYS.active,
     queryFn: getActiveSavings,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     select: (data) => {
       const items = Array.isArray(data?.data) ? data.data : [];
       return { data: items };
@@ -61,6 +61,7 @@ export const useSavingsHistory = (page, filters) => {
 
 const invalidateSavingsQueries = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: KEYS.all });
+  queryClient.invalidateQueries({ queryKey: KEYS.active });
 };
 
 export const useCreateSaving = () => {
@@ -68,7 +69,41 @@ export const useCreateSaving = () => {
 
   return useMutation({
     mutationFn: createSaving,
-    onSuccess: () => {
+    onMutate: async (newSaving) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.active });
+
+      const previousSavings = queryClient.getQueryData(KEYS.active);
+
+      queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
+        const optimisticSaving = {
+          id: `temp-${Date.now()}`,
+          ...newSaving,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        if (!oldData) return { data: [optimisticSaving] };
+
+        if (oldData.data) {
+          return {
+            ...oldData,
+            data: [optimisticSaving, ...oldData.data],
+          };
+        }
+
+        return Array.isArray(oldData)
+          ? [optimisticSaving, ...oldData]
+          : [optimisticSaving];
+      });
+
+      return { previousSavings };
+    },
+    onError: (err, newSaving, context) => {
+      if (context?.previousSavings) {
+        queryClient.setQueriesData({ queryKey: KEYS.active }, context.previousSavings);
+      }
+    },
+    onSettled: () => {
       invalidateSavingsQueries(queryClient);
     },
   });
@@ -80,11 +115,11 @@ export const useUpdateSaving = () => {
   return useMutation({
     mutationFn: updateSaving,
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ queryKey: KEYS.all });
+      await queryClient.cancelQueries({ queryKey: KEYS.active });
 
-      const previousSavings = queryClient.getQueryData(KEYS.all);
+      const previousSavings = queryClient.getQueryData(KEYS.active);
 
-      queryClient.setQueriesData({ queryKey: KEYS.all }, (oldData) => {
+      queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
         if (!oldData) return oldData;
 
         if (oldData.data) {
@@ -121,23 +156,23 @@ export const useDeleteSaving = () => {
 
   return useMutation({
     mutationFn: deleteSaving,
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: KEYS.all });
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: KEYS.active });
 
-      const previousSavings = queryClient.getQueryData(KEYS.all);
+      const previousSavings = queryClient.getQueryData(KEYS.active);
 
-      queryClient.setQueriesData({ queryKey: KEYS.all }, (oldData) => {
+      queryClient.setQueriesData({ queryKey: KEYS.active }, (oldData) => {
         if (!oldData) return oldData;
 
         if (oldData.data) {
           return {
             ...oldData,
-            data: oldData.data.filter((item) => item.id !== id),
+            data: oldData.data.filter((item) => item.id != id),
           };
         }
 
         return Array.isArray(oldData)
-          ? oldData.filter((item) => item.id !== id)
+          ? oldData.filter((item) => item.id != id)
           : oldData;
       });
 

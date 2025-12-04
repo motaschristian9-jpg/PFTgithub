@@ -41,6 +41,9 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback']);
 
 // Protected User Routes
 Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/user', function (\Illuminate\Http\Request $request) {
+        return $request->user();
+    });
 
     // Auth-related protected routes
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -51,6 +54,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Hybrid Auth & Notification Routes
     Route::put('/user/set-password', [AuthController::class, 'setLocalPassword']);
     Route::put('/user/acknowledge-notifications', [AuthController::class, 'acknowledgeNotifications']);
+    Route::delete('/user', [AuthController::class, 'deleteAccount']);
 
     // Data Routes
     Route::get('transactions/search', [TransactionController::class, 'search']);
