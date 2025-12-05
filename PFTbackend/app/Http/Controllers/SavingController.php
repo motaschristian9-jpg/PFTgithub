@@ -72,6 +72,13 @@ class SavingController extends Controller
 
         $saving->fill($request->validated());
 
+        $wasCompleted = $saving->getOriginal('status') === 'completed' || $saving->getOriginal('current_amount') >= $saving->getOriginal('target_amount');
+
+        if ($saving->current_amount == 0 && $wasCompleted) {
+            $saving->delete();
+            return response()->json(['deleted' => true, 'message' => 'Saving goal deleted as it was fully withdrawn.']);
+        }
+
         if ($saving->current_amount >= $saving->target_amount) {
             $saving->status = 'completed';
         } else {

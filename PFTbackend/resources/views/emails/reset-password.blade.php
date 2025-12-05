@@ -3,31 +3,42 @@
 @section('title', 'Reset Your Password')
 
 @section('content')
-    <h1 class="h1">Reset Your Password</h1>
+    <h1 style="margin:0 0 24px 0;font-size:28px;line-height:36px;font-weight:700;color:#111827;text-align:center;letter-spacing:-0.025em;">
+        Reset Your Password
+    </h1>
     
-    <p class="text">
+    <p style="margin:0 0 16px 0;font-size:16px;line-height:26px;color:#4b5563;">
         Hello,
     </p>
     
-    <p class="text">
-        You are receiving this email because we received a password reset request for your account.
-        Click the button below to reset your password.
+    <p style="margin:0 0 32px 0;font-size:16px;line-height:26px;color:#4b5563;">
+        We received a request to reset the password for your MoneyTracker account. 
+        No worries, we've got you covered!
     </p>
     
-    <div class="button-container">
-        <a href="{{ $url }}" class="button">Reset Password</a>
-    </div>
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td align="center">
+                <a href="{{ $url }}" target="_blank" style="display:inline-block;padding:16px 36px;font-size:16px;font-weight:600;color:#ffffff;background-color:#2563EB;text-decoration:none;border-radius:9999px;box-shadow:0 10px 15px -3px rgba(37, 99, 235, 0.3);">
+                    Reset Password
+                </a>
+            </td>
+        </tr>
+    </table>
     
-    <p class="text">
-        This password reset link will expire in 60 minutes.
+    <p style="margin:32px 0 0 0;font-size:14px;line-height:22px;color:#6b7280;text-align:center;">
+        This link will expire in 60 minutes for your security.
     </p>
     
-    <p class="text">
-        If you did not request a password reset, no further action is required.
+    <div style="width:100%;height:1px;background-color:#e5e7eb;margin:32px 0;"></div>
+    
+    <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#4b5563;">
+        If you didn't ask to reset your password, you can safely ignore this email. 
+        Your account is safe.
     </p>
     
-    <p class="text">
-        Regards,<br>
+    <p style="margin:0;font-size:16px;line-height:24px;font-weight:600;color:#111827;">
+        Best regards,<br>
         The MoneyTracker Team
     </p>
 @endsection

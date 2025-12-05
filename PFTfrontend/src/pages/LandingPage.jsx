@@ -139,24 +139,24 @@ export default function LandingPage() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
-        <div className="container mx-auto grid lg:grid-cols-2 gap-16 items-center">
-          <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide mb-8 animate-fade-in-up">
+      <section className="relative pt-28 pb-16 md:pt-32 md:pb-20 lg:pt-48 lg:pb-32 px-4 md:px-6 overflow-hidden">
+        <div className="container mx-auto grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="relative z-10 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide mb-6 md:mb-8 animate-fade-in-up">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
               v2.0 is now live
             </div>
-            <h1 className="text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight mb-8 text-gray-900 animate-fade-in-up delay-100">
+            <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight mb-6 md:mb-8 text-gray-900 animate-fade-in-up delay-100">
               Master your money,{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-500">
                 effortlessly.
               </span>
             </h1>
-            <p className="text-lg text-gray-600 leading-relaxed mb-10 max-w-lg animate-fade-in-up delay-200">
+            <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-8 md:mb-10 max-w-lg mx-auto lg:mx-0 animate-fade-in-up delay-200">
               The all-in-one platform to track expenses, set budgets, and grow your savings. 
               Beautifully designed for modern life.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up delay-300">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up delay-300">
               <button
                 onClick={() => handleNavigation("/signup")}
                 className="group flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-2xl hover:shadow-gray-200 hover:-translate-y-1"
@@ -172,7 +172,7 @@ export default function LandingPage() {
               </button>
             </div>
             
-            <div className="mt-12 flex items-center gap-4 text-sm font-medium text-gray-500 animate-fade-in-up delay-400">
+            <div className="mt-12 flex items-center justify-center lg:justify-start gap-4 text-sm font-medium text-gray-500 animate-fade-in-up delay-400">
               <div className="flex -space-x-3">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-gray-200 overflow-hidden">
@@ -180,7 +180,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex flex-col">
+              <div className="flex flex-col items-start">
                 <div className="flex items-center gap-1 text-amber-400">
                   {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={14} fill="currentColor" />)}
                 </div>
@@ -268,14 +268,14 @@ export default function LandingPage() {
       </section>
 
       {/* Bento Grid Features */}
-      <section id="features" className="py-24 bg-white relative">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+      <section id="features" className="py-16 md:py-24 bg-white relative">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center max-w-3xl mx-auto mb-12 md:mb-20">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               Everything you need to <br />
               <span className="text-blue-600">build wealth.</span>
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-base md:text-lg text-gray-600">
               Powerful tools to help you take control of your financial future, 
               packaged in a simple, intuitive interface.
             </p>
@@ -283,7 +283,7 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {/* Large Card - Dashboard */}
-            <div className="md:col-span-2 bg-blue-50 rounded-3xl p-8 md:p-12 border border-blue-100 hover:border-blue-200 transition-colors group overflow-hidden relative">
+            <div className="md:col-span-2 bg-blue-50 rounded-3xl p-6 md:p-12 border border-blue-100 hover:border-blue-200 transition-colors group overflow-hidden relative">
               <div className="relative z-10">
                 <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm mb-6 group-hover:scale-110 transition-transform">
                   <TrendingUp size={28} />
@@ -300,7 +300,7 @@ export default function LandingPage() {
             </div>
 
             {/* Tall Card - Budgeting */}
-            <div className="md:row-span-2 bg-violet-900 rounded-3xl p-8 md:p-12 text-white flex flex-col justify-between group overflow-hidden relative">
+            <div className="md:row-span-2 bg-violet-900 rounded-3xl p-6 md:p-12 text-white flex flex-col justify-between group overflow-hidden relative">
               <div className="relative z-10">
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-violet-300 mb-6 backdrop-blur-sm group-hover:scale-110 transition-transform">
                   <PieChart size={28} />
@@ -329,14 +329,8 @@ export default function LandingPage() {
             </div>
 
             {/* Medium Card - Savings */}
-            <div className="bg-teal-50 rounded-3xl p-8 border border-teal-100 hover:border-teal-200 transition-colors group">
+            <div className="bg-teal-50 rounded-3xl p-6 md:p-8 border border-teal-100 hover:border-teal-200 transition-colors group">
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 shadow-sm mb-6 group-hover:scale-110 transition-transform">
-                <Users size={28} /> 
-                {/* Note: Using Users as placeholder for Target if not imported, but Target is better. 
-                    I'll check imports. Target is not imported. I'll use Users or Star or CheckCircle2.
-                    Actually, I can add Target to imports in a separate edit or just use CheckCircle2 for now.
-                    Let's use CheckCircle2 which implies "Goal Achieved".
-                */}
                 <CheckCircle2 size={28} />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-3">Goal Tracking</h3>
@@ -347,7 +341,7 @@ export default function LandingPage() {
             </div>
 
             {/* Medium Card - Reports */}
-            <div className="bg-indigo-50 rounded-3xl p-8 border border-indigo-100 hover:border-indigo-200 transition-colors shadow-sm group">
+            <div className="bg-indigo-50 rounded-3xl p-6 md:p-8 border border-indigo-100 hover:border-indigo-200 transition-colors shadow-sm group">
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
                 <Activity size={28} />
               </div>
@@ -362,20 +356,20 @@ export default function LandingPage() {
       </section>
 
       {/* Security Section */}
-      <section id="security" className="py-24 bg-gray-900 text-white relative overflow-hidden">
+      <section id="security" className="py-16 md:py-24 bg-gray-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[100px]" />
           <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-violet-500/10 rounded-full blur-[100px]" />
         </div>
         
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/50 border border-blue-800 text-blue-300 text-xs font-bold uppercase tracking-wide mb-6">
                 <Shield size={14} />
                 Bank-Grade Security
               </div>
-              <h2 className="text-3xl md:text-5xl font-bold mb-6">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
                 Your data is safe <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
                   and sound.
@@ -445,18 +439,18 @@ export default function LandingPage() {
       </section>
 
       {/* Roadmap Section */}
-      <section id="roadmap" className="py-24 bg-white relative">
-        <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+      <section id="roadmap" className="py-16 md:py-24 bg-white relative">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               Building for the <span className="text-blue-600">future</span>
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-base md:text-lg text-gray-600">
               We're constantly improving. Here's what's coming next to MoneyTracker.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
             {[
               {
                 quarter: "Q1 2026",
@@ -480,7 +474,7 @@ export default function LandingPage() {
                 color: "bg-teal-100 text-teal-700"
               }
             ].map((item, i) => (
-              <div key={i} className="bg-gray-50 rounded-3xl p-8 border border-gray-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+              <div key={i} className="bg-gray-50 rounded-3xl p-6 md:p-8 border border-gray-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
                 <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 ${item.color}`}>
                   {item.status}
                 </div>
@@ -497,18 +491,18 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-24 bg-gray-50 relative overflow-hidden">
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+      <section id="testimonials" className="py-16 md:py-24 bg-gray-50 relative overflow-hidden">
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               Loved by <span className="text-blue-600">thousands</span>
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-base md:text-lg text-gray-600">
               Don't just take our word for it. Here's what our community has to say.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {[
               {
                 name: "Sarah Johnson",
@@ -532,7 +526,7 @@ export default function LandingPage() {
                 rating: 4
               }
             ].map((testimonial, i) => (
-              <div key={i} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div key={i} className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-1 text-amber-400 mb-6">
                   {[...Array(5)].map((_, starIndex) => (
                     <Star 
@@ -558,13 +552,13 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-24 bg-white">
-        <div className="container mx-auto px-6 max-w-4xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+      <section id="faq" className="py-16 md:py-24 bg-white">
+        <div className="container mx-auto px-4 md:px-6 max-w-4xl">
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
               Frequently Asked Questions
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-base md:text-lg text-gray-600">
               Got questions? We've got answers.
             </p>
           </div>
@@ -607,9 +601,9 @@ export default function LandingPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-6">
+      <section className="py-16 md:py-24 px-4 md:px-6">
         <div className="container mx-auto max-w-5xl">
-          <div className="bg-gray-900 rounded-[3rem] p-12 md:p-24 text-center relative overflow-hidden">
+          <div className="bg-gray-900 rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 lg:p-24 text-center relative overflow-hidden">
             {/* Decor */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
               <div className="absolute top-[-50%] left-[-20%] w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-[120px]" />
@@ -617,19 +611,19 @@ export default function LandingPage() {
             </div>
 
             <div className="relative z-10">
-              <h2 className="text-4xl md:text-6xl font-bold text-white mb-8 tracking-tight">
+              <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-6 md:mb-8 tracking-tight">
                 Ready to take control?
               </h2>
-              <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
+              <p className="text-lg md:text-xl text-gray-400 mb-8 md:mb-12 max-w-2xl mx-auto">
                 Join thousands of users who are building a better financial future with MoneyTracker.
               </p>
               <button
                 onClick={() => handleNavigation("/signup")}
-                className="bg-white text-gray-900 px-10 py-5 rounded-full font-bold text-lg transition-all hover:scale-105 hover:shadow-2xl hover:shadow-white/20"
+                className="bg-white text-gray-900 px-8 md:px-10 py-4 md:py-5 rounded-full font-bold text-lg transition-all hover:scale-105 hover:shadow-2xl hover:shadow-white/20"
               >
                 Create Free Account
               </button>
-              <p className="mt-8 text-sm text-gray-500">
+              <p className="mt-6 md:mt-8 text-sm text-gray-500">
                 No credit card required • Free forever plan available
               </p>
             </div>
@@ -638,9 +632,9 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-16 px-6">
+      <footer className="bg-white border-t border-gray-200 py-12 md:py-16 px-4 md:px-6">
         <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
+          <div className="grid md:grid-cols-4 gap-8 md:gap-12 mb-12 md:mb-16">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-6">
                 <LogoIcon size={32} />
@@ -655,8 +649,15 @@ export default function LandingPage() {
             <div>
               <h4 className="font-bold text-gray-900 mb-6">Product</h4>
               <ul className="space-y-4 text-gray-500">
-                {["Features", "Pricing", "Security", "Roadmap"].map(item => (
-                  <li key={item}><a href="#" className="hover:text-blue-600 transition-colors">{item}</a></li>
+                {["Features", "Security", "Roadmap"].map((item) => (
+                  <li key={item}>
+                    <button
+                      onClick={() => scrollToSection(item.toLowerCase())}
+                      className="hover:text-blue-600 transition-colors"
+                    >
+                      {item}
+                    </button>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -683,8 +684,12 @@ export default function LandingPage() {
           <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
             <p>© 2025 MoneyTracker. All rights reserved.</p>
             <div className="flex gap-8">
-              <a href="#" className="hover:text-gray-600">Privacy Policy</a>
-              <a href="#" className="hover:text-gray-600">Terms of Service</a>
+              <button onClick={() => handleNavigation("/privacy-policy")} className="hover:text-gray-600 transition-colors">
+                Privacy Policy
+              </button>
+              <button onClick={() => handleNavigation("/terms-of-service")} className="hover:text-gray-600 transition-colors">
+                Terms of Service
+              </button>
             </div>
           </div>
         </div>

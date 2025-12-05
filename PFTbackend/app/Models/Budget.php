@@ -55,4 +55,9 @@ class Budget extends Model
     {
         return $query->whereIn('status', ['completed', 'expired', 'reached']);
     }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 }

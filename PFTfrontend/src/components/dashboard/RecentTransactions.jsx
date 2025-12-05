@@ -1,5 +1,5 @@
 import React from "react";
-import { Activity, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Activity, ArrowUpRight, ArrowDownRight, Loader2 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
 import { motion } from "framer-motion";
@@ -32,17 +32,23 @@ const RecentTransactions = ({ transactions, userCurrency }) => {
           transactions.map((t, index) => (
             <div
               key={index}
-              className="group flex items-center justify-between rounded-xl p-3 transition-colors hover:bg-gray-50"
+              className={`group flex items-center justify-between rounded-xl p-3 transition-all ${
+                t.pending ? "bg-gray-50/50" : "hover:bg-gray-50"
+              }`}
             >
               <div className="flex items-center gap-4">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
-                    t.type === "income"
+                    t.pending
+                      ? "bg-gray-100 text-gray-400"
+                      : t.type === "income"
                       ? "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
                       : "bg-red-100 text-red-600 group-hover:bg-red-200"
                   }`}
                 >
-                  {t.type === "income" ? (
+                  {t.pending ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : t.type === "income" ? (
                     <ArrowUpRight size={18} />
                   ) : (
                     <ArrowDownRight size={18} />
@@ -53,13 +59,19 @@ const RecentTransactions = ({ transactions, userCurrency }) => {
                     {t.name || t.category_name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {new Date(t.date).toLocaleDateString()}
+                    {t.pending
+                      ? "Syncing..."
+                      : new Date(t.date).toLocaleDateString()}
                   </p>
                 </div>
               </div>
               <p
                 className={`text-sm font-bold ${
-                  t.type === "income" ? "text-emerald-600" : "text-gray-900"
+                  t.pending
+                    ? "text-gray-400"
+                    : t.type === "income"
+                    ? "text-emerald-600"
+                    : "text-gray-900"
                 }`}
               >
                 {t.type === "income" ? "+" : "-"}

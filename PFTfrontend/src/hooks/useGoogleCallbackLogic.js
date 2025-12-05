@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUserContext } from "../context/UserContext";
-import MySwal, { showSuccess } from "../utils/swal";
+import { showSuccess, showCustomAlert } from "../utils/swal";
 
 export const useGoogleCallbackLogic = () => {
   const [loading, setLoading] = useState(true);
@@ -34,7 +34,7 @@ export const useGoogleCallbackLogic = () => {
             setIsAuthenticated(true);
             navigate("/dashboard");
           } else if (action === "created_no_login") {
-            MySwal.fire({
+            showCustomAlert({
               title: "Account Created!",
               text: decodeURIComponent(message),
               icon: "success",
@@ -53,7 +53,7 @@ export const useGoogleCallbackLogic = () => {
             "Something went wrong during authentication";
 
           if (error === "account_exists") {
-            MySwal.fire({
+            showCustomAlert({
               title: "Account Already Exists",
               text: errorMessage,
               icon: "info",
@@ -64,7 +64,7 @@ export const useGoogleCallbackLogic = () => {
               navigate("/login");
             });
           } else if (error === "email_not_verified") {
-            MySwal.fire({
+            showCustomAlert({
               title: "Email Not Verified",
               text: errorMessage,
               icon: "warning",
@@ -75,7 +75,7 @@ export const useGoogleCallbackLogic = () => {
               navigate("/login");
             });
           } else {
-            MySwal.fire({
+            showCustomAlert({
               title: "Authentication Failed",
               text: errorMessage,
               icon: "error",
@@ -100,7 +100,7 @@ export const useGoogleCallbackLogic = () => {
             "This email is already registered but not verified. Please verify your email first.";
         }
 
-        MySwal.fire({
+        showCustomAlert({
           title: "Authentication Failed",
           text: errorMessage,
           icon: "error",

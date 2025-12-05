@@ -26,6 +26,9 @@ class VerifyEmail extends Notification implements ShouldQueue
      */
     public function via(object $notifiable): array
     {
+        if (isset($notifiable->email_notifications_enabled) && !$notifiable->email_notifications_enabled) {
+            return [];
+        }
         return ['mail'];
     }
 

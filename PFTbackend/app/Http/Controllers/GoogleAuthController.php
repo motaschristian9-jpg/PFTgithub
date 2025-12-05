@@ -101,17 +101,8 @@ class GoogleAuthController extends Controller
 
                     return redirect($redirectUri . '?success=true&action=created_no_login&user=' . urlencode(json_encode($user)) . '&message=' . urlencode('Account created successfully via Google. Please login to continue.'));
                 } else {
-                    $user = User::create([
-                        'name' => $googleUser->getName() ?? 'User',
-                        'email' => $email,
-                        'password' => bcrypt(Str::random(16)),
-                        'email_verified_at' => now(),
-                        'login_method' => 'google',
-                    ]);
-
-                    $token = $user->createToken('api-token')->plainTextToken;
-
-                    return redirect($redirectUri . '?success=true&action=login&token=' . urlencode($token) . '&user=' . urlencode(json_encode($user)) . '&message=' . urlencode('Account created and login successful via Google'));
+                    // BLOCK: User tried to LOGIN but has no account
+                    return redirect($redirectUri . '?error=no_account&message=' . urlencode('No account found with this email. Please sign up first.'));
                 }
             }
 

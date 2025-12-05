@@ -17,7 +17,8 @@ export default function SavingsHistoryTable({
         <h3 className="text-lg font-bold text-gray-900">Savings History</h3>
         <span className="text-sm text-gray-500">Completed Goals</span>
       </div>
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50/50 border-b border-gray-100">
             <tr>
@@ -106,7 +107,69 @@ export default function SavingsHistoryTable({
           </tbody>
         </table>
       </div>
-      {savings.length > 0 && (
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading history...</div>
+        ) : savings.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <div className="flex flex-col items-center justify-center opacity-60">
+              <div className="mb-3 rounded-full bg-gray-100 p-3">
+                <PiggyBank size={24} className="text-gray-400" />
+              </div>
+              <p className="text-sm">No savings history found.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {savings.map((s) => (
+              <div key={s.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900">{s.name}</h4>
+                    <p className="text-xs text-gray-500">
+                      {s.created_at
+                        ? new Date(s.created_at).toLocaleDateString()
+                        : "-"}
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-100 text-teal-800">
+                    Completed
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-end mt-3">
+                  <div className="space-y-1">
+                    <div className="text-xs text-gray-500">
+                      Target: {formatCurrency(Number(s.target_amount), userCurrency)}
+                    </div>
+                    <div className="text-sm font-bold text-teal-600">
+                      Final: {formatCurrency(Number(s.current_amount), userCurrency)}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-1">
+                    <button
+                      className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                      onClick={() => handleCardClick(s)}
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => handleDelete(s.id)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {savings.length > 0 && totalPages > 1 && (
         <div className="p-4 border-t border-gray-100 flex justify-center">
           <div className="flex space-x-2">
             <button

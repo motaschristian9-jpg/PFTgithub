@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'currency',
         'login_method',
         'last_notification_ack_time',
+        'email_notifications_enabled',
     ];
 
     protected $hidden = [
@@ -53,6 +54,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'last_notification_ack_time' => 'datetime',
+        'email_notifications_enabled' => 'boolean',
     ];
 
     protected $appends = ['avatar_url'];
@@ -60,7 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute()
     {
         return $this->avatar
-            ? asset('storage/' . $this->avatar)
+            ? Storage::url($this->avatar)
             : null;
     }
 

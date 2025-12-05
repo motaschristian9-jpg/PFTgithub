@@ -34,7 +34,15 @@ export const useLoginLogic = () => {
     if (emailParam) {
       // Logic to pre-fill if needed, currently just checking existence
     }
-  }, [searchParams]);
+
+    const error = searchParams.get("error");
+    const message = searchParams.get("message");
+    if (error && message) {
+      showError(decodeURIComponent(message));
+      // Clean up URL
+      navigate("/login", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   useEffect(() => {
     if (!userLoading && user) {

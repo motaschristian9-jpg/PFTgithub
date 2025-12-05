@@ -173,4 +173,31 @@ export const showWarning = (title = "Warning", text = "") => {
   );
 };
 
+// --- 6. Custom Alert (Generic) ---
+export const showCustomAlert = async ({
+  title,
+  text,
+  icon = "info",
+  confirmButtonText = "OK",
+  showCancelButton = false,
+  cancelButtonText = "Cancel",
+  allowOutsideClick = true,
+}) => {
+  return MySwal.fire({
+    ...baseConfig,
+    title,
+    text,
+    icon,
+    showCancelButton,
+    confirmButtonText,
+    cancelButtonText,
+    allowOutsideClick,
+    customClass: {
+      ...baseConfig.customClass,
+      // Ensure confirm button has the blue theme by default unless overridden
+      confirmButton: baseConfig.customClass.confirmButton,
+    },
+  });
+};
+
 export default MySwal;

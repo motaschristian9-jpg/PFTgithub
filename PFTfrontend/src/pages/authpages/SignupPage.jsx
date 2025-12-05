@@ -24,7 +24,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
       {/* Left Side - Form */}
-      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:px-20 xl:px-24 relative z-10">
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 sm:px-6 lg:px-20 xl:px-24 relative z-10">
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className={`transition-all duration-700 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
             <Link to="/" className="inline-flex items-center gap-2.5 group mb-8">

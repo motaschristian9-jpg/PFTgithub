@@ -4,6 +4,7 @@ import SettingsHeader from "../../components/settings/SettingsHeader.jsx";
 import SettingsSidebar from "../../components/settings/SettingsSidebar.jsx";
 import ProfileSettings from "../../components/settings/ProfileSettings.jsx";
 import SecuritySettings from "../../components/settings/SecuritySettings.jsx";
+import NotificationSettings from "../../components/settings/NotificationSettings.jsx";
 
 import { useSettingsPageLogic } from "../../hooks/useSettingsPageLogic";
 
@@ -91,19 +92,13 @@ export default function SettingsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="flex flex-col items-center justify-center h-full text-center space-y-4"
                 >
-                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
-                    <Bell className="text-gray-300" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      Notifications
-                    </h3>
-                    <p className="text-gray-500 mt-1">
-                      Notification settings coming soon.
-                    </p>
-                  </div>
+                  <NotificationSettings
+                    formData={formData}
+                    setFormData={setFormData}
+                    onSave={handleSave}
+                    isSaving={isSaving}
+                  />
                 </motion.div>
               )}
 

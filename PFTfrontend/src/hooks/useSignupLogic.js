@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { registerUser } from "../api/auth";
 import { showSuccess, showError } from "../utils/swal";
 
 export const useSignupLogic = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+  const [googleLoading, setGoogleLoading] = React.useState(false);
 
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ export const useSignupLogic = () => {
 
   const password = watch("password");
 
-  useEffect(() => {
+  React.useEffect(() => {
     setIsVisible(true);
   }, []);
 

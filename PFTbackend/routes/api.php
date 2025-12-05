@@ -53,6 +53,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Hybrid Auth & Notification Routes
     Route::put('/user/set-password', [AuthController::class, 'setLocalPassword']);
+    Route::put('/user/change-password', [AuthController::class, 'changePassword']);
     Route::put('/user/acknowledge-notifications', [AuthController::class, 'acknowledgeNotifications']);
     Route::delete('/user', [AuthController::class, 'deleteAccount']);
 

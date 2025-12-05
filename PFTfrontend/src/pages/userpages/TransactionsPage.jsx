@@ -125,6 +125,7 @@ export default function TransactionsPage() {
           userCurrency={userCurrency}
           isCreatingTransaction={isCreatingTransaction}
           updatingTransactionId={updatingTransactionId}
+          onPageChange={setPage}
         />
       </motion.div>
 

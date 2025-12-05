@@ -1,7 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth.js";
 
-export default function PublicRoutes() {
+const PublicRoutes = () => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -9,4 +9,6 @@ export default function PublicRoutes() {
   }
 
   return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" replace />;
-}
+};
+
+export default PublicRoutes;

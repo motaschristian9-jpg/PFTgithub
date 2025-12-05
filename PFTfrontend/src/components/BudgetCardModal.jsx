@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,10 +15,13 @@ import {
   ArrowRight,
   Check,
   FileText,
+  LayoutDashboard,
+  History,
 } from "lucide-react";
 
 import { formatCurrency } from "../utils/currency";
 import { useBudgetCardModalLogic } from "../hooks/useBudgetCardModalLogic";
+import BudgetEditForm from "./budgets/BudgetEditForm";
 
 export default function BudgetCardModal({
   isOpen,
@@ -55,6 +59,8 @@ export default function BudgetCardModal({
     isReadOnlyProp,
   });
 
+  const [activeTab, setActiveTab] = useState("overview");
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
@@ -79,36 +85,43 @@ export default function BudgetCardModal({
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
             {/* Header */}
-            <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-white">
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm bg-violet-100 text-violet-600">
+            <div className="px-6 sm:px-8 py-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white shrink-0">
+              <div className="flex items-center gap-5 w-full sm:w-auto">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm bg-violet-100 text-violet-600 shrink-0">
                   <PieChart size={28} />
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-3 truncate">
                     {localBudget.name}
                     {isReadOnly && (
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full uppercase tracking-wide font-bold">
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full uppercase tracking-wide font-bold shrink-0">
                         Expired
                       </span>
                     )}
                   </h2>
                   <div className="flex flex-col gap-1 mt-1">
-                    <span className="text-sm font-bold text-violet-600 uppercase tracking-wide">
+                    <span className="text-sm font-bold text-violet-600 uppercase tracking-wide truncate">
                       {getCategoryName
                         ? getCategoryName(localBudget.category_id)
                         : localBudget.category}
                     </span>
-                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5">
-                      <Calendar size={14} />
+                    <p className="text-sm font-medium text-gray-500 flex items-center gap-1.5 truncate">
+                      <Calendar size={14} className="shrink-0" />
                       {new Date(localBudget.start_date).toLocaleDateString()} -{" "}
                       {new Date(localBudget.end_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
+                {/* Mobile Close Button */}
+                <button
+                  onClick={onClose}
+                  className="sm:hidden p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 ml-auto"
+                >
+                  <X size={24} />
+                </button>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                 {!isReadOnly && !isEditing && (
                   <>
                     <button
@@ -135,85 +148,58 @@ export default function BudgetCardModal({
                     Cancel
                   </button>
                 )}
+                {/* Desktop Close Button */}
                 <button
                   onClick={onClose}
-                  className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                  className="hidden sm:block p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200"
                 >
                   <X size={24} />
                 </button>
               </div>
             </div>
 
+            {/* Mobile Tabs */}
+            <div className="flex border-b border-gray-100 lg:hidden shrink-0">
+              <button
+                onClick={() => setActiveTab("overview")}
+                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                  activeTab === "overview"
+                    ? "text-violet-600 border-b-2 border-violet-600 bg-violet-50/50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <LayoutDashboard size={16} />
+                Overview
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                  activeTab === "history"
+                    ? "text-violet-600 border-b-2 border-violet-600 bg-violet-50/50"
+                    : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <History size={16} />
+                History
+              </button>
+            </div>
+
             <div className="flex flex-col lg:flex-row h-full overflow-hidden">
               {/* Left Panel: Budget Details / Edit Form */}
-              <div className="w-full lg:w-[480px] bg-gray-50/50 flex flex-col border-r border-gray-100 overflow-y-auto">
+              <div
+                className={`w-full lg:w-[480px] bg-gray-50/50 flex flex-col border-r border-gray-100 overflow-y-auto ${
+                  activeTab === "overview" ? "block" : "hidden lg:flex"
+                }`}
+              >
                 {isEditing ? (
-                  <form
-                    onSubmit={handleSubmit(handleSaveChanges)}
-                    className="p-8 space-y-8 flex-1"
-                  >
-                    <div className="flex flex-col items-center justify-center py-6">
-                      <label className="text-xs font-bold text-violet-600 uppercase tracking-wide mb-2">
-                        Total Budget Limit
-                      </label>
-                      <div className="flex items-baseline justify-center relative w-full group">
-                        <span className="text-4xl font-medium text-violet-400 absolute left-[15%] top-1 transition-colors duration-300">
-                          {currencySymbol}
-                        </span>
-                        <input
-                          type="number"
-                          {...register("amount", { required: true, min: 0.01 })}
-                          className="block w-full text-center text-6xl font-bold bg-transparent border-0 focus:ring-0 p-0 text-gray-900 placeholder-gray-300 tracking-tight outline-none"
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                          <FileText size={12} /> Budget Name
-                        </label>
-                        <input
-                          type="text"
-                          {...register("name", { required: "Name is required" })}
-                          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-gray-900 text-sm font-medium shadow-sm"
-                          placeholder="Budget Name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                          <Calendar size={12} /> End Date
-                        </label>
-                        <input
-                          type="date"
-                          {...register("end_date", {
-                            required: true,
-                            validate: (val) =>
-                              !startDateValue ||
-                              new Date(val) >= new Date(startDateValue) ||
-                              "Invalid date",
-                          })}
-                          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-gray-900 text-sm font-medium shadow-sm"
-                        />
-                      </div>
-
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSaving}
-                      className="w-full py-4 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl shadow-lg shadow-violet-200 transition-all duration-200 flex items-center justify-center gap-2 text-base transform hover:-translate-y-0.5"
-                    >
-                      {isSaving ? (
-                        <Loader2 className="animate-spin" size={24} />
-                      ) : (
-                        <>
-                          <Check size={20} strokeWidth={3} /> Save Changes
-                        </>
-                      )}
-                    </button>
-                  </form>
+                  <BudgetEditForm
+                    register={register}
+                    handleSubmit={handleSubmit}
+                    handleSaveChanges={handleSaveChanges}
+                    isSaving={isSaving}
+                    currencySymbol={currencySymbol}
+                    startDateValue={startDateValue}
+                  />
                 ) : (
                   <div className="p-8 space-y-10">
                     <div className="text-center space-y-3">
@@ -286,8 +272,12 @@ export default function BudgetCardModal({
               </div>
 
               {/* Right Panel: Transaction History */}
-              <div className="flex-1 bg-white flex flex-col h-full overflow-hidden border-l border-gray-50">
-                <div className="px-8 py-5 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center">
+              <div
+                className={`flex-1 bg-white flex-col h-full overflow-hidden border-l border-gray-50 ${
+                  activeTab === "history" ? "flex" : "hidden lg:flex"
+                }`}
+              >
+                <div className="px-8 py-5 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center shrink-0">
                   <h3 className="font-bold text-gray-800 flex items-center gap-3 text-lg">
                     Transaction History
                     <span className="px-2.5 py-1 rounded-lg bg-gray-200 text-gray-700 text-xs font-bold">

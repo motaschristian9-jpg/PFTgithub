@@ -48,29 +48,7 @@ const TransactionsFilters = ({
           />
         </div>
 
-        <div className="flex items-center space-x-2 bg-gray-50 p-1 rounded-xl border border-gray-200">
-          <button
-            onClick={() => setPage(Math.max(pagination.currentPage - 1, 1))}
-            disabled={pagination.currentPage === 1}
-            className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
-          >
-            <ChevronLeft size={18} className="text-gray-600" />
-          </button>
-          <span className="px-3 text-sm font-semibold text-gray-700 min-w-[3rem] text-center">
-            {pagination.currentPage} / {pagination.lastPage}
-          </span>
-          <button
-            onClick={() =>
-              setPage(
-                Math.min(pagination.currentPage + 1, pagination.lastPage)
-              )
-            }
-            disabled={pagination.currentPage === pagination.lastPage}
-            className="p-2 rounded-lg hover:bg-white hover:shadow-sm disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:shadow-none transition-all"
-          >
-            <ChevronRight size={18} className="text-gray-600" />
-          </button>
-        </div>
+
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

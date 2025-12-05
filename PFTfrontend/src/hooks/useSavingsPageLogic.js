@@ -195,9 +195,9 @@ export const useSavingsPageLogic = () => {
     };
     console.log("Creating Withdrawal Transaction with payload:", payload);
     try {
-      await createTransactionMutation.mutateAsync(payload);
+      const newTransaction = await createTransactionMutation.mutateAsync(payload);
       queryClient.invalidateQueries(["transactions"]);
-      return true;
+      return newTransaction;
     } catch (error) {
       console.error("Failed to create withdrawal transaction:", error);
       showError("Transaction Failed", "Could not create the income record for this withdrawal.");
@@ -227,9 +227,9 @@ export const useSavingsPageLogic = () => {
     };
     console.log("Creating Contribution Transaction with payload:", payload);
     try {
-      await createTransactionMutation.mutateAsync(payload);
+      const newTransaction = await createTransactionMutation.mutateAsync(payload);
       queryClient.invalidateQueries(["transactions"]);
-      return true;
+      return newTransaction;
     } catch (error) {
       console.error("Failed to create contribution transaction:", error);
       showError("Transaction Failed", "Could not create the expense record for this contribution.");

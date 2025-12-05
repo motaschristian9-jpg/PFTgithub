@@ -14,6 +14,7 @@ export const useSettingsPageLogic = () => {
     name: "",
     email: "",
     currency: "USD",
+    email_notifications_enabled: true,
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -24,6 +25,7 @@ export const useSettingsPageLogic = () => {
         name: user.name || "",
         email: user.email || "",
         currency: user.currency || "USD",
+        email_notifications_enabled: user.email_notifications_enabled ?? true,
       });
       if (user.avatar_url) {
         setPreviewUrl(user.avatar_url);
@@ -42,6 +44,7 @@ export const useSettingsPageLogic = () => {
       const data = new FormData();
       data.append("name", formData.name);
       data.append("currency", formData.currency);
+      data.append("email_notifications_enabled", formData.email_notifications_enabled ? "1" : "0");
 
       if (avatarFile) {
         data.append("avatar", avatarFile);

@@ -42,6 +42,8 @@ const queryClient = new QueryClient({
 // Loading Screen Component
 import LoadingScreen from "./components/LoadingScreen";
 
+import ScrollToTop from "./components/ScrollToTop";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -49,6 +51,7 @@ function App() {
         <Toaster position="top-center" reverseOrder={false} />
         <ErrorBoundary>
           <Suspense fallback={<LoadingScreen />}>
+            <ScrollToTop />
             <Routes>
               {/* Public routes under "/" */}
               <Route path="/" element={<PublicRoutes />}>

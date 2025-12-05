@@ -34,7 +34,11 @@ export const useSavingsCardModalLogic = ({
     sort_order: "desc",
   };
 
-  const { data: historyDataRaw, isLoading: isLoadingHistory } = useTransactions(
+  const {
+    data: historyDataRaw,
+    isLoading: isLoadingHistory,
+    isFetching: isFetchingHistory,
+  } = useTransactions(
     historyQueryParams,
     {
       fetchAll: true,
@@ -116,22 +120,63 @@ export const useSavingsCardModalLogic = ({
       const dateB = new Date(b.date || b.transaction_date || b.created_at);
       const timeDiff = dateB - dateA;
       if (timeDiff !== 0) return timeDiff;
-      return b.id - a.id;
+      // Handle potential non-numeric IDs (like temp strings)
+      const idA = Number(a.id) || 0;
+      const idB = Number(b.id) || 0;
+      return idB - idA;
     });
   }, [transactions]);
 
   const isReadOnly = stats.isCompleted || localSaving.status === "cancelled";
 
-  const optimisticUpdateHistory = (newTx) => {
-    queryClient.setQueriesData(
-      { queryKey: ["transactions", historyQueryParams] },
-      (oldData) => {
-        if (!oldData) return undefined;
-        const currentList = oldData.data || oldData;
-        const newList = [newTx, ...currentList];
-        return oldData.data ? { ...oldData, data: newList } : newList;
+  const optimisticUpdateGlobal = (newTx) => {
+    // Update ALL transaction lists (Dashboard, Transactions Page, etc.)
+    // We iterate over all queries that start with ["transactions"]
+    queryClient.setQueriesData({ queryKey: ["transactions"] }, (oldData) => {
+      if (!oldData) return undefined;
+
+      // Helper to check for duplicates
+      const hasDuplicate = (list) => list.some((item) => item.id === newTx.id);
+
+      // Handle paginated responses (Laravel style)
+      if (oldData.data && Array.isArray(oldData.data)) {
+        if (hasDuplicate(oldData.data)) return oldData;
+        return {
+          ...oldData,
+          data: [newTx, ...oldData.data],
+          total: (oldData.total || 0) + 1,
+        };
       }
-    );
+
+      // Handle simple array responses
+      if (Array.isArray(oldData)) {
+        if (hasDuplicate(oldData)) return oldData;
+        return [newTx, ...oldData];
+      }
+
+      return oldData;
+    });
+  };
+
+  const rollbackOptimisticGlobal = (tempTxId) => {
+    // Rollback ALL transaction lists
+    queryClient.setQueriesData({ queryKey: ["transactions"] }, (oldData) => {
+      if (!oldData) return undefined;
+
+      if (oldData.data && Array.isArray(oldData.data)) {
+        return {
+          ...oldData,
+          data: oldData.data.filter((item) => item.id !== tempTxId),
+          total: (oldData.total || 0) - 1,
+        };
+      }
+
+      if (Array.isArray(oldData)) {
+        return oldData.filter((item) => item.id !== tempTxId);
+      }
+
+      return oldData;
+    });
   };
 
   const handleSaveChanges = async (data) => {
@@ -228,19 +273,39 @@ export const useSavingsCardModalLogic = ({
           current_amount: newCurrentAmount.toString(),
         }));
 
-        try {
-          await updateSavingMutation.mutateAsync({
-            id: localSaving.id,
-            data: { ...localSaving, current_amount: newCurrentAmount },
-          });
+        const tempTxId = Date.now();
+        const tempTransaction = {
+          id: tempTxId,
+          amount: amountToAdd,
+          name: `Deposit: ${localSaving.name}`,
+          description: `Funds transferred to savings goal: ${localSaving.name}`,
+          date: new Date().toISOString(),
+          type: "expense",
+          pending: true,
+        };
 
-          if (handleCreateContributionTransaction) {
-            await handleCreateContributionTransaction(
-              amountToAdd,
-              localSaving.name,
-              localSaving.id
-            );
-          }
+        // 1. Optimistic Update
+        optimisticUpdateGlobal(tempTransaction);
+
+        try {
+          // 2. Parallel execution
+          const [updateResponse, transactionResult] = await Promise.all([
+            updateSavingMutation.mutateAsync({
+              id: localSaving.id,
+              data: { ...localSaving, current_amount: newCurrentAmount },
+            }),
+            handleCreateContributionTransaction
+              ? handleCreateContributionTransaction(
+                  amountToAdd,
+                  localSaving.name,
+                  localSaving.id
+                )
+              : Promise.resolve(null),
+          ]);
+
+          // 3. Confirm Update (Replace temp with real if needed, or just let invalidation handle it)
+          // Since we invalidate queries, the real data will eventually replace the temp one.
+          // But to be clean, we could swap them. For now, invalidation is safe.
 
           showSuccess(
             "Contribution Added!",
@@ -250,6 +315,8 @@ export const useSavingsCardModalLogic = ({
           );
         } catch (error) {
           console.error("Error adding contribution", error);
+          // 4. Rollback on Error
+          rollbackOptimisticGlobal(tempTxId);
           showError("Error", "Failed to add contribution.");
         } finally {
           setIsSaving(false);
@@ -315,28 +382,63 @@ export const useSavingsCardModalLogic = ({
           current_amount: newCurrentAmount.toString(),
         }));
 
-        try {
-          await updateSavingMutation.mutateAsync({
-            id: localSaving.id,
-            data: { ...localSaving, current_amount: newCurrentAmount },
-          });
+        const tempTxId = Date.now();
+        const tempTransaction = {
+          id: tempTxId,
+          amount: amountToWithdraw,
+          name: `Withdrawal: ${localSaving.name}`,
+          description: `Funds moved from savings goal: ${localSaving.name}`,
+          date: new Date().toISOString(),
+          type: "income",
+          pending: true,
+        };
 
-          if (handleCreateWithdrawalTransaction) {
-            await handleCreateWithdrawalTransaction(
-              amountToWithdraw,
-              localSaving.name,
-              localSaving.id
+        // 1. Optimistic Update
+        optimisticUpdateGlobal(tempTransaction);
+
+        try {
+          // 2. Parallel execution
+          const [response, transactionResult] = await Promise.all([
+            updateSavingMutation.mutateAsync({
+              id: localSaving.id,
+              data: { ...localSaving, current_amount: newCurrentAmount },
+            }),
+            handleCreateWithdrawalTransaction
+              ? handleCreateWithdrawalTransaction(
+                  amountToWithdraw,
+                  localSaving.name,
+                  localSaving.id
+                )
+              : Promise.resolve(null),
+          ]);
+
+          const wasDeleted = response?.deleted;
+
+          // 3. Confirm Update (Replace temp with real if needed, or just let invalidation handle it)
+          // Since we invalidate queries, the real data will eventually replace the temp one.
+
+          if (wasDeleted) {
+            showSuccess(
+              "Withdrawn & Deleted",
+              `${formatCurrency(
+                amountToWithdraw,
+                userCurrency
+              )} withdrawn. Goal deleted as it is empty.`
+            );
+            onClose();
+          } else {
+            showSuccess(
+              "Withdrawn!",
+              `${formatCurrency(
+                amountToWithdraw,
+                userCurrency
+              )} withdrawn from ${localSaving.name}.`
             );
           }
-
-          showSuccess(
-            "Withdrawn!",
-            `${formatCurrency(amountToWithdraw, userCurrency)} withdrawn from ${
-              localSaving.name
-            }.`
-          );
         } catch (error) {
           console.error("Error withdrawing", error);
+          // 4. Rollback on Error
+          rollbackOptimisticGlobal(tempTxId);
           showError("Error", "Failed to withdraw funds.");
         } finally {
           setIsSaving(false);
@@ -409,5 +511,6 @@ export const useSavingsCardModalLogic = ({
     handleQuickWithdraw,
     handleDelete,
     handleDeleteTx,
+    isFetchingHistory,
   };
 };

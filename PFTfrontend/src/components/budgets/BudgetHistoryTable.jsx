@@ -22,7 +22,8 @@ const BudgetHistoryTable = ({
         <span className="text-sm text-gray-500">Completed & Expired</span>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full text-left">
           <thead className="bg-gray-50/50 border-b border-gray-100">
             <tr>
@@ -125,7 +126,80 @@ const BudgetHistoryTable = ({
         </table>
       </div>
 
-      {budgets.length > 0 && (
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        {loading ? (
+          <div className="p-8 text-center text-gray-500">Loading history...</div>
+        ) : budgets.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <div className="flex flex-col items-center justify-center opacity-60">
+              <div className="mb-3 rounded-full bg-gray-100 p-3">
+                <PieChart size={24} className="text-gray-400" />
+              </div>
+              <p className="text-sm">No budget history found.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {budgets.map((b) => {
+              const spent = getBudgetSpent(b);
+              const allocated = Number(b.amount);
+              const statusInfo = getBudgetStatusInfo(
+                spent,
+                allocated,
+                b.status
+              );
+              return (
+                <div key={b.id} className="p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">{b.name}</h4>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                          {getCategoryName(b.category_id)}
+                        </span>
+                      </div>
+                    </div>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusInfo.colorClass}`}
+                    >
+                      {statusInfo.label}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-end mt-3">
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">
+                        Allocated: {formatCurrency(allocated, userCurrency)}
+                      </div>
+                      <div className={`text-sm font-bold ${statusInfo.textClass}`}>
+                        Spent: {formatCurrency(spent, userCurrency)}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-1">
+                      <button
+                        className="p-2 rounded-lg text-gray-400 hover:text-violet-600 hover:bg-violet-50 transition-colors"
+                        onClick={() => handleBudgetCardModalOpen(b)}
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        onClick={() => handleDelete(b.id)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {budgets.length > 0 && totalPages > 1 && (
         <div className="p-4 border-t border-gray-100 flex justify-center bg-gray-50/30">
           <div className="flex space-x-2">
             <button

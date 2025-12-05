@@ -9,6 +9,7 @@ import {
   Edit2,
   Trash2,
   Receipt,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
@@ -26,6 +27,7 @@ const TransactionsTable = ({
   userCurrency,
   isCreatingTransaction,
   updatingTransactionId,
+  onPageChange,
 }) => {
   const getSortIcon = (key) => {
     if (sortBy !== key)
@@ -117,11 +119,13 @@ const TransactionsTable = ({
               ) : (
                 <div
                   key={tx.id}
-                  className="group hover:bg-gray-50 transition-colors"
+                  className={`group hover:bg-gray-50 transition-colors ${
+                    tx.pending ? "bg-gray-50/80" : ""
+                  }`}
                 >
                   <div className="hidden lg:grid grid-cols-12 gap-4 p-4 items-center">
                     <div className="col-span-2 text-sm text-gray-600 font-medium">
-                      {formatDate(tx.date)}
+                      {tx.pending ? "Syncing..." : formatDate(tx.date)}
                     </div>
                     <div className="col-span-3">
                       <p className="text-sm font-bold text-gray-800 truncate">
@@ -138,7 +142,9 @@ const TransactionsTable = ({
                     </div>
                     <div
                       className={`col-span-2 text-sm font-bold ${
-                        tx.type === "income"
+                        tx.pending
+                          ? "text-gray-400"
+                          : tx.type === "income"
                           ? "text-emerald-600"
                           : "text-red-600"
                       }`}
@@ -160,7 +166,17 @@ const TransactionsTable = ({
                     <div className="col-span-2 flex justify-end space-x-2">
                       <button
                         onClick={() => handleEdit(tx)}
-                        className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        disabled={new Date() - new Date(tx.created_at) > 60 * 60 * 1000}
+                        title={
+                          new Date() - new Date(tx.created_at) > 60 * 60 * 1000
+                            ? "Editing disabled after 1 hour"
+                            : "Edit Transaction"
+                        }
+                        className={`p-2 rounded-lg transition-colors ${
+                          new Date() - new Date(tx.created_at) > 60 * 60 * 1000
+                            ? "text-gray-300 cursor-not-allowed"
+                            : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                        }`}
                       >
                         <Edit2 size={16} />
                       </button>
@@ -215,7 +231,12 @@ const TransactionsTable = ({
                       <div className="flex gap-1">
                         <button
                           onClick={() => handleEdit(tx)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600"
+                          disabled={new Date() - new Date(tx.created_at) > 60 * 60 * 1000}
+                          className={`p-1.5 ${
+                            new Date() - new Date(tx.created_at) > 60 * 60 * 1000
+                              ? "text-gray-300 cursor-not-allowed"
+                              : "text-gray-400 hover:text-blue-600"
+                          }`}
                         >
                           <Edit2 size={14} />
                         </button>
@@ -235,9 +256,29 @@ const TransactionsTable = ({
         )}
       </div>
 
-      <div className="lg:hidden p-4 bg-gray-50 border-t border-gray-200 text-center text-xs text-gray-500">
-        Page {pagination.currentPage} of {pagination.lastPage}
-      </div>
+      {transactions.length > 0 && pagination.lastPage > 1 && (
+        <div className="p-4 border-t border-gray-100 flex justify-center bg-white">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => onPageChange(Math.max(1, pagination.currentPage - 1))}
+              disabled={pagination.currentPage === 1}
+              className="px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Previous
+            </button>
+            <span className="px-3 py-1 text-gray-600 flex items-center">
+              Page {pagination.currentPage} of {pagination.lastPage}
+            </span>
+            <button
+              onClick={() => onPageChange(pagination.currentPage + 1)}
+              disabled={pagination.currentPage >= pagination.lastPage}
+              className="px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

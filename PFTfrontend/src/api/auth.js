@@ -60,6 +60,10 @@ export const setLocalPasswordAPI = async (data) => {
   return api.put("/user/set-password", data);
 };
 
+export const changePasswordAPI = async (data) => {
+  return api.put("/user/change-password", data);
+};
+
 export const deleteAccount = async () => {
   return api.delete("/user");
 };

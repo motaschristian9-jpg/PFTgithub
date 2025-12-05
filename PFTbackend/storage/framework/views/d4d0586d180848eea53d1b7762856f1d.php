@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="x-apple-disable-message-reformatting">
-    <title>@yield('title')</title>
+    <title><?php echo $__env->yieldContent('title'); ?></title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         
@@ -28,7 +28,7 @@
                         
                         <tr>
                             <td class="content-padding" style="padding:40px 48px 20px 48px;text-align:center;">
-                                <a href="{{ config('app.url') }}" style="text-decoration:none;">
+                                <a href="<?php echo e(config('app.url')); ?>" style="text-decoration:none;">
                                     
                                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                                         <tr>
@@ -55,7 +55,7 @@
 
                         <tr>
                             <td class="content-padding" style="padding:10px 48px 48px 48px;">
-                                @yield('content')
+                                <?php echo $__env->yieldContent('content'); ?>
                             </td>
                         </tr>
                         
@@ -64,18 +64,18 @@
                     <table role="presentation" style="width:100%;max-width:600px;border:none;border-spacing:0;margin-top:32px;">
                         <tr>
                             <td style="text-align:center;font-size:12px;color:#9ca3af;line-height:20px;font-family:'Inter',sans-serif;">
-                                <p style="margin:0 0 12px 0;">&copy; {{ date('Y') }} MoneyTracker. All rights reserved.</p>
+                                <p style="margin:0 0 12px 0;">&copy; <?php echo e(date('Y')); ?> MoneyTracker. All rights reserved.</p>
                                 <p style="margin:0;">
-                                    <a href="{{ config('app.url') }}/privacy-policy" style="color:#6b7280;text-decoration:none;margin:0 8px;">Privacy Policy</a>
+                                    <a href="<?php echo e(config('app.url')); ?>/privacy-policy" style="color:#6b7280;text-decoration:none;margin:0 8px;">Privacy Policy</a>
                                     &bull;
-                                    <a href="{{ config('app.url') }}/terms-of-service" style="color:#6b7280;text-decoration:none;margin:0 8px;">Terms of Service</a>
+                                    <a href="<?php echo e(config('app.url')); ?>/terms-of-service" style="color:#6b7280;text-decoration:none;margin:0 8px;">Terms of Service</a>
                                 </p>
                             </td>
                         </tr>
                         <tr>
                             <td style="text-align:center;padding-top:24px;">
                                 <p style="margin:0;font-size:12px;color:#d1d5db;word-break:break-all;">
-                                    @yield('action_url')
+                                    <?php echo $__env->yieldContent('action_url'); ?>
                                 </p>
                             </td>
                         </tr>
@@ -86,4 +86,4 @@
         </table>
     </div>
 </body>
-</html>
+</html><?php /**PATH C:\ReactProjects\PFTMoneyTracker\PFTbackend\resources\views/emails/layouts/main.blade.php ENDPATH**/ ?>

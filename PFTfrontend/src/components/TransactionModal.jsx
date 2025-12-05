@@ -217,7 +217,12 @@ const SavingsSection = ({
                 step="0.01"
                 {...register("savingsAmount")}
                 placeholder="0.00"
-                className="block w-full px-2 py-2 bg-white border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none"
+                disabled={!!watch("savingsPercentage")}
+                className={`block w-full px-2 py-2 border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none ${
+                  watch("savingsPercentage")
+                    ? "bg-gray-100 cursor-not-allowed text-gray-400"
+                    : "bg-white"
+                }`}
               />
             </div>
             <div className="space-y-1">
@@ -229,7 +234,12 @@ const SavingsSection = ({
                 step="1"
                 {...register("savingsPercentage")}
                 placeholder="10"
-                className="block w-full px-2 py-2 bg-white border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none"
+                disabled={!!watch("savingsAmount")}
+                className={`block w-full px-2 py-2 border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none ${
+                  watch("savingsAmount")
+                    ? "bg-gray-100 cursor-not-allowed text-gray-400"
+                    : "bg-white"
+                }`}
               />
             </div>
           </div>
@@ -311,6 +321,17 @@ export default function TransactionModal({
                     <X size={20} />
                   </button>
                 </div>
+                
+                {!editMode && (
+                  <div className="mb-4 px-3 py-2 bg-blue-50 rounded-lg flex items-start gap-2">
+                    <div className="mt-0.5 text-blue-500">
+                      <Loader2 size={14} className="animate-spin" style={{ animationDuration: '3s' }} />
+                    </div>
+                    <p className="text-[10px] text-blue-600 leading-tight">
+                      <strong>Note:</strong> Transactions can only be edited within 1 hour of creation.
+                    </p>
+                  </div>
+                )}
 
                 <TypeTabs type={type} setType={setType} editMode={editMode} />
 

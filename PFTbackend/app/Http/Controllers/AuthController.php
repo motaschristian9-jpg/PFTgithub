@@ -123,6 +123,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'currency' => 'required|string|max:3',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'email_notifications_enabled' => 'nullable|boolean',
         ]);
 
         $user = $request->user();
@@ -131,6 +132,10 @@ class AuthController extends Controller
 
         if ($request->has('currency')) {
             $user->currency = $request->currency;
+        }
+
+        if ($request->has('email_notifications_enabled')) {
+            $user->email_notifications_enabled = $request->boolean('email_notifications_enabled');
         }
 
         if ($request->hasFile('avatar')) {
@@ -181,6 +186,55 @@ class AuthController extends Controller
         return $this->success([
             'user' => $user
         ], 'Password set successfully.');
+    }
+
+    /**
+     * @OA\Put(
+     * path="/api/user/change-password",
+     * summary="Change the user's password",
+     * tags={"Authentication"},
+     * security={{"sanctum":{}}},
+     * @OA\RequestBody(
+     * required=true,
+     * @OA\JsonContent(
+     * required={"current_password", "new_password", "new_password_confirmation"},
+     * @OA\Property(property="current_password", type="string", format="password", example="oldsecret123"),
+     * @OA\Property(property="new_password", type="string", format="password", example="newsecret123"),
+     * @OA\Property(property="new_password_confirmation", type="string", format="password", example="newsecret123")
+     * )
+     * ),
+     * @OA\Response(response=200, description="Password changed successfully"),
+     * @OA\Response(response=422, description="Validation Error")
+     * )
+     */
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|confirmed|min:8|different:current_password',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['The provided password does not match your current password.'],
+            ]);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        try {
+            $user->notify(new \App\Notifications\PasswordChangedNotification());
+        } catch (\Exception $e) {
+            // Log error but don't fail the request
+            \Illuminate\Support\Facades\Log::error('Failed to send password changed notification: ' . $e->getMessage());
+        }
+
+        return $this->success([
+            'user' => $user
+        ], 'Password changed successfully.');
     }
 
     /**

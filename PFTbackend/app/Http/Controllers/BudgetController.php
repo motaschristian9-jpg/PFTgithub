@@ -38,11 +38,6 @@ class BudgetController extends Controller
         $userId = Auth::id();
         $cacheKey = $this->getCacheKey($request, $userId);
 
-        // Move status updates out of cache to ensure they run regularly, or consider a scheduled job.
-        // For now, to fix the bug where they don't run if cached, we run them before cache check.
-        // Optimization: Run only if we haven't checked recently, or optimize the query.
-        $this->updateBudgetStatuses();
-
         return Cache::tags(['user_budgets_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
             $query = Budget::where('user_id', $userId)
                 ->withSum([
@@ -86,51 +81,10 @@ class BudgetController extends Controller
         });
     }
 
-    private function updateBudgetStatuses($force = false)
-    {
-        $userId = Auth::id();
-        $cacheKey = 'budget_status_check_' . $userId;
-
-        // Optimization: Only run status updates once per hour to reduce DB load
-        if (!$force && Cache::has($cacheKey)) {
-            return;
-        }
-
-        $today = Carbon::now()->format('Y-m-d');
-
-        // Expire outdated budgets
-        $expiredCount = Budget::where('user_id', $userId)
-            ->where('status', 'active')
-            ->where('end_date', '<', $today)
-            ->update(['status' => 'expired']);
-
-        if ($expiredCount > 0) {
-            $this->clearUserCache($userId);
-        }
-
-        // Check for reached budgets - Optimized to avoid N+1
-        // We need to find budgets where total transaction amount >= budget amount
-        // We can do this with a subquery or join, but Laravel's withSum helps
-        $budgetsToCheck = Budget::where('user_id', $userId)
-            ->where('status', 'active')
-            ->withSum('transactions', 'amount')
-            ->get();
-
-        foreach ($budgetsToCheck as $budget) {
-            // transactions_sum_amount is added by withSum
-            if (($budget->transactions_sum_amount ?? 0) >= $budget->amount) {
-                $budget->update(['status' => 'reached']);
-            }
-        }
-
-        // Set cache to prevent re-running for 1 hour (3600 seconds)
-        Cache::put($cacheKey, true, 3600);
-    }
-
     public function store(CreateBudgetRequest $request)
     {
         // Force update statuses to ensure we don't block creation if a budget just finished
-        $this->updateBudgetStatuses(true);
+        // $this->updateBudgetStatuses(true); // Moved to scheduled job
 
         if ($request->category_id) {
             $exists = Budget::where('user_id', Auth::id())
@@ -163,7 +117,7 @@ class BudgetController extends Controller
     {
         $this->authorize('update', $budget);
         $budget->update($request->validated());
-        $this->updateBudgetStatuses();
+        // $this->updateBudgetStatuses(); // Moved to scheduled job
 
         $this->clearUserCache(Auth::id());
 

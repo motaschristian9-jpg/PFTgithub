@@ -172,48 +172,62 @@ class TransactionController extends Controller
             $validatedData['saving_goal_id'] = $request->saving_goal_id;
         }
 
-        $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($validatedData, $request) {
-            \Illuminate\Support\Facades\Log::info('Transaction Store Request:', $validatedData);
-            
-            // 1. Create Main Transaction
-            // CRITICAL: If this is a split (savings allocation), do NOT link the main income to the savings goal.
-            // The savings goal should only be linked to the transfer (expense) transaction.
-            $mainTxData = $validatedData;
-            if ($request->filled('savings_amount') && $request->savings_amount > 0) {
-                unset($mainTxData['saving_goal_id']);
-            }
-            
-            $transaction = Auth::user()->transactions()->create($mainTxData);
-            \Illuminate\Support\Facades\Log::info('Created Main Transaction:', $transaction->toArray());
+        // Atomic Lock to prevent double submission
+        // Lock for 10 seconds, wait up to 5 seconds to acquire
+        $lock = Cache::lock('transaction_store_' . Auth::id(), 10);
 
-            // 2. Handle Savings Split (Atomic)
-            if ($request->filled('savings_amount') && $request->filled('saving_goal_id') && $request->savings_amount > 0) {
-                $saving = \App\Models\Saving::find($request->saving_goal_id);
+        try {
+            // Try to acquire lock, wait 5s if needed
+            $lock->block(5);
+
+            $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($validatedData, $request) {
+                \Illuminate\Support\Facades\Log::info('Transaction Store Request:', $validatedData);
                 
-                if ($saving) {
-                    // Update Goal
-                    $saving->increment('current_amount', $request->savings_amount);
-
-                    // Create Transfer Transaction (Expense)
-                    Auth::user()->transactions()->create([
-                        'name' => 'Transfer to ' . $saving->name,
-                        'type' => 'expense',
-                        'amount' => $request->savings_amount,
-                        'description' => 'Auto-allocation from ' . $transaction->name,
-                        'date' => $transaction->date,
-                        'category_id' => $request->transfer_category_id,
-                        'saving_goal_id' => $saving->id,
-                        'budget_id' => null,
-                    ]);
+                // 1. Create Main Transaction
+                // CRITICAL: If this is a split (savings allocation), do NOT link the main income to the savings goal.
+                // The savings goal should only be linked to the transfer (expense) transaction.
+                $mainTxData = $validatedData;
+                if ($request->filled('savings_amount') && $request->savings_amount > 0) {
+                    unset($mainTxData['saving_goal_id']);
                 }
-            }
+                
+                $transaction = Auth::user()->transactions()->create($mainTxData);
+                \Illuminate\Support\Facades\Log::info('Created Main Transaction:', $transaction->toArray());
 
-            return $transaction;
-        });
+                // 2. Handle Savings Split (Atomic)
+                if ($request->filled('savings_amount') && $request->filled('saving_goal_id') && $request->savings_amount > 0) {
+                    $saving = \App\Models\Saving::find($request->saving_goal_id);
+                    
+                    if ($saving) {
+                        // Update Goal
+                        $saving->increment('current_amount', $request->savings_amount);
 
-        $this->clearUserCache(Auth::id());
+                        // Create Transfer Transaction (Expense)
+                        Auth::user()->transactions()->create([
+                            'name' => 'Transfer to ' . $saving->name,
+                            'type' => 'expense',
+                            'amount' => $request->savings_amount,
+                            'description' => 'Auto-allocation from ' . $transaction->name,
+                            'date' => $transaction->date,
+                            'category_id' => $request->transfer_category_id,
+                            'saving_goal_id' => $saving->id,
+                            'budget_id' => null,
+                        ]);
+                    }
+                }
 
-        return new TransactionResource($transaction);
+                return $transaction;
+            });
+
+            $this->clearUserCache(Auth::id());
+
+            return new TransactionResource($transaction);
+
+        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+            return response()->json(['message' => 'Too many requests. Please try again.'], 429);
+        } finally {
+            optional($lock)->release();
+        }
     }
 
     public function show(Transaction $transaction)
@@ -225,6 +239,13 @@ class TransactionController extends Controller
     public function update(CreateTransactionsRequest $request, Transaction $transaction)
     {
         $this->authorize('update', $transaction);
+
+        // Check if transaction is older than 1 hour
+        if ($transaction->created_at->diffInHours(now()) >= 1) {
+            return response()->json([
+                'message' => 'Transactions cannot be edited after 1 hour.'
+            ], 403);
+        }
 
         $validatedData = $request->validated();
 
