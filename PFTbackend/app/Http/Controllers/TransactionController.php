@@ -77,6 +77,9 @@ class TransactionController extends Controller
 
         // CRITICAL: Clear budgets list because budgets calculate 'total spent' from transactions
         Cache::tags(['user_budgets_' . $userId])->flush();
+
+        // Clear savings list because transactions can update savings balances
+        Cache::tags(['user_savings_' . $userId])->flush();
     }
 
     public function index(Request $request)

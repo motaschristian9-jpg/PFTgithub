@@ -1,0 +1,39 @@
+@extends('emails.layouts.main')
+
+@section('title', 'Goal Reached')
+
+@section('content')
+<h1 style="color:#111827;font-size:24px;font-weight:700;margin:0 0 24px 0;line-height:32px;">
+    Goal Reached! 🎉
+</h1>
+
+<p style="color:#374151;font-size:16px;line-height:24px;margin:0 0 24px 0;">
+    Hello {{ $user->name }},
+</p>
+
+<p style="color:#374151;font-size:16px;line-height:24px;margin:0 0 24px 0;">
+    Congratulations! You have successfully reached your savings goal for <strong>{{ $saving->name }}</strong>.
+</p>
+
+<div style="background-color:#ECFDF5;border:1px solid #A7F3D0;border-radius:12px;padding:24px;margin-bottom:32px;">
+    <p style="margin:0 0 8px 0;font-size:14px;color:#065F46;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Goal Details</p>
+    <p style="margin:0;font-size:20px;color:#064E3B;font-weight:700;">{{ $saving->name }}</p>
+    <p style="margin:8px 0 0 0;font-size:16px;color:#065F46;">
+        Saved: <strong>{{ number_format($saving->current_amount, 2) }}</strong>
+    </p>
+</div>
+
+<p style="color:#374151;font-size:16px;line-height:24px;margin:0 0 32px 0;">
+    Great job sticking to your plan! What will you save for next?
+</p>
+
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%;">
+    <tr>
+        <td align="center">
+            <a href="{{ config('app.url') }}/savings" style="display:inline-block;background-color:#059669;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:16px 32px;border-radius:12px;transition:background-color 0.2s;">
+                View Savings
+            </a>
+        </td>
+    </tr>
+</table>
+@endsection

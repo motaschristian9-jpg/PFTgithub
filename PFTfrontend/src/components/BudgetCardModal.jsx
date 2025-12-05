@@ -61,9 +61,11 @@ export default function BudgetCardModal({
 
   const [activeTab, setActiveTab] = useState("overview");
 
+  const isDataStale = isOpen && budget && localBudget?.id !== budget.id;
+
   return createPortal(
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && !isDataStale && (
         <div
           className="fixed inset-0 z-[50] flex justify-center items-center p-4"
           onClick={!isSaving ? onClose : undefined}

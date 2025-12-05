@@ -271,7 +271,12 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        $user->last_notification_ack_time = $request->ack_time;
+        // Parse the ISO string (UTC) and convert to application timezone
+        // This ensures that when it's saved to the DB, it aligns with other timestamps
+        $ackTime = \Illuminate\Support\Carbon::parse($request->ack_time)
+            ->setTimezone(config('app.timezone'));
+
+        $user->last_notification_ack_time = $ackTime;
         $user->save();
 
         return $this->success([

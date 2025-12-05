@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Budget::observe(BudgetObserver::class);
+        \App\Models\Transaction::observe(\App\Observers\TransactionObserver::class);
+        \App\Models\Saving::observe(\App\Observers\SavingObserver::class);
 
         // Schedule the monthly summary generation
         if ($this->app->runningInConsole()) {

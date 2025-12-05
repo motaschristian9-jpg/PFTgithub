@@ -36,10 +36,13 @@ class BudgetController extends Controller
     public function index(Request $request)
     {
         $userId = Auth::id();
+        $this->syncStatuses();
+
         $cacheKey = $this->getCacheKey($request, $userId);
 
         return Cache::tags(['user_budgets_' . $userId])->remember($cacheKey, 3600, function () use ($request, $userId) {
             $query = Budget::where('user_id', $userId)
+                ->with('category')
                 ->withSum([
                     'transactions' => function ($q) {
                         $q->where('type', 'expense');
@@ -133,5 +136,49 @@ class BudgetController extends Controller
         $this->clearUserCache(Auth::id());
 
         return response()->json(['success' => true]);
+    }
+    private function syncStatuses()
+    {
+        $userId = Auth::id();
+        $cacheKey = 'budget_status_check_' . $userId;
+
+        if (Cache::has($cacheKey)) {
+            return;
+        }
+
+        $today = Carbon::now()->format('Y-m-d');
+        $updated = false;
+
+        // 1. Expire outdated budgets
+        $expiredBudgets = Budget::where('user_id', $userId)
+            ->where('status', 'active')
+            ->where('end_date', '<', $today)
+            ->get();
+
+        foreach ($expiredBudgets as $budget) {
+            $budget->update(['status' => 'expired']);
+            $updated = true;
+        }
+
+        // 2. Check reached budgets
+        $budgets = Budget::where('user_id', $userId)
+            ->where('status', 'active')
+            ->withSum(['transactions' => function ($q) {
+                $q->where('type', 'expense');
+            }], 'amount')
+            ->get();
+
+        foreach ($budgets as $budget) {
+            if (($budget->transactions_sum_amount ?? 0) >= $budget->amount) {
+                $budget->update(['status' => 'reached']);
+                $updated = true;
+            }
+        }
+
+        if ($updated) {
+            $this->clearUserCache($userId);
+        }
+
+        Cache::put($cacheKey, true, 3600);
     }
 }

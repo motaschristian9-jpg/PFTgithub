@@ -12,6 +12,7 @@ import { useTransactions } from "../hooks/useTransactions.js";
 import { useCategories } from "../hooks/useCategories.js";
 import { useActiveBudgets } from "../hooks/useBudget.js";
 import { useActiveSavings, useSavingsHistory } from "../hooks/useSavings.js";
+import { useNotifications } from "../hooks/useNotifications.js";
 import { formatCurrency } from "../utils/currency.js";
 import { parseISO, isAfter } from "date-fns";
 import { acknowledgeNotificationsAPI } from "../api/auth";
@@ -122,105 +123,27 @@ const DataLoader = ({ children }) => {
     [user, setUser]
   );
 
+  const { data: backendNotifications } = useNotifications();
+
   const notifications = useMemo(() => {
-    const getList = (source) => {
-      if (!source) return [];
-      if (Array.isArray(source)) return source;
-      if (source.data && Array.isArray(source.data)) return source.data;
-      return [];
-    };
+    if (!backendNotifications) return [];
 
-    const userCurrency = user?.currency || "USD";
+    return backendNotifications.map((n) => {
+      const data = n.data || {};
+      let type = "info";
+      
+      if (data.type === "budget_reached") type = "budget-error";
+      if (data.type === "saving_completed") type = "savings-success";
 
-    const budgetsList = getList(activeBudgetsDataRaw);
-    const activeSavingsList = getList(activeSavingsDataRaw);
-    const historySavingsList = getList(historySavingsRaw);
-    const savingsList = [...activeSavingsList, ...historySavingsList];
-
-    const getBudgetSpent = (budget) => {
-      if (budget.transactions_sum_amount !== undefined) {
-        return parseFloat(budget.transactions_sum_amount);
-      }
-      if (budget.total_spent !== undefined) {
-        return parseFloat(budget.total_spent);
-      }
-      return 0;
-    };
-
-    const notificationList = [];
-
-    savingsList.forEach((s) => {
-      const current = Number(s.current_amount || 0);
-      const target = Number(s.target_amount || 1);
-      const percent = target > 0 ? (current / target) * 100 : 0;
-      const timestamp = s.updated_at || s.created_at;
-
-      if (percent >= 100) {
-        notificationList.push({
-          id: `s-${s.id}-complete`,
-          type: "savings-success",
-          message: `🎉 Goal **${
-            s.name
-          }** is Complete! You reached ${formatCurrency(
-            target,
-            userCurrency
-          )}.`,
-          timestamp: timestamp,
-        });
-      } else if (percent >= 85) {
-        notificationList.push({
-          id: `s-${s.id}-near`,
-          type: "savings-warning",
-          message: `Goal **${s.name}** is ${percent.toFixed(
-            0
-          )}% complete. Only ${formatCurrency(
-            target - current,
-            userCurrency
-          )} remaining!`,
-          timestamp: timestamp,
-        });
-      }
+      return {
+        id: n.id,
+        type: type,
+        message: data.message || "New notification",
+        timestamp: n.created_at,
+        read_at: n.read_at
+      };
     });
-
-    budgetsList.forEach((b) => {
-      const spent = getBudgetSpent(b);
-      const allocated = Number(b.amount || 0);
-      const percent = allocated > 0 ? (spent / allocated) * 100 : 0;
-      const timestamp = b.updated_at || b.created_at;
-
-      if (spent > allocated) {
-        notificationList.push({
-          id: `b-${b.id}-overspent`,
-          type: "budget-error",
-          message: `🚨 **${
-            b.name
-          }** Budget is Overspent! You are over by ${formatCurrency(
-            spent - allocated,
-            userCurrency
-          )}.`,
-          timestamp: timestamp,
-        });
-      } else if (percent >= 85) {
-        notificationList.push({
-          id: `b-${b.id}-near`,
-          type: "budget-warning",
-          message: `**${b.name}** Budget is ${percent.toFixed(
-            0
-          )}% used. Only ${formatCurrency(
-            allocated - spent,
-            userCurrency
-          )} remaining.`,
-          timestamp: timestamp,
-        });
-      }
-    });
-
-    return notificationList.sort((a, b) => {
-      const dateA = a.timestamp ? new Date(a.timestamp) : new Date(0);
-      const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
-      return dateB - dateA;
-    });
-  }, [user, activeBudgetsDataRaw, activeSavingsDataRaw, historySavingsRaw]);
+  }, [backendNotifications]);
 
   useEffect(() => {
     if (userLoading || !user) return;

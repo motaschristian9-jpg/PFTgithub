@@ -67,4 +67,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('budgets', BudgetController::class);
 
     Route::apiResource('savings', SavingController::class);
+    
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index']);
 });

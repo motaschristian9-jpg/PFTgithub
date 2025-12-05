@@ -67,7 +67,7 @@ export default function SavingsCardModal({
 
   const [activeTab, setActiveTab] = useState("overview");
 
-  if (!isOpen) return null;
+
 
   const currentTheme = {
     bg: "bg-teal-50",
@@ -88,9 +88,11 @@ export default function SavingsCardModal({
     return true;
   });
 
+  const isDataStale = isOpen && saving && localSaving?.id !== saving.id;
+
   return createPortal(
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && !isDataStale && (
         <div className="fixed inset-0 z-[50] flex justify-center items-center p-4">
           <motion.div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"

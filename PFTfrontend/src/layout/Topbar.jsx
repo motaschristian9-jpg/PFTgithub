@@ -5,6 +5,7 @@ import { logoutUser } from "../api/auth";
 import { useDataContext } from "../components/DataLoader";
 import { confirmAction } from "../utils/swal";
 import { LogoIcon } from "../components/Logo";
+import { formatDistanceToNow } from "date-fns";
 
 // --- NEW COMPONENT: Formats messages for bolding ---
 const NotificationMessage = ({ message }) => {
@@ -165,7 +166,11 @@ export default function Topbar({ toggleMobileMenu, user }) {
                           }`}
                         >
                           <NotificationMessage message={n.message} />
-                          <p className="text-xs opacity-60 mt-1">Just now</p>
+                          <p className="text-xs opacity-60 mt-1">
+                            {n.timestamp 
+                              ? formatDistanceToNow(new Date(n.timestamp), { addSuffix: true })
+                              : "Just now"}
+                          </p>
                         </div>
                       ))}
                     </div>

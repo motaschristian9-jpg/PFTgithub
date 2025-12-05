@@ -20,6 +20,11 @@ class SavingObserver
      */
     public function updated(Saving $saving): void
     {
+        // Check if status changed to 'completed'
+        if ($saving->isDirty('status') && $saving->status === 'completed') {
+            $saving->user->notify(new \App\Notifications\SavingCompletedNotification($saving));
+        }
+
         $this->clearCaches($saving);
     }
 

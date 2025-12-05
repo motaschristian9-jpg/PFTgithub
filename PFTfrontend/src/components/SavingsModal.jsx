@@ -41,7 +41,7 @@ export default function SavingsModal({
     saving,
   });
 
-  if (!isOpen) return null;
+
 
   return createPortal(
     <AnimatePresence>
