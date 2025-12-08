@@ -20,6 +20,7 @@ class TransactionResource extends JsonResource
             'category_id' => $this->category_id,
             'category_name' => $this->category?->name,
             'budget_id' => $this->budget_id,
+            'saving_goal_id' => $this->saving_goal_id,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -51,32 +51,15 @@ export const useBudgetPageLogic = () => {
     [transactionsData]
   );
 
-  const spendingMap = useMemo(() => {
-    const map = {};
-    allTransactions.forEach((t) => {
-      if (t.type === "expense" && t.budget_id) {
-        map[t.budget_id] = (map[t.budget_id] || 0) + parseFloat(t.amount || 0);
-      }
-    });
-    return map;
-  }, [allTransactions]);
+  /* 
+     REMOVED: spendingMap logic. 
+     Reason: Backend now reliably provides 'total_spent' via BudgetResource and BudgetController. 
+     We should track 'allTransactions' only for deletion checks, not for calculating spent.
+  */
 
   const getBudgetSpent = (budget) => {
-    if (
-      budget.transactions_sum_amount !== undefined &&
-      budget.transactions_sum_amount !== null
-    ) {
-      return parseFloat(budget.transactions_sum_amount);
-    }
-    if (budget.total_spent !== undefined && budget.total_spent !== null) {
-      return parseFloat(budget.total_spent);
-    }
-
-    if (spendingMap[budget.id] !== undefined) {
-      return spendingMap[budget.id];
-    }
-
-    return 0;
+    // Trust the backend's calculated total
+    return parseFloat(budget.total_spent || 0);
   };
 
   const activeBudgets = useMemo(() => {
@@ -116,7 +99,7 @@ export const useBudgetPageLogic = () => {
     });
 
     return result;
-  }, [activeBudgetsData, search, sortBy, sortDir, spendingMap]);
+  }, [activeBudgetsData, search, sortBy, sortDir]);
 
   const historyBudgets = useMemo(() => {
     const history = historyBudgetsRaw?.data || [];
@@ -138,7 +121,7 @@ export const useBudgetPageLogic = () => {
     
     // Sort combined history by end_date descending by default to show most recent first
     return combined.sort((a, b) => new Date(b.end_date) - new Date(a.end_date));
-  }, [historyBudgetsRaw, activeBudgetsData, spendingMap, search, activeTab]);
+  }, [historyBudgetsRaw, activeBudgetsData, search, activeTab]);
 
   const historyTotalPages = useMemo(
     () => historyBudgetsRaw?.last_page || 1,
@@ -306,7 +289,7 @@ export const useBudgetPageLogic = () => {
         }));
       }
       showSuccess("Deleted!", "Transaction deleted successfully.");
-    } catch (e) {
+    } catch {
       showError("Error", "Failed to delete transaction");
     }
   };

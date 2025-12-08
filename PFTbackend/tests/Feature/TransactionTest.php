@@ -50,6 +50,7 @@ class TransactionTest extends TestCase
     public function test_user_can_create_transaction()
     {
         $transactionData = [
+            'name' => 'Test Transaction',
             'amount' => 100.50,
             'type' => 'expense',
             'description' => 'Test transaction',
@@ -65,6 +66,7 @@ class TransactionTest extends TestCase
                      'data' => [
                          'id' => 1,
                          'user_id' => $this->user->id,
+                         'name' => 'Test Transaction',
                          'amount' => '100.50',
                          'type' => 'expense',
                          'description' => 'Test transaction',
@@ -74,6 +76,7 @@ class TransactionTest extends TestCase
 
         $this->assertDatabaseHas('transactions', [
             'user_id' => $this->user->id,
+            'name' => 'Test Transaction',
             'amount' => 100.50,
             'type' => 'expense',
         ]);
@@ -113,6 +116,7 @@ class TransactionTest extends TestCase
         $transaction = Transaction::factory()->create(['user_id' => $this->user->id]);
 
         $updateData = [
+            'name' => 'Updated Name',
             'amount' => 200.00,
             'type' => 'income',
             'description' => 'Updated transaction',
@@ -126,6 +130,7 @@ class TransactionTest extends TestCase
         $response->assertStatus(200)
                  ->assertJson([
                      'data' => [
+                         'name' => 'Updated Name',
                          'amount' => '200.00',
                          'type' => 'income',
                          'description' => 'Updated transaction',
@@ -134,6 +139,7 @@ class TransactionTest extends TestCase
 
         $this->assertDatabaseHas('transactions', [
             'id' => $transaction->id,
+            'name' => 'Updated Name',
             'amount' => 200.00,
             'type' => 'income',
         ]);

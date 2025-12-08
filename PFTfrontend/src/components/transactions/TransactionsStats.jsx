@@ -41,7 +41,7 @@ const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
   const theme = getTheme();
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 min-w-0">
       {/* Decorative Background */}
       <div
         className={`absolute -right-4 -top-4 h-24 w-24 rounded-bl-full transition-transform group-hover:scale-110 ${theme.bg}`}
@@ -51,8 +51,8 @@ const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
       <Icon className={`absolute right-3 top-3 ${theme.iconColor}`} size={24} />
 
       <div className="relative z-10">
-        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-        <h3 className={`text-2xl font-bold tracking-tight ${theme.text}`}>
+        <p className="text-sm font-medium text-gray-500 mb-1 truncate">{title}</p>
+        <h3 className={`text-2xl font-bold tracking-tight ${theme.text} truncate`}>
           {formatCurrency(amount, currency)}
         </h3>
       </div>

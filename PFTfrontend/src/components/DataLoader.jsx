@@ -14,7 +14,7 @@ import { useActiveBudgets } from "../hooks/useBudget.js";
 import { useActiveSavings, useSavingsHistory } from "../hooks/useSavings.js";
 import { useNotifications } from "../hooks/useNotifications.js";
 import { formatCurrency } from "../utils/currency.js";
-import { parseISO, isAfter } from "date-fns";
+import { parseISO, isAfter, startOfMonth, endOfMonth, format } from "date-fns";
 import { acknowledgeNotificationsAPI } from "../api/auth";
 
 const DataContext = createContext(null);
@@ -40,6 +40,18 @@ const DataLoader = ({ children }) => {
     isLoading: transLoading,
     error: transError,
   } = useTransactions({ page: 1, limit: 15 });
+
+  // --- PRE-FETCH REPORT DATA (Instant Load) ---
+  const today = useMemo(() => new Date(), []);
+  const reportParams = useMemo(() => ({
+    all: true,
+    start_date: format(startOfMonth(today), "yyyy-MM-dd"),
+    end_date: format(endOfMonth(today), "yyyy-MM-dd"),
+  }), [today]);
+
+  // We don't use the data here, but calling the hook caches it for the Reports Page
+  useTransactions(reportParams);
+  // --------------------------------------------
 
   const {
     data: categoriesData,
@@ -133,7 +145,9 @@ const DataLoader = ({ children }) => {
       let type = "info";
       
       if (data.type === "budget_reached") type = "budget-error";
+      if (data.type === "budget_warning") type = "budget-warning";
       if (data.type === "saving_completed") type = "savings-success";
+      if (data.type === "saving_warning") type = "savings-warning";
 
       return {
         id: n.id,

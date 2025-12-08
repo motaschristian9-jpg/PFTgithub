@@ -46,6 +46,8 @@ export const useTransactions = (params = {}, options = {}) => {
 const invalidateFinancialData = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: KEYS.allTransactions });
   queryClient.invalidateQueries({ queryKey: KEYS.budgets });
+  // Explicitly invalidate active budgets so progress bars update instantly
+  queryClient.invalidateQueries({ queryKey: ["budgets", "active"] });
   queryClient.invalidateQueries({ queryKey: KEYS.savings });
 };
 
@@ -54,8 +56,58 @@ export const useCreateTransaction = () => {
 
   return useMutation({
     mutationFn: createTransaction,
+    onMutate: async (newTransaction) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: KEYS.allTransactions });
+
+      // Snapshot the previous value
+      const previousTransactions = queryClient.getQueryData({ queryKey: KEYS.allTransactions });
+
+      // Optimistically update
+      // Logic mirrors useSavingsCardModalLogic's optimisticUpdateGlobal
+      queryClient.setQueriesData({ queryKey: KEYS.allTransactions }, (oldData) => {
+        if (!oldData) return undefined;
+        
+        // Create a temporary transaction object
+        const tempTx = {
+            ...newTransaction,
+            id: Date.now(), // Temporary ID
+            pending: true,
+            created_at: new Date().toISOString(),
+        };
+
+        const hasDuplicate = (list) => list.some((item) => item.id === tempTx.id);
+
+        if (oldData.data && Array.isArray(oldData.data)) {
+            if (hasDuplicate(oldData.data)) return oldData;
+            return {
+                ...oldData,
+                data: [tempTx, ...oldData.data],
+                total: (oldData.total || 0) + 1,
+            };
+        }
+
+        if (Array.isArray(oldData)) {
+             if (hasDuplicate(oldData)) return oldData;
+             return [tempTx, ...oldData];
+        }
+
+        return oldData;
+      });
+
+      // Return context with the previous transactions
+      return { previousTransactions };
+    },
+    onError: (err, newTransaction, context) => {
+      if (context?.previousTransactions) {
+        queryClient.setQueryData(
+          { queryKey: KEYS.allTransactions },
+          context.previousTransactions
+        );
+      }
+    },
     onSettled: () => {
-      // Always refetch after error or success
+      // Always refetch after error or success to get real IDs and calculated totals
       invalidateFinancialData(queryClient);
     },
   });

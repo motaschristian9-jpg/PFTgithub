@@ -13,69 +13,44 @@ class BudgetObserverTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected $user;
+
     protected function setUp(): void
     {
         parent::setUp();
-        // Register the observer
-        Budget::observe(BudgetObserver::class);
+        $this->user = User::factory()->create();
+        // Register the observer if not automatically discovered
+        // Budget::observe(BudgetObserver::class);
     }
 
     public function test_budget_created_clears_caches()
     {
-        $user = User::factory()->create();
+        Cache::shouldReceive('tags')->with(['user_budgets_' . $this->user->id])->andReturnSelf();
+        Cache::shouldReceive('tags')->with(['user_transactions_' . $this->user->id])->andReturnSelf();
+        Cache::shouldReceive('flush')->times(2);
 
-        // Set some cache values
-        Cache::put('user_' . $user->id . '_budgets_*', 'test_data', 60);
-        Cache::put('user_' . $user->id . '_transactions_*', 'test_data', 60);
-        Cache::put('user_' . $user->id . '_monthly_summary_*', 'test_data', 60);
-
-        // Create a budget
-        Budget::factory()->create(['user_id' => $user->id]);
-
-        // Check that caches are cleared (using wildcard forget, so check if cache is empty)
-        // Fix: Removed '|| true' and updated keys to match what was set (assuming observer clears these wildcard keys)
-        $this->assertFalse(Cache::has('user_' . $user->id . '_budgets_*'));
-        $this->assertFalse(Cache::has('user_' . $user->id . '_transactions_*'));
-        $this->assertFalse(Cache::has('user_' . $user->id . '_monthly_summary_*'));
+        Budget::factory()->create(['user_id' => $this->user->id]);
     }
 
     public function test_budget_updated_clears_caches()
     {
-        $user = User::factory()->create();
-        $budget = Budget::factory()->create(['user_id' => $user->id]);
+        $budget = Budget::factory()->create(['user_id' => $this->user->id]);
 
-        // Set some cache values
-        Cache::put('user_' . $user->id . '_budgets_*', 'test_data', 60);
-        Cache::put('user_' . $user->id . '_transactions_*', 'test_data', 60);
-        Cache::put('user_' . $user->id . '_monthly_summary_*', 'test_data', 60);
+        Cache::shouldReceive('tags')->with(['user_budgets_' . $this->user->id])->andReturnSelf();
+        Cache::shouldReceive('tags')->with(['user_transactions_' . $this->user->id])->andReturnSelf();
+        Cache::shouldReceive('flush')->atLeast()->times(1);
 
-        // Update the budget
         $budget->update(['name' => 'Updated Budget']);
-
-        // Check that caches are cleared (using wildcard forget, so check if cache is empty)
-        // Fix: Removed '|| true' and updated keys to match what was set
-        $this->assertFalse(Cache::has('user_' . $user->id . '_budgets_*'));
-        $this->assertFalse(Cache::has('user_' . $user->id . '_transactions_*'));
-        $this->assertFalse(Cache::has('user_' . $user->id . '_monthly_summary_*'));
     }
 
     public function test_budget_deleted_clears_caches()
     {
-        $user = User::factory()->create();
-        $budget = Budget::factory()->create(['user_id' => $user->id]);
+        $budget = Budget::factory()->create(['user_id' => $this->user->id]);
 
-        // Set some cache values
-        Cache::put('user_' . $user->id . '_budgets_*', 'test_data', 60);
-        Cache::put('user_' . $user->id . '_transactions_*', 'test_data', 60);
-        Cache::put('user_' . $user->id . '_monthly_summary_*', 'test_data', 60);
+        Cache::shouldReceive('tags')->with(['user_budgets_' . $this->user->id])->andReturnSelf();
+        Cache::shouldReceive('tags')->with(['user_transactions_' . $this->user->id])->andReturnSelf();
+        Cache::shouldReceive('flush')->atLeast()->times(1);
 
-        // Delete the budget
         $budget->delete();
-
-        // Check that caches are cleared (using wildcard forget, so check if cache is empty)
-        // Fix: Removed '|| true' and updated keys to match what was set
-        $this->assertFalse(Cache::has('user_' . $user->id . '_budgets_*'));
-        $this->assertFalse(Cache::has('user_' . $user->id . '_transactions_*'));
-        $this->assertFalse(Cache::has('user_' . $user->id . '_monthly_summary_*'));
     }
 }

@@ -41,20 +41,10 @@ export const useDashboardStats = () => {
   );
 
   const budgetProgressData = useMemo(() => {
-    const spendingMap = {};
-    transactions.forEach((t) => {
-      if (t.type === "expense" && t.budget_id) {
-        spendingMap[t.budget_id] =
-          (spendingMap[t.budget_id] || 0) + Number(t.amount || 0);
-      }
-    });
-
     return activeBudgets.map((b) => {
       const allocated = Number(b.amount || 0);
-      const spent =
-        b.total_spent !== undefined
-          ? Number(b.total_spent)
-          : spendingMap[b.id] || 0;
+      // Trust backend total_spent
+      const spent = Number(b.total_spent || 0);
 
       const remaining = allocated - spent;
       const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
@@ -88,7 +78,7 @@ export const useDashboardStats = () => {
         label,
       };
     });
-  }, [activeBudgets, transactions]);
+  }, [activeBudgets]);
 
   const processedSavings = useMemo(() => {
     return savingsList.map((s) => {

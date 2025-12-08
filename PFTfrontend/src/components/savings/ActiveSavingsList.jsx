@@ -42,61 +42,77 @@ export default function ActiveSavingsList({
         return (
           <div
             key={s.id}
+            className="group relative cursor-pointer"
             onClick={() => handleCardClick(s)}
-            className="group relative bg-white rounded-2xl border border-gray-100 p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden hover:-translate-y-1"
           >
-            <div
-              className={`absolute top-0 left-0 right-0 h-1.5 ${progressInfo.barColor}`}
-            ></div>
-            <div className="flex justify-between items-start mb-4 mt-2">
-              <div>
-                <h3 className="font-bold text-lg text-gray-900 group-hover:text-teal-700 transition-colors truncate">
-                  {s.name}
-                </h3>
-                <p className="text-xs text-gray-500 mt-1 font-bold uppercase tracking-wider">
-                  Target: {formatCurrency(target, userCurrency)}
-                </p>
-              </div>
+            <div className="relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-300 overflow-hidden hover:-translate-y-1">
+              {/* Top Progress Line */}
               <div
-                className={`w-10 h-10 ${progressInfo.iconBg} rounded-xl flex items-center justify-center ${progressInfo.textClass}`}
-              >
-                <Target size={20} />
-              </div>
-            </div>
+                className={`absolute top-0 left-0 right-0 h-1 ${progressInfo.barColor}`}
+              ></div>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Saved</p>
-                  <p className="text-2xl font-bold text-teal-600">
-                    {formatCurrency(current, userCurrency)}
+              <div className="flex items-start justify-between mb-4 mt-1">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-lg text-gray-900 truncate group-hover:text-teal-600 transition-colors">
+                    {s.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1 truncate uppercase tracking-wider font-medium">
+                    Target: {formatCurrency(target, userCurrency)}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p
-                    className={`text-sm font-bold ${progressInfo.textClass}`}
-                  >
-                    {percent.toFixed(1)}%
-                  </p>
+                <div className="ml-3">
+                    <div
+                        className={`w-8 h-8 ${progressInfo.iconBg} rounded-lg flex items-center justify-center ${progressInfo.textClass}`}
+                    >
+                        <Target size={16} />
+                    </div>
                 </div>
               </div>
 
-              <div className="relative w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                <div
-                  className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${progressInfo.barColor}`}
-                  style={{ width: `${widthPercent}%` }}
-                ></div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-gray-50">
-                <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${progressInfo.colorClass}`}
-                >
-                  {progressInfo.label}
+              <div className="flex items-center space-x-2 mb-6 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg w-fit">
+                <Calendar size={14} />
+                <span className="truncate">
+                    Created: {new Date(s.created_at).toLocaleDateString()}
                 </span>
-                <div className="flex items-center text-gray-400 text-xs group-hover:text-teal-600 transition-colors">
-                  <span>View Details</span>
-                  <ArrowRight size={14} className="ml-1" />
+              </div>
+
+              <div className="space-y-3 mb-5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Target</span>
+                  <span className="font-bold text-teal-600">
+                    {formatCurrency(target, userCurrency)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Saved</span>
+                  <span className="font-bold text-teal-600">
+                    {formatCurrency(current, userCurrency)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mb-2">
+                <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ease-out ${progressInfo.barColor}`}
+                    style={{ width: `${widthPercent}%` }}
+                  />
+                </div>
+                <div className="flex items-center justify-between pt-3">
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ${progressInfo.colorClass}`}
+                  >
+                    {progressInfo.label}
+                  </span>
+                  <span className="text-xs font-medium text-gray-400">
+                    {percent.toFixed(0)}%
+                  </span>
+                </div>
+                
+                <div className="mt-4 flex justify-end">
+                    <span className="text-xs font-medium text-teal-600">
+                        View Details →
+                    </span>
                 </div>
               </div>
             </div>

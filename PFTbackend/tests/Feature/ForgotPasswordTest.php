@@ -32,10 +32,12 @@ class ForgotPasswordTest extends TestCase
             'email' => 'nonexistent@example.com',
         ]);
 
-        $response->assertStatus(400) // Controller returns 400 for invalid emails
+        $response->assertStatus(422)
             ->assertJson([
                 'success' => false,
-                'message' => 'Unable to send password reset link.',
+                'errors' => [
+                    'email' => ['No account found with this email address.']
+                ]
             ]);
     }
 

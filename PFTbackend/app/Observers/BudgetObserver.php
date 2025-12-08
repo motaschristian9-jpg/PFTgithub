@@ -30,7 +30,13 @@ class BudgetObserver
         $this->clearCaches($budget);
     }
 
-    // ... (deleted, restored, forceDeleted methods remain unchanged)
+    /**
+     * Handle the Budget "deleted" event.
+     */
+    public function deleted(Budget $budget): void
+    {
+        $this->clearCaches($budget);
+    }
 
     /**
      * Update the budget status based on dates.

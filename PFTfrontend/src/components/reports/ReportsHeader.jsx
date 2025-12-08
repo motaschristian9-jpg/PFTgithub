@@ -2,12 +2,12 @@ import { BarChart as BarIcon, Download } from "lucide-react";
 
 export default function ReportsHeader({ onExport }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full max-w-full">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 truncate">
           Financial Reports
         </h1>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 truncate">
           Deep dive into your financial health
         </p>
       </div>

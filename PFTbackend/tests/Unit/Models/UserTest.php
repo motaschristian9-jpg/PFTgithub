@@ -15,7 +15,18 @@ class UserTest extends TestCase
 
     public function test_user_has_fillable_attributes()
     {
-        $fillable = ['name', 'email', 'password'];
+        $fillable = [
+            'name',
+            'email',
+            'password',
+            'email_verified_at',
+            'avatar',
+            'bio',
+            'currency',
+            'login_method',
+            'last_notification_ack_time',
+            'email_notifications_enabled',
+        ];
         $this->assertEquals($fillable, (new User)->getFillable());
     }
 
@@ -51,7 +62,9 @@ class UserTest extends TestCase
     public function test_user_has_budgets_relationship()
     {
         $user = User::factory()->create();
-        $budget = Budget::factory()->create(['user_id' => $user->id]);
+        $budget = \App\Models\Budget::withoutEvents(function () use ($user) {
+            return Budget::factory()->create(['user_id' => $user->id]);
+        });
 
         $this->assertInstanceOf(Budget::class, $user->budgets->first());
         $this->assertEquals($budget->id, $user->budgets->first()->id);
@@ -60,7 +73,9 @@ class UserTest extends TestCase
     public function test_user_has_savings_relationship()
     {
         $user = User::factory()->create();
-        $saving = Saving::factory()->create(['user_id' => $user->id]);
+        $saving = \App\Models\Saving::withoutEvents(function () use ($user) {
+            return Saving::factory()->create(['user_id' => $user->id]);
+        });
 
         $this->assertInstanceOf(Saving::class, $user->savings->first());
         $this->assertEquals($saving->id, $user->savings->first()->id);

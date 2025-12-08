@@ -1,5 +1,5 @@
 import React from "react";
-import { Target, PieChart } from "lucide-react";
+import { Target, Wallet } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
 import { motion } from "framer-motion";
@@ -18,14 +18,14 @@ const ActiveBudgets = ({ budgets, userCurrency }) => {
           <p className="text-sm text-gray-500">Spending limits</p>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400">
-          <PieChart size={20} />
+          <Wallet size={20} />
         </div>
       </div>
 
       {budgets.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 text-center opacity-60">
           <div className="mb-3 rounded-full bg-gray-100 p-3">
-            <PieChart size={24} className="text-gray-400" />
+            <Wallet size={24} className="text-gray-400" />
           </div>
           <p className="text-sm text-gray-500">
             No active budgets. Set limits to track spending.

@@ -25,7 +25,7 @@ class AuthTest extends TestCase
         $response->assertStatus(201)
                  ->assertJson([
                      'success' => true,
-                     'message' => 'User registered successfully.',
+                     'message' => 'User registered successfully. Please check your email to verify your account.',
                      'data' => [
                          'user' => [
                              'name' => 'John Doe',
@@ -111,9 +111,9 @@ class AuthTest extends TestCase
 
         $response->assertStatus(422)
                  ->assertJson([
-                     'error' => 'Validation failed.',
-                     'message' => [
-                         'email' => ['The provided credentials are incorrect.'],
+                     'success' => false,
+                     'errors' => [
+                         'password' => ['The password is incorrect.'],
                      ],
                  ]);
     }

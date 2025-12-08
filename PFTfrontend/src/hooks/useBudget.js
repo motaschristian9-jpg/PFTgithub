@@ -62,6 +62,7 @@ export const useBudgetHistory = (page, filters) => {
 
 const invalidateBudgetQueries = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: KEYS.all });
+  queryClient.invalidateQueries({ queryKey: KEYS.active });
 };
 
 export const useCreateBudget = () => {

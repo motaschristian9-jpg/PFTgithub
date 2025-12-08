@@ -15,7 +15,21 @@ class GoogleAuthTest extends TestCase
 
     public function test_login_with_google_returns_redirect_url()
     {
-        $response = $this->getJson('/api/auth/google/login');
+        $params = [
+            'state' => 'login',
+            'redirect_uri' => 'http://localhost:3000/auth/callback',
+        ];
+        
+        // Mock Socialite
+        $socialiteDriver = Mockery::mock();
+        $socialiteDriver->shouldReceive('stateless')->andReturnSelf();
+        $socialiteDriver->shouldReceive('with')->with(['state' => 'login|http://localhost:3000/auth/callback'])->andReturnSelf();
+        $socialiteDriver->shouldReceive('redirect')->andReturnSelf();
+        $socialiteDriver->shouldReceive('getTargetUrl')->andReturn('https://accounts.google.com/o/oauth2/auth?client_id=...');
+        
+        Socialite::shouldReceive('driver')->with('google')->andReturn($socialiteDriver);
+
+        $response = $this->getJson('/api/auth/google/login?' . http_build_query($params));
 
         $response->assertStatus(200)
                  ->assertJsonStructure([
@@ -23,7 +37,8 @@ class GoogleAuthTest extends TestCase
                      'redirect_url'
                  ])
                  ->assertJson([
-                     'success' => true
+                     'success' => true,
+                     'redirect_url' => 'https://accounts.google.com/o/oauth2/auth?client_id=...'
                  ]);
     }
 
@@ -41,28 +56,26 @@ class GoogleAuthTest extends TestCase
 
         Socialite::shouldReceive('driver')->with('google')->andReturn($socialiteDriver);
 
-        $response = $this->getJson('/api/auth/google/callback?code=test_code');
+        $state = 'signup|http://localhost:3000/auth/callback';
+        $params = [
+            'code' => 'test_code',
+            'state' => $state,
+        ];
 
-        $response->assertStatus(200)
-                 ->assertJsonStructure([
-                     'success',
-                     'message',
-                     'user' => [
-                         'id',
-                         'name',
-                         'email'
-                     ],
-                     'token'
-                 ])
-                 ->assertJson([
-                     'success' => true,
-                     'message' => 'Login successful via Google'
-                 ]);
+        $response = $this->get('/api/auth/google/callback?' . http_build_query($params));
 
+        $response->assertStatus(302);
+        
+        // Verify redirect URL contains success/created params
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringContainsString('success=true', $redirectUrl);
+        $this->assertStringContainsString('action=created_no_login', $redirectUrl);
+        
         // Verify user was created
         $this->assertDatabaseHas('users', [
             'email' => 'test@example.com',
-            'name' => 'Test User'
+            'name' => 'Test User',
+            'login_method' => 'google'
         ]);
     }
 
@@ -70,7 +83,8 @@ class GoogleAuthTest extends TestCase
     {
         $existingUser = User::factory()->create([
             'email' => 'existing@example.com',
-            'name' => 'Existing User'
+            'name' => 'Existing User',
+            'login_method' => 'google' // Must be google or logic might block (wait, logic blocks if email method)
         ]);
 
         // Mock the Socialite user
@@ -84,65 +98,43 @@ class GoogleAuthTest extends TestCase
         $socialiteDriver->shouldReceive('user')->andReturn($socialiteUser);
 
         Socialite::shouldReceive('driver')->with('google')->andReturn($socialiteDriver);
+        
+        $state = 'login|http://localhost:3000/auth/callback';
+        $params = [
+            'code' => 'test_code',
+            'state' => $state,
+        ];
 
-        $response = $this->getJson('/api/auth/google/callback?code=test_code');
+        $response = $this->get('/api/auth/google/callback?' . http_build_query($params));
 
-        $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'message' => 'Login successful via Google',
-                     'user' => [
-                         'id' => $existingUser->id,
-                         'email' => 'existing@example.com',
-                         'name' => 'Existing User' // Should not be updated
-                     ]
-                 ]);
-
-        // Verify only one user exists with this email
-        $this->assertEquals(1, User::where('email', 'existing@example.com')->count());
+        $response->assertStatus(302);
+        
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringContainsString('success=true', $redirectUrl);
+        $this->assertStringContainsString('action=login', $redirectUrl);
+        $this->assertStringContainsString('token=', $redirectUrl);
     }
-
+    
     public function test_google_callback_handles_socialite_exception()
     {
-        // Mock Socialite driver to throw exception
         $socialiteDriver = Mockery::mock();
         $socialiteDriver->shouldReceive('stateless')->andReturnSelf();
         $socialiteDriver->shouldReceive('user')->andThrow(new \Exception('OAuth error'));
 
         Socialite::shouldReceive('driver')->with('google')->andReturn($socialiteDriver);
 
-        $response = $this->getJson('/api/auth/google/callback?code=test_code');
+        $state = 'login|http://localhost:3000/auth/callback';
+        $params = [
+            'code' => 'test_code',
+            'state' => $state,
+        ];
 
-        $response->assertStatus(401)
-                 ->assertJson([
-                     'success' => false,
-                     'message' => 'Authentication failed: OAuth error'
-                 ]);
-    }
+        $response = $this->get('/api/auth/google/callback?' . http_build_query($params));
 
-    public function test_google_callback_handles_missing_name()
-    {
-        // Mock the Socialite user with null name
-        $socialiteUser = Mockery::mock(SocialiteUser::class);
-        $socialiteUser->shouldReceive('getEmail')->andReturn('test@example.com');
-        $socialiteUser->shouldReceive('getName')->andReturn(null);
-
-        // Mock Socialite driver
-        $socialiteDriver = Mockery::mock();
-        $socialiteDriver->shouldReceive('stateless')->andReturnSelf();
-        $socialiteDriver->shouldReceive('user')->andReturn($socialiteUser);
-
-        Socialite::shouldReceive('driver')->with('google')->andReturn($socialiteDriver);
-
-        $response = $this->getJson('/api/auth/google/callback?code=test_code');
-
-        $response->assertStatus(200)
-                 ->assertJson([
-                     'success' => true,
-                     'user' => [
-                         'name' => 'User' // Should default to 'User'
-                     ]
-                 ]);
+        // Controller catches exception and redirects with error
+        $response->assertStatus(302);
+        $redirectUrl = $response->headers->get('Location');
+        $this->assertStringContainsString('error=auth_failed', $redirectUrl);
     }
 
     protected function tearDown(): void

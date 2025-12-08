@@ -13,7 +13,7 @@ class SavingTest extends TestCase
 
     public function test_saving_has_fillable_attributes()
     {
-        $fillable = ['user_id', 'name', 'target_amount', 'current_amount', 'description', 'target_date'];
+        $fillable = ['user_id', 'name', 'target_amount', 'current_amount', 'description', 'status', 'target_date'];
         $this->assertEquals($fillable, (new Saving)->getFillable());
     }
 

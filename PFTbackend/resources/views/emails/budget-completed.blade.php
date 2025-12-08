@@ -30,8 +30,8 @@
 <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="width:100%;">
     <tr>
         <td align="center">
-            <a href="{{ config('app.url') }}/budgets" style="display:inline-block;background-color:#DC2626;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:16px 32px;border-radius:12px;transition:background-color 0.2s;">
-                View Budget
+            <a href="{{ env('FRONTEND_URL', config('app.url')) }}/dashboard" style="display:inline-block;background-color:#DC2626;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:16px 32px;border-radius:12px;transition:background-color 0.2s;">
+                Go to Dashboard
             </a>
         </td>
     </tr>

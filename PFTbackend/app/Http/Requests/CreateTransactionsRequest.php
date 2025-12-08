@@ -19,7 +19,7 @@ class CreateTransactionsRequest extends FormRequest
             'amount' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
             'date' => 'required|date|before_or_equal:today',
-            'category_id' => 'nullable|integer',
+            'category_id' => 'nullable|integer|exists:categories,id',
             'budget_id' => 'nullable|integer',
             'savings_amount' => 'nullable|numeric|min:0',
             'transfer_category_id' => 'nullable|integer|exists:categories,id',

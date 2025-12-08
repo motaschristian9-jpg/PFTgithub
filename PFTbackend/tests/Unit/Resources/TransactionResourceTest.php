@@ -21,25 +21,30 @@ class TransactionResourceTest extends TestCase
             'amount' => 100.50,
             'description' => 'Test transaction',
             'date' => '2024-01-15',
+            'name' => 'Test Name',
             'category_id' => null,
         ]);
 
         $resource = new TransactionResource($transaction);
-        $result = $resource->toArray(request());
+        $result = $resource->response()->getData(true);
+        // dump($result['data']);
 
         $expected = [
             'id' => $transaction->id,
             'user_id' => $user->id,
+            'name' => 'Test Name',
             'type' => 'expense',
-            'amount' => '100.50',
+            'amount' => 100.5,
             'description' => 'Test transaction',
             'date' => '2024-01-15',
             'category_id' => null,
-            'created_at' => $transaction->created_at,
-            'updated_at' => $transaction->updated_at,
+            'category_name' => null,
+            'budget_id' => null,
+            'created_at' => $transaction->created_at->toISOString(),
+            'updated_at' => $transaction->updated_at->toISOString(),
         ];
 
-        $this->assertEquals($expected, $result);
+        $this->assertEquals($expected, $result['data']);
     }
 
     public function test_transaction_resource_with_null_description()
@@ -51,9 +56,9 @@ class TransactionResourceTest extends TestCase
         ]);
 
         $resource = new TransactionResource($transaction);
-        $result = $resource->toArray(request());
+        $result = $resource->response()->getData(true);
 
-        $this->assertNull($result['description']);
+        $this->assertNull($result['data']['description']);
     }
 
     public function test_transaction_resource_with_null_category_id()
@@ -65,8 +70,8 @@ class TransactionResourceTest extends TestCase
         ]);
 
         $resource = new TransactionResource($transaction);
-        $result = $resource->toArray(request());
+        $result = $resource->response()->getData(true);
 
-        $this->assertNull($result['category_id']);
+        $this->assertNull($result['data']['category_id']);
     }
 }

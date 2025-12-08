@@ -12,7 +12,6 @@ import {
   Wallet,
   Check,
   ArrowRightLeft,
-  DollarSign,
   Tag,
   Type,
 } from "lucide-react";

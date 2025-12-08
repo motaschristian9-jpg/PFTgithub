@@ -44,11 +44,7 @@ export const useLoginLogic = () => {
     }
   }, [searchParams, navigate]);
 
-  useEffect(() => {
-    if (!userLoading && user) {
-      navigate("/dashboard");
-    }
-  }, [user, userLoading, navigate]);
+
 
   const handleLogin = async (formData) => {
     setLoading(true);

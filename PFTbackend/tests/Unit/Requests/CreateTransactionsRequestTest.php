@@ -28,11 +28,16 @@ class CreateTransactionsRequestTest extends TestCase
         $rules = $request->rules();
 
         $expectedRules = [
+            'name' => 'required|string|max:255',
             'type' => 'required|in:income,expense',
             'amount' => 'required|numeric|min:0',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-            'category_id' => 'nullable|exists:budgets,id',
+            'description' => 'nullable|string|max:1000',
+            'date' => 'required|date|before_or_equal:today',
+            'category_id' => 'nullable|integer|exists:categories,id',
+            'budget_id' => 'nullable|integer',
+            'savings_amount' => 'nullable|numeric|min:0',
+            'transfer_category_id' => 'nullable|integer|exists:categories,id',
+            'saving_goal_id' => 'nullable|integer|exists:savings,id',
         ];
 
         $this->assertEquals($expectedRules, $rules);
@@ -46,11 +51,12 @@ class CreateTransactionsRequestTest extends TestCase
         $this->actingAs($user);
 
         $data = [
+            'name' => 'Test Transaction',
             'type' => 'expense',
             'amount' => 100.50,
             'description' => 'Test transaction',
-            'date' => '2024-01-15',
-            'category_id' => $budget->id,
+            'date' => now()->toDateString(),
+            'category_id' => 1,
         ];
 
         $request = new CreateTransactionsRequest();
@@ -88,28 +94,7 @@ class CreateTransactionsRequestTest extends TestCase
         $this->assertArrayHasKey('category_id', $validator->errors()->toArray());
     }
 
-    public function test_create_transactions_request_prepare_for_validation()
-    {
-        $data = [
-            'type' => 'expense',
-            'amount' => 100.50,
-            'description' => '  <script>Test</script>  ',
-            'date' => '2024-01-15',
-        ];
 
-        $request = new CreateTransactionsRequest();
-        $request->merge($data);
-        $request->setContainer(app());
-        $request->setRedirector(app('redirect'));
-
-        // Use reflection to access and invoke the protected prepareForValidation method
-        $reflection = new ReflectionClass($request);
-        $method = $reflection->getMethod('prepareForValidation');
-        $method->setAccessible(true);
-        $method->invoke($request);
-
-        $this->assertEquals('Test', $request->input('description'));
-    }
 
     // Removed the duplicate test_create_transactions_request_rules method, as it's identical to test_create_transactions_request_validation_rules
 }

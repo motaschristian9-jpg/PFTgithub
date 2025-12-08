@@ -14,28 +14,38 @@ import {
   Legend,
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { TrendingUp, AlertCircle } from "lucide-react";
 
 const SavingsHistoryCharts = ({ savings, userCurrency }) => {
   // --- 1. Completion Status Data (Pie Chart) ---
-  const statusData = useMemo(() => {
-    let completed = 0;
-    let cancelled = 0;
+  // --- 1. Surplus Analysis Data (Pie Chart) ---
+  const surplusData = useMemo(() => {
+    let totalTargetMet = 0;
+    let totalSurplus = 0;
 
     savings.forEach((s) => {
-      // Assuming 'completed' status or if current >= target (and not active)
-      // The history tab usually shows non-active savings.
-      // We can check s.status directly.
-      if (s.status === "completed" || (Number(s.current_amount) >= Number(s.target_amount) && s.status !== 'active')) {
-        completed++;
-      } else {
-        cancelled++;
+      const current = Number(s.current_amount || 0);
+      const target = Number(s.target_amount || 0);
+
+      // Amount contributing to the target
+      totalTargetMet += Math.min(current, target);
+
+      // Amount exceeding the target
+      if (current > target) {
+        totalSurplus += (current - target);
       }
     });
 
+    // Handle case where no data
+    if (totalTargetMet === 0 && totalSurplus === 0) {
+        return [
+            { name: "No Data", value: 1, color: "#f3f4f6" }
+        ];
+    }
+
     return [
-      { name: "Completed", value: completed, color: "#10b981" }, // Emerald-500
-      { name: "Cancelled/Incomplete", value: cancelled, color: "#ef4444" },   // Red-500
+      { name: "Target Met", value: totalTargetMet, color: "#0d9488" }, // Teal-600
+      { name: "Surplus (Bonus)", value: totalSurplus, color: "#facc15" },   // Yellow-400
     ];
   }, [savings]);
 
@@ -58,21 +68,21 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Status Chart */}
+      {/* Surplus Chart */}
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
         <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <CheckCircle2 size={20} className="text-teal-600" />
-          Completion Rate
+          <TrendingUp size={20} className="text-teal-600" />
+          Savings Surplus
         </h3>
         <p className="text-sm text-gray-500 mb-6">
-          Goals reached vs cancelled
+          Base Goals vs. Bonus Savings
         </p>
         
         <div className="flex-1 min-h-[250px] relative">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={statusData}
+                data={surplusData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -80,12 +90,12 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {statusData.map((entry, index) => (
+                {surplusData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value) => [`${value} Goals`, ""]}
+                formatter={(value) => [formatCurrency(value, userCurrency), ""]}
                 contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
               />
               <Legend verticalAlign="bottom" height={36} iconType="circle" />
@@ -94,8 +104,9 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
           {/* Center Text */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
             <div className="text-center">
-              <span className="text-3xl font-bold text-gray-900">
-                {Math.round((statusData[0].value / savings.length) * 100) || 0}%
+              <span className="text-xs text-gray-400 font-medium uppercase tracking-wider block mb-1">Total Saved</span>
+              <span className="text-xl font-bold text-gray-900">
+                {formatCurrency(surplusData.reduce((acc, curr) => acc + curr.value, 0), userCurrency)}
               </span>
             </div>
           </div>

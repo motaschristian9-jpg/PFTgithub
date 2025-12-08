@@ -9,8 +9,8 @@ export default function ReportsFilters({
   setEndDate,
 }) {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
-      <div className="flex items-center space-x-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto scrollbar-hide">
+    <div className="rounded-2xl bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 min-w-0">
+      <div className="flex flex-wrap items-center gap-2 w-full">
         <button
           onClick={() => setDatePreset("this_month")}
           className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
@@ -54,31 +54,40 @@ export default function ReportsFilters({
       </div>
 
       {datePreset === "custom" && (
-        <div className="flex items-center space-x-2 w-full md:w-auto animate-in fade-in slide-in-from-right-4 duration-200">
-          <div className="relative flex-1">
-            <Calendar
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={16}
-            />
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none text-sm transition-all hover:border-gray-300"
-            />
+        <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="flex-1 space-y-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">
+              Start Date
+            </label>
+            <div className="relative">
+              <Calendar
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={16}
+              />
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none text-sm transition-all hover:border-gray-300"
+              />
+            </div>
           </div>
-          <span className="text-gray-400">-</span>
-          <div className="relative flex-1">
-            <Calendar
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              size={16}
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none text-sm transition-all hover:border-gray-300"
-            />
+          <div className="flex-1 space-y-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">
+              End Date
+            </label>
+            <div className="relative">
+              <Calendar
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={16}
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none text-sm transition-all hover:border-gray-300"
+              />
+            </div>
           </div>
         </div>
       )}

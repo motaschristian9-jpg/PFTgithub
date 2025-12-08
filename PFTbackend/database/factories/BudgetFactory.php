@@ -29,9 +29,9 @@ class BudgetFactory extends Factory
             'user_id' => User::factory(),
             'name' => $this->faker->word(),
             'amount' => $this->faker->randomFloat(2, 100, 5000),
-            'category_id' => $this->faker->numberBetween(1, 10),
-            'start_date' => $this->faker->date(),
-            'end_date' => $this->faker->date(),
+            'category_id' => \App\Models\Category::factory(),
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
         ];
     }
 }

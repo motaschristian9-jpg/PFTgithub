@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\TransactionResource;
 
 class BudgetResource extends JsonResource
 {
@@ -20,8 +21,8 @@ class BudgetResource extends JsonResource
             'status' => $this->status,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            // FIX: Include the calculated sum from the controller
             'total_spent' => $this->transactions_sum_amount ?? 0,
+            'transactions' => TransactionResource::collection($this->whenLoaded('transactions')),
         ];
     }
 }

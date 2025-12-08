@@ -9,16 +9,27 @@ import {
 } from "date-fns";
 import { useDataContext } from "../components/DataLoader";
 import { exportFullReport } from "../utils/excelExport";
-import { showSuccess, showError } from "../utils/swal";
+import {
+  useCreateTransaction,
+  useDeleteTransaction,
+  useTransactions,
+} from "./useTransactions";
+import { keepPreviousData } from "@tanstack/react-query";
+import { confirmDelete, showSuccess, showError } from "../utils/swal";
 
 export const useReportsPageLogic = () => {
   const [datePreset, setDatePreset] = useState("this_month");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  
+  // Initialize with correct default dates to match DataLoader immediately
+  const [startDate, setStartDate] = useState(() => 
+    format(startOfMonth(new Date()), "yyyy-MM-dd")
+  );
+  const [endDate, setEndDate] = useState(() => 
+    format(endOfMonth(new Date()), "yyyy-MM-dd")
+  );
 
   const {
     user,
-    transactionsData,
     activeBudgetsData,
     activeSavingsData,
     categoriesData,
@@ -42,10 +53,15 @@ export const useReportsPageLogic = () => {
     }
 
     if (datePreset !== "custom") {
-      setStartDate(start);
-      setEndDate(end);
+       if (start !== startDate || end !== endDate) {
+          console.log("[Reports] Preset changed, updating dates:", start, end);
+          setStartDate(start);
+          setEndDate(end);
+       }
     }
-  }, [datePreset]);
+  }, [datePreset, startDate, endDate]);
+
+
 
   const categoryLookup = useMemo(() => {
     const map = {};
@@ -57,26 +73,27 @@ export const useReportsPageLogic = () => {
     return map;
   }, [categoriesData]);
 
-  const allTransactions = useMemo(
-    () => transactionsData?.data || [],
-    [transactionsData]
-  );
+  // --- Data Fetching ---
+  const queryParams = useMemo(() => {
+    const params = { all: true }; // Always fetch all (no pagination) for reports
+
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    
+    // Only fetch if we have a valid range or "all" preset
+    // (startDate/endDate are set by useEffect on mount, so initially might be empty string)
+    // If they are empty and preset is NOT 'all', we might want to wait or fetch nothing?
+    // But 'this_month' is default. 
+    return params;
+  }, [startDate, endDate]);
+
+  const { data: reportData, isLoading: reportLoading } = useTransactions(queryParams, {
+    placeholderData: keepPreviousData,
+  });
 
   const filteredTransactions = useMemo(() => {
-    if (!startDate && !endDate) return allTransactions;
-
-    return allTransactions.filter((t) => {
-      if (!t.date && !t.transaction_date) return false;
-      const dateStr = t.date || t.transaction_date;
-
-      const txDate = parseISO(dateStr);
-      const start = startDate ? parseISO(startDate) : new Date("1900-01-01");
-      const end = endDate ? parseISO(endDate) : new Date("2100-01-01");
-      end.setHours(23, 59, 59, 999);
-
-      return isWithinInterval(txDate, { start, end });
-    });
-  }, [allTransactions, startDate, endDate]);
+    return reportData?.data || [];
+  }, [reportData]);
 
   const filteredBudgets = useMemo(() => {
     if (!startDate && !endDate) return activeBudgetsData || [];
@@ -163,17 +180,55 @@ export const useReportsPageLogic = () => {
       .slice(0, 8);
   }, [filteredTransactions, categoryLookup]);
 
+  const savingsMetrics = useMemo(() => {
+    // 1. Filter for savings-related transactions (Deposits)
+    const savingsTx = filteredTransactions.filter(
+      (t) => t.type === "expense" && t.saving_goal_id
+    );
+
+    // 2. Calculate Total Saved
+    const totalSaved = savingsTx.reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+    // 3. Calculate Savings Rate
+    // Avoid division by zero
+    const income = stats.income || 1; 
+    const savingsRate = (totalSaved / income) * 100;
+
+    // 4. Find Top Goal
+    const map = {};
+    savingsTx.forEach((t) => {
+      const id = t.saving_goal_id;
+      const goal = activeSavingsData?.find(s => s.id === id);
+      const name = goal ? goal.name : "Unknown Goal";
+      map[name] = (map[name] || 0) + Number(t.amount || 0);
+    });
+
+    const sortedGoals = Object.entries(map)
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount);
+    
+    const topGoal = sortedGoals.length > 0 ? sortedGoals[0] : null;
+
+    return {
+        totalSaved,
+        savingsRate,
+        topGoal,
+        hasActivity: savingsTx.length > 0
+    };
+  }, [filteredTransactions, activeSavingsData, stats.income]);
+
   const barChartData = useMemo(
     () => [
-      { name: "Income", amount: stats.income, color: "#10B981" },
-      { name: "Expense", amount: stats.expenses, color: "#EF4444" },
+      { name: "Income", amount: stats.income, color: "#10B981" }, // Emerald-500
+      { name: "Expense", amount: stats.expenses, color: "#F43F5E" }, // Rose-500
     ],
     [stats]
   );
 
   const budgetCompliance = useMemo(() => {
     const spendingMap = {};
-    allTransactions.forEach((t) => {
+    // Use filteredTransactions which now contains the FULL server dataset for the range
+    filteredTransactions.forEach((t) => {
       if (t.type === "expense" && t.budget_id) {
         spendingMap[t.budget_id] =
           (spendingMap[t.budget_id] || 0) + Number(t.amount || 0);
@@ -186,17 +241,28 @@ export const useReportsPageLogic = () => {
         const spent =
           b.total_spent !== undefined
             ? Number(b.total_spent)
-            : spendingMap[b.id] || 0;
-
-        const remaining = allocated - spent;
-        const rawPercent = allocated > 0 ? (spent / allocated) * 100 : 0;
-        const isOver = spent > allocated;
+            : spendingMap[b.id] || 0; // Use map if total_spent misses 
+            // Note: server's total_spent might be "all time"? 
+            // If we want "this month compliance", we MUST use spendingMap from the period's transactions.
+            // But let's check: users usually want budget compliance for the budget's OWN period.
+            // Reports Page "Budget Compliance" table usually implies "Did I stick to the budget IN THIS PERIOD?"
+            // OR "How are my Active Budgets doing?".
+            // The existing logic mixes them. 
+            // Let's rely on spendingMap derived from the *date-filtered* transactions.
+            // This effectively shows "Spending on this budget *within this report period*".
+        
+        // Override spent with our calculated period spent for consistency with the report range
+        const periodSpent = spendingMap[b.id] || 0;
+        
+        const remaining = allocated - periodSpent;
+        const rawPercent = allocated > 0 ? (periodSpent / allocated) * 100 : 0;
+        const isOver = periodSpent > allocated;
         const catName = categoryLookup[b.category_id] || "Uncategorized";
 
         return {
           ...b,
           category: catName,
-          spent: spent,
+          spent: periodSpent,
           allocated: allocated,
           remaining: remaining,
           percent: Math.min(rawPercent, 100),
@@ -204,7 +270,7 @@ export const useReportsPageLogic = () => {
         };
       })
       .sort((a, b) => a.remaining - b.remaining);
-  }, [filteredBudgets, allTransactions, categoryLookup]);
+  }, [filteredBudgets, filteredTransactions, categoryLookup]);
 
   const handleExport = async () => {
     try {
@@ -243,6 +309,7 @@ export const useReportsPageLogic = () => {
     barChartData,
     budgetCompliance,
     processedSavings,
+    savingsMetrics,
     handleExport,
   };
 };

@@ -2,7 +2,7 @@ import React from "react";
 import { Banknote, TrendingUp, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
-const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClass }) => {
+const StatCard = ({ title, value, icon: Icon, colorClass }) => {
   // Extract base color from classes (e.g., "text-emerald-600" -> "emerald")
   const getColorTheme = () => {
     if (colorClass.includes("emerald") || colorClass.includes("green")) return { bg: "bg-emerald-50", text: "text-emerald-600", icon: "text-emerald-200" };
@@ -42,24 +42,18 @@ const BudgetStats = ({ stats, activeTab, userCurrency }) => {
         value={formatCurrency(stats.totalAllocated, userCurrency)}
         icon={Banknote}
         colorClass="text-violet-600"
-        bgClass="bg-violet-50"
-        iconColorClass="text-violet-600"
       />
       <StatCard
         title={activeTab === "active" ? "Active Spent" : "History Spent"}
         value={formatCurrency(stats.totalSpent, userCurrency)}
         icon={TrendingUp}
         colorClass="text-violet-600"
-        bgClass="bg-violet-50"
-        iconColorClass="text-violet-600"
       />
       <StatCard
         title={activeTab === "active" ? "Active Count" : "History Count"}
         value={stats.count}
         icon={CheckCircle2}
         colorClass="text-violet-600"
-        bgClass="bg-violet-50"
-        iconColorClass="text-violet-600"
       />
     </div>
   );

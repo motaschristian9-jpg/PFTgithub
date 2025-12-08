@@ -1,5 +1,6 @@
+
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"; // eslint-disable-line no-unused-vars
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,6 +37,8 @@ export default function ReportsPage() {
     stats,
     expenseChartData,
     barChartData,
+    savingsTrendData,
+    savingsMetrics,
     budgetCompliance,
     handleExport,
   } = useReportsPageLogic();
@@ -43,14 +46,14 @@ export default function ReportsPage() {
   const userCurrency = user?.currency || "USD";
 
   return (
-    <motion.div 
-      className="space-y-8 p-4 sm:p-6 lg:p-8"
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
+      className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto"
     >
       <motion.div variants={itemVariants}>
-        <ReportsHeader onExport={handleExport} />
+        <ReportsHeader handleExport={handleExport} />
       </motion.div>
 
       <motion.div variants={itemVariants}>
@@ -72,6 +75,7 @@ export default function ReportsPage() {
         <ReportsCharts
           expenseChartData={expenseChartData}
           barChartData={barChartData}
+          savingsMetrics={savingsMetrics}
           userCurrency={userCurrency}
         />
       </motion.div>

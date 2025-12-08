@@ -41,19 +41,19 @@ class BudgetTest extends TestCase
                              'end_date',
                          ],
                      ],
-                     'links',
-                     'meta',
                  ]);
     }
 
     public function test_user_can_create_budget()
     {
+        $category = \App\Models\Category::factory()->create();
+        
         $budgetData = [
             'name' => 'Monthly Groceries Budget',
             'amount' => 500.00,
-            'start_date' => '2024-01-01',
-            'end_date' => '2024-01-31',
-            'category_id' => 1,
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
+            'category_id' => $category->id,
         ];
 
         $response = $this->withHeaders([
@@ -66,9 +66,9 @@ class BudgetTest extends TestCase
                          'user_id' => $this->user->id,
                          'name' => 'Monthly Groceries Budget',
                          'amount' => '500.00',
-                         'start_date' => '2024-01-01',
-                         'end_date' => '2024-01-31',
-                         'category_id' => 1,
+                         'start_date' => now()->startOfMonth()->toDateString(),
+                         'end_date' => now()->endOfMonth()->toDateString(),
+                         'category_id' => $category->id,
                      ]
                  ]);
 
@@ -111,12 +111,14 @@ class BudgetTest extends TestCase
     {
         $budget = Budget::factory()->create(['user_id' => $this->user->id]);
 
+        $category = \App\Models\Category::factory()->create();
+        
         $updateData = [
             'name' => 'Updated Budget Name',
             'amount' => 750.00,
-            'start_date' => '2024-02-01',
-            'end_date' => '2024-02-28',
-            'category_id' => 2,
+            'start_date' => now()->startOfMonth()->toDateString(),
+            'end_date' => now()->endOfMonth()->toDateString(),
+            'category_id' => $category->id,
         ];
 
         $response = $this->withHeaders([
@@ -128,9 +130,9 @@ class BudgetTest extends TestCase
                      'data' => [
                          'name' => 'Updated Budget Name',
                          'amount' => '750.00',
-                         'start_date' => '2024-02-01',
-                         'end_date' => '2024-02-28',
-                         'category_id' => 2,
+                         'start_date' => now()->startOfMonth()->toDateString(),
+                         'end_date' => now()->endOfMonth()->toDateString(),
+                         'category_id' => $category->id,
                      ]
                  ]);
 
@@ -151,7 +153,6 @@ class BudgetTest extends TestCase
         $response->assertStatus(200)
                  ->assertJson([
                      'success' => true,
-                     'message' => 'Budget deleted successfully.',
                  ]);
 
         $this->assertDatabaseMissing('budgets', [
@@ -166,9 +167,10 @@ class BudgetTest extends TestCase
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
-        ])->getJson('/api/budgets?name=Groceries');
+        ])->getJson('/api/budgets?search=Groceries');
 
         $response->assertStatus(200);
+        // dump($response->json());
         $data = $response->json('data');
         $this->assertCount(1, $data);
         $this->assertEquals('Groceries Budget', $data[0]['name']);

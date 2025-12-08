@@ -2,7 +2,7 @@ import { useRef } from "react";
 import MySwal, { showSuccess, showError } from "../utils/swal";
 import { formatCurrency } from "../utils/currency";
 
-export const useSavingsAlerts = ({
+  export const useSavingsAlerts = ({
   userCurrency,
   stats,
   availableBalance,
@@ -10,6 +10,7 @@ export const useSavingsAlerts = ({
   setIsSaving,
   optimisticUpdateGlobal,
   rollbackOptimisticGlobal,
+  optimisticUpdateSavingsList,
   updateSavingMutation,
   handleCreateContributionTransaction,
   handleCreateWithdrawalTransaction,
@@ -76,6 +77,11 @@ export const useSavingsAlerts = ({
           ...prev,
           current_amount: newCurrentAmount.toString(),
         }));
+        
+        // Optimistic update for the parent list
+        if (optimisticUpdateSavingsList) {
+          optimisticUpdateSavingsList(localSaving.id, newCurrentAmount);
+        }
 
         const tempTxId = Date.now();
         const tempTransaction = {
@@ -88,24 +94,23 @@ export const useSavingsAlerts = ({
           pending: true,
         };
 
-        // 1. Optimistic Update
-        optimisticUpdateGlobal(tempTransaction);
+        // 1. Optimistic Update - REMOVED (Handled by useCreateTransaction)
+        // optimisticUpdateGlobal(tempTransaction);
 
         try {
           // 2. Parallel execution
-          await Promise.all([
-            updateSavingMutation.mutateAsync({
-              id: localSaving.id,
-              data: { ...localSaving, current_amount: newCurrentAmount },
-            }),
-            handleCreateContributionTransaction
-              ? handleCreateContributionTransaction(
-                  amountToAdd,
-                  localSaving.name,
-                  localSaving.id
-                )
-              : Promise.resolve(null),
-          ]);
+          const response = await (handleCreateContributionTransaction
+            ? handleCreateContributionTransaction(
+                amountToAdd,
+                localSaving.name,
+                localSaving.id
+              )
+            : Promise.resolve(null));
+
+          // If backend observer works, the invalidation below will fetch correct data
+          // But we keep optimistic update for immediate feedback
+          
+          if (!response) throw new Error("Transaction creation failed");
 
           showSuccess(
             "Contribution Added!",
@@ -116,7 +121,7 @@ export const useSavingsAlerts = ({
         } catch (error) {
           console.error("Error adding contribution", error);
           // 4. Rollback on Error
-          rollbackOptimisticGlobal(tempTxId);
+          // rollbackOptimisticGlobal(tempTxId); // Rollback handled by query mutation 
           showError("Error", "Failed to add contribution.");
         } finally {
           setIsSaving(false);
@@ -180,6 +185,11 @@ export const useSavingsAlerts = ({
           ...prev,
           current_amount: newCurrentAmount.toString(),
         }));
+        
+        // Optimistic update for the parent list
+        if (optimisticUpdateSavingsList) {
+          optimisticUpdateSavingsList(localSaving.id, newCurrentAmount);
+        }
 
         const tempTxId = Date.now();
         const tempTransaction = {
@@ -192,24 +202,20 @@ export const useSavingsAlerts = ({
           pending: true,
         };
 
-        // 1. Optimistic Update
-        optimisticUpdateGlobal(tempTransaction);
+        // 1. Optimistic Update - REMOVED (Handled by useCreateTransaction)
+        // optimisticUpdateGlobal(tempTransaction);
 
         try {
-          // 2. Parallel execution
-          const [response] = await Promise.all([
-            updateSavingMutation.mutateAsync({
-              id: localSaving.id,
-              data: { ...localSaving, current_amount: newCurrentAmount },
-            }),
-            handleCreateWithdrawalTransaction
-              ? handleCreateWithdrawalTransaction(
-                  amountToWithdraw,
-                  localSaving.name,
-                  localSaving.id
-                )
-              : Promise.resolve(null),
-          ]);
+          // 2. Parallel execution (Withdrawal)
+          const response = await (handleCreateWithdrawalTransaction
+            ? handleCreateWithdrawalTransaction(
+                amountToWithdraw,
+                localSaving.name,
+                localSaving.id
+              )
+            : Promise.resolve(null));
+            
+          if (!response) throw new Error("Transaction creation failed");
 
           const wasDeleted = response?.deleted;
 
@@ -234,7 +240,7 @@ export const useSavingsAlerts = ({
         } catch (error) {
           console.error("Error withdrawing", error);
           // 4. Rollback on Error
-          rollbackOptimisticGlobal(tempTxId);
+          // rollbackOptimisticGlobal(tempTxId); // Rollback handled by query mutation
           showError("Error", "Failed to withdraw funds.");
         } finally {
           setIsSaving(false);

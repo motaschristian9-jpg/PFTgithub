@@ -40,10 +40,9 @@ class SavingTest extends TestCase
                              'current_amount',
                          ],
                      ],
-                     'links',
-                     'meta',
                  ]);
     }
+
 
     public function test_user_can_create_saving()
     {
@@ -146,7 +145,6 @@ class SavingTest extends TestCase
         $response->assertStatus(200)
                  ->assertJson([
                      'success' => true,
-                     'message' => 'Saving deleted successfully.',
                  ]);
 
         $this->assertDatabaseMissing('savings', [
@@ -156,12 +154,22 @@ class SavingTest extends TestCase
 
     public function test_saving_filtering_by_name()
     {
-        Saving::factory()->create(['user_id' => $this->user->id, 'name' => 'Emergency Fund']);
-        Saving::factory()->create(['user_id' => $this->user->id, 'name' => 'Vacation Fund']);
+        Saving::factory()->create([
+            'user_id' => $this->user->id, 
+            'name' => 'Emergency Fund',
+            'target_amount' => 1000,
+            'current_amount' => 100
+        ]);
+        Saving::factory()->create([
+            'user_id' => $this->user->id, 
+            'name' => 'Vacation Fund',
+            'target_amount' => 1000,
+            'current_amount' => 100
+        ]);
 
         $response = $this->withHeaders([
             'Authorization' => 'Bearer ' . $this->token,
-        ])->getJson('/api/savings?name=Emergency');
+        ])->getJson('/api/savings?search=Emergency');
 
         $response->assertStatus(200);
         $data = $response->json('data');

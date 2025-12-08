@@ -70,18 +70,6 @@ class TransactionController extends Controller
         return 'transactions_' . $userId . '_' . md5(json_encode($params));
     }
 
-    private function clearUserCache($userId)
-    {
-        // Clear transactions list
-        Cache::tags(['user_transactions_' . $userId])->flush();
-
-        // CRITICAL: Clear budgets list because budgets calculate 'total spent' from transactions
-        Cache::tags(['user_budgets_' . $userId])->flush();
-
-        // Clear savings list because transactions can update savings balances
-        Cache::tags(['user_savings_' . $userId])->flush();
-    }
-
     public function index(Request $request)
     {
         if (!Auth::check()) {
@@ -202,9 +190,6 @@ class TransactionController extends Controller
                     $saving = \App\Models\Saving::find($request->saving_goal_id);
                     
                     if ($saving) {
-                        // Update Goal
-                        $saving->increment('current_amount', $request->savings_amount);
-
                         // Create Transfer Transaction (Expense)
                         Auth::user()->transactions()->create([
                             'name' => 'Transfer to ' . $saving->name,
@@ -221,8 +206,6 @@ class TransactionController extends Controller
 
                 return $transaction;
             });
-
-            $this->clearUserCache(Auth::id());
 
             return new TransactionResource($transaction);
 
@@ -275,8 +258,6 @@ class TransactionController extends Controller
 
         $transaction->update($validatedData);
 
-        $this->clearUserCache(Auth::id());
-
         return new TransactionResource($transaction);
     }
 
@@ -284,8 +265,6 @@ class TransactionController extends Controller
     {
         $this->authorize('delete', $transaction);
         $transaction->delete();
-
-        $this->clearUserCache(Auth::id());
 
         return response()->json([
             'success' => true,

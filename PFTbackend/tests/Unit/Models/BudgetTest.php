@@ -14,7 +14,7 @@ class BudgetTest extends TestCase
 
     public function test_budget_has_fillable_attributes()
     {
-        $fillable = ['user_id', 'name', 'amount', 'start_date', 'end_date', 'category_id'];
+        $fillable = ['user_id', 'name', 'amount', 'start_date', 'end_date', 'category_id', 'status'];
         $this->assertEquals($fillable, (new Budget)->getFillable());
     }
 
@@ -41,8 +41,12 @@ class BudgetTest extends TestCase
     public function test_budget_has_many_transactions()
     {
         $user = User::factory()->create();
-        $budget = Budget::factory()->create(['user_id' => $user->id]);
-        $transaction = Transaction::factory()->create(['user_id' => $user->id, 'budget_id' => $budget->id]);
+        $budget = \App\Models\Budget::withoutEvents(function () use ($user) {
+            return Budget::factory()->create(['user_id' => $user->id]);
+        });
+        $transaction = \App\Models\Transaction::withoutEvents(function () use ($user, $budget) {
+            return Transaction::factory()->create(['user_id' => $user->id, 'budget_id' => $budget->id]);
+        });
 
         $this->assertInstanceOf(Transaction::class, $budget->transactions->first());
         $this->assertEquals($transaction->id, $budget->transactions->first()->id);

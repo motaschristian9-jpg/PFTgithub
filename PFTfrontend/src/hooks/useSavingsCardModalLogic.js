@@ -45,6 +45,7 @@ export const useSavingsCardModalLogic = ({
       fetchAll: true,
       enabled: isOpen && !!localSaving?.id,
       staleTime: 0,
+      placeholderData: undefined, // Disable keepPreviousData to prevent showing old card's data
     }
   );
 
@@ -78,6 +79,7 @@ export const useSavingsCardModalLogic = ({
     } else {
       document.body.style.overflow = "";
       setIsEditing(false);
+      setLocalSaving({}); // Clear data on close to prevent ghosts
     }
     return () => {
       document.body.style.overflow = "";
@@ -212,6 +214,39 @@ export const useSavingsCardModalLogic = ({
     }
   };
 
+  const optimisticUpdateSavingsList = (goalId, newAmount) => {
+    // Update the main savings list cache
+    queryClient.setQueriesData({ queryKey: ["savings"] }, (oldData) => {
+      if (!oldData) return undefined;
+      
+      const updateItem = (item) => {
+        if (item.id === goalId) {
+          const target = parseFloat(item.target_amount);
+          const current = parseFloat(newAmount);
+          return {
+            ...item,
+            current_amount: newAmount,
+            status: current >= target ? 'completed' : 'active'
+          };
+        }
+        return item;
+      };
+
+      if (Array.isArray(oldData)) {
+        return oldData.map(updateItem);
+      }
+      
+      if (oldData.data && Array.isArray(oldData.data)) {
+        return {
+          ...oldData,
+          data: oldData.data.map(updateItem),
+        };
+      }
+
+      return oldData;
+    });
+  };
+
   const { handleQuickContribute, handleQuickWithdraw } = useSavingsAlerts({
     userCurrency,
     stats,
@@ -220,6 +255,7 @@ export const useSavingsCardModalLogic = ({
     setIsSaving,
     optimisticUpdateGlobal,
     rollbackOptimisticGlobal,
+    optimisticUpdateSavingsList,
     updateSavingMutation,
     handleCreateContributionTransaction,
     handleCreateWithdrawalTransaction,
@@ -238,20 +274,22 @@ export const useSavingsCardModalLogic = ({
     );
 
     if (result.isConfirmed && onDeleteTransaction) {
-      const amount = parseFloat(tx.amount);
-      const isContribution =
-        tx.type === "expense" ||
-        tx.description?.toLowerCase().includes("contribution") ||
-        tx.name?.toLowerCase().includes("deposit");
-
-      let newAmount = stats.current;
-      if (isContribution) {
-        newAmount = Math.max(0, stats.current - amount);
-      } else {
-        newAmount = stats.current + amount;
-      }
-
-      setLocalSaving((prev) => ({ ...prev, current_amount: newAmount }));
+      setLocalSaving((prev) => {
+        // Optimistic UI update
+        const amount = parseFloat(tx.amount);
+        const isContribution =
+          tx.type === "expense" ||
+          tx.description?.toLowerCase().includes("contribution") ||
+          tx.name?.toLowerCase().includes("deposit");
+          
+        let newAmount = stats.current;
+        if (isContribution) {
+          newAmount = Math.max(0, stats.current - amount);
+        } else {
+          newAmount = stats.current + amount;
+        }
+        return { ...prev, current_amount: newAmount };
+      });
 
       queryClient.setQueriesData(
         { queryKey: ["transactions", historyQueryParams] },
@@ -264,10 +302,13 @@ export const useSavingsCardModalLogic = ({
       );
 
       try {
-        await onDeleteTransaction(tx, localSaving, newAmount);
+        await onDeleteTransaction(tx); // Only delete tx, don't pass saving/amount
         queryClient.invalidateQueries(["transactions"]);
+        queryClient.invalidateQueries(["savings"]); // This will fetch strict truth
+        showSuccess("Deleted", "Transaction deleted and balance updated.");
       } catch (error) {
-        showError("Error", "Failed to update balance after deletion.");
+        showError("Error", "Failed to delete transaction.");
+        // Should rollback here theoretically, but for now we rely on refetch
       }
     }
   };

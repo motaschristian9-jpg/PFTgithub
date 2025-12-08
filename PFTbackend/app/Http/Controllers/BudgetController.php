@@ -107,7 +107,7 @@ class BudgetController extends Controller
 
         $this->clearUserCache(Auth::id());
 
-        return new BudgetResource($budget->fresh());
+        return (new BudgetResource($budget->fresh()))->response()->setStatusCode(201);
     }
 
     public function show(Budget $budget)

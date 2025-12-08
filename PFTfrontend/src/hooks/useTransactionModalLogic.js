@@ -47,6 +47,8 @@ export const useTransactionModalLogic = ({
     trigger,
     setError,
     watch,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -85,14 +87,24 @@ export const useTransactionModalLogic = ({
 
   const findTransferCategory = () => {
     if (!categoriesData?.data) return null;
-    return (
-      categoriesData.data.find(
-        (c) =>
-          c.type === "expense" &&
-          (c.name.toLowerCase().includes("savings") ||
-            c.name.toLowerCase().includes("transfer"))
-      )?.id || categoriesData.data.find((c) => c.type === "expense")?.id
+    
+    // 1. Check for specific "Savings" or "Transfer" category (Best)
+    const specificCategory = categoriesData.data.find(
+      (c) =>
+        c.type === "expense" &&
+        (c.name.toLowerCase().includes("savings") ||
+          c.name.toLowerCase().includes("transfer"))
     );
+    if (specificCategory) return specificCategory.id;
+
+    // 2. Check for "Other" category (Safe Fallback)
+    const otherCategory = categoriesData.data.find(
+      (c) => c.type === "expense" && c.name.toLowerCase() === "other"
+    );
+    if (otherCategory) return otherCategory.id;
+
+    // 3. Fallback to any expense category (Last Resort, prevents crash)
+    return categoriesData.data.find((c) => c.type === "expense")?.id;
   };
 
   const budgetStatus = useMemo(() => {
@@ -122,6 +134,16 @@ export const useTransactionModalLogic = ({
       remaining: parseFloat(budget.amount) - spent,
     };
   }, [type, watchedCategory, activeBudgetsData, transactionsData]);
+
+  // Smart Naming: Auto-fill Name when a Budget is detected for the category
+  useEffect(() => {
+    if (type === "expense" && budgetStatus) {
+      const currentName = getValues("name");
+      if (!currentName) {
+        setValue("name", `Budget: ${budgetStatus.name}`);
+      }
+    }
+  }, [budgetStatus, type, getValues, setValue]);
 
   useEffect(() => {
     if (isOpen) {

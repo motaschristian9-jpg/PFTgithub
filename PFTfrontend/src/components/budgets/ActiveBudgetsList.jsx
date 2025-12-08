@@ -41,7 +41,7 @@ const ActiveBudgetsList = ({
             className="group relative cursor-pointer"
             onClick={() => handleBudgetCardModalOpen(b)}
           >
-            <div className="relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-300 overflow-hidden">
+            <div className="relative bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-gray-300 transition-all duration-300 overflow-hidden hover:-translate-y-1">
               {/* Top Progress Line */}
               <div
                 className={`absolute top-0 left-0 right-0 h-1 ${statusInfo.barColor}`}
@@ -112,6 +112,12 @@ const ActiveBudgetsList = ({
                   <span className="text-xs font-medium text-gray-400">
                     {rawPercent.toFixed(0)}%
                   </span>
+                </div>
+                
+                <div className="mt-4 flex justify-end">
+                    <span className="text-xs font-medium text-violet-600">
+                        View Details →
+                    </span>
                 </div>
               </div>
             </div>

@@ -13,7 +13,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClas
   const theme = getColorTheme();
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 min-w-0">
       {/* Decorative Background */}
       <div
         className={`absolute -right-4 -top-4 h-24 w-24 rounded-bl-full transition-transform group-hover:scale-110 ${theme.bg}`}
@@ -23,8 +23,8 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClas
       <Icon className={`absolute right-3 top-3 ${theme.icon}`} size={24} />
 
       <div className="relative z-10">
-        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
-        <h3 className={`text-2xl font-bold tracking-tight ${theme.text}`}>
+        <p className="text-xs min-[480px]:text-sm font-medium text-gray-500 mb-1 truncate pr-6">{title}</p>
+        <h3 className={`text-lg min-[480px]:text-2xl font-bold tracking-tight ${theme.text} truncate`}>
           {value}
         </h3>
       </div>
@@ -34,7 +34,7 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClas
 
 export default function ReportsStats({ stats, userCurrency }) {
   return (
-    <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard
         title="Total Income"
         value={formatCurrency(stats.income, userCurrency)}
@@ -52,7 +52,7 @@ export default function ReportsStats({ stats, userCurrency }) {
         iconColorClass="text-rose-600"
       />
       <StatCard
-        title="Net Savings"
+        title="Net Balance"
         value={formatCurrency(stats.net, userCurrency)}
         icon={Wallet}
         colorClass={stats.net >= 0 ? "text-blue-600" : "text-rose-600"}

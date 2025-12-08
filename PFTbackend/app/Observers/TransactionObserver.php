@@ -11,9 +11,14 @@ class TransactionObserver
     /**
      * Handle the Transaction "created" event.
      */
+    /**
+     * Handle the Transaction "created" event.
+     */
     public function created(Transaction $transaction): void
     {
         $this->checkBudgetStatus($transaction->budget_id);
+        $this->checkSavingBalance($transaction);
+        $this->clearCaches($transaction);
     }
 
     /**
@@ -31,6 +36,20 @@ class TransactionObserver
         if ($transaction->isDirty('amount') && !$transaction->isDirty('budget_id')) {
              $this->checkBudgetStatus($transaction->budget_id);
         }
+
+        // Check savings balance if relevant fields changed
+        if ($transaction->isDirty(['amount', 'saving_goal_id', 'type'])) {
+            $this->checkSavingBalance($transaction);
+            if ($transaction->isDirty('saving_goal_id') && $transaction->getOriginal('saving_goal_id')) {
+                // Update the old saving goal as well if it was moved
+                $this->checkSavingBalance(Transaction::make([
+                    'saving_goal_id' => $transaction->getOriginal('saving_goal_id'),
+                    'user_id' => $transaction->user_id
+                ]));
+            }
+        }
+
+        $this->clearCaches($transaction);
     }
 
     /**
@@ -39,6 +58,8 @@ class TransactionObserver
     public function deleted(Transaction $transaction): void
     {
         $this->checkBudgetStatus($transaction->budget_id);
+        $this->checkSavingBalance($transaction);
+        $this->clearCaches($transaction);
     }
 
     /**
@@ -65,13 +86,103 @@ class TransactionObserver
                 $budget->update(['status' => 'reached']);
             }
         } else {
-            // If it was reached but now isn't (e.g. transaction deleted or amount reduced)
-            // We should revert to active, BUT only if dates are still valid.
-            // BudgetObserver::updateStatus handles date logic, but we need to trigger it.
-            // Simplest way: set to active if currently reached.
+            // Revert strict reached status if valid
             if ($budget->status === 'reached') {
                  $budget->update(['status' => 'active']);
             }
+
+            // Check for 85% Warning
+            $ratio = $budget->amount > 0 ? ($totalSpent / $budget->amount) : 0;
+            $cacheKey = 'budget_warning_sent_' . $budget->id;
+
+            if ($ratio >= 0.85) {
+                if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                    $budget->user->notify(new \App\Notifications\BudgetWarningNotification($budget));
+                    // Cache for 7 days to avoid repeating the same warning too often for the same cycle
+                    \Illuminate\Support\Facades\Cache::put($cacheKey, true, 86400 * 7); 
+                }
+            } else {
+                // If balance drops below 85%, reset the warning trigger
+                \Illuminate\Support\Facades\Cache::forget($cacheKey);
+            }
         }
+    }
+
+    /**
+     * Check and update the saving goal balance.
+     */
+    private function checkSavingBalance($transaction): void
+    {
+        if (!$transaction->saving_goal_id) {
+            return;
+        }
+
+        $saving = \App\Models\Saving::find($transaction->saving_goal_id);
+        if (!$saving) {
+            return;
+        }
+
+        // Calculate total balance using efficient database aggregation instead of loading all rows
+        $balance = \App\Models\Transaction::where('saving_goal_id', $saving->id)
+            ->where('user_id', $transaction->user_id)
+            ->sum(\Illuminate\Support\Facades\DB::raw("CASE WHEN type = 'expense' THEN amount WHEN type = 'income' THEN -amount ELSE 0 END"));
+
+        // Ensure balance doesn't go below 0
+        $balance = max(0, $balance);
+
+        if ($saving->current_amount != $balance) {
+            $saving->current_amount = $balance;
+            
+            // Auto-complete check
+            $shouldNotifyCompleted = false;
+            
+            if ($balance >= $saving->target_amount) {
+                if ($saving->status !== 'completed') {
+                    $saving->status = 'completed';
+                    $shouldNotifyCompleted = true;
+                }
+            } elseif ($saving->status === 'completed' && $balance < $saving->target_amount) {
+                $saving->status = 'active';
+            }
+            
+            // SAVE FIRST to ensure DB has correct amount before Notification Job runs
+            $saving->saveQuietly();
+
+            // Trigger Completion Notification
+            if ($shouldNotifyCompleted) {
+                 $saving->user->notify(new \App\Notifications\SavingCompletedNotification($saving));
+            }
+
+            // Check for 85% Warning
+            $ratio = $saving->target_amount > 0 ? ($balance / $saving->target_amount) : 0;
+            $cacheKey = 'saving_warning_sent_' . $saving->id;
+
+            if ($ratio >= 0.85 && $ratio < 1.0) {
+                if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+                    $saving->user->notify(new \App\Notifications\SavingWarningNotification($saving));
+                    // Cache for 7 days
+                    \Illuminate\Support\Facades\Cache::put($cacheKey, true, 86400 * 7);
+                }
+            } elseif ($ratio < 0.85) {
+                \Illuminate\Support\Facades\Cache::forget($cacheKey);
+            }
+        }
+    }
+
+    /**
+     * Clear relevant caches when a transaction changes.
+     */
+    private function clearCaches(Transaction $transaction): void
+    {
+        $userId = $transaction->user_id;
+
+        // Clear transactions list
+        \Illuminate\Support\Facades\Cache::tags(['user_transactions_' . $userId])->flush();
+
+        // Clear budgets list because budgets calculate 'total spent' from transactions
+        \Illuminate\Support\Facades\Cache::tags(['user_budgets_' . $userId])->flush();
+
+        // Clear savings list because transactions can update savings balances
+        \Illuminate\Support\Facades\Cache::tags(['user_savings_' . $userId])->flush();
     }
 }
