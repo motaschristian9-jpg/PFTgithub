@@ -108,14 +108,11 @@ class SavingController extends Controller
             return;
         }
 
-        $savings = Saving::where('user_id', $userId)
+        // Use bulk update directly instead of fetching and looping
+        Saving::where('user_id', $userId)
             ->where('status', 'active')
             ->whereColumn('current_amount', '>=', 'target_amount')
-            ->get();
-
-        foreach ($savings as $saving) {
-            $saving->update(['status' => 'completed']);
-        }
+            ->update(['status' => 'completed']);
 
         // Set cache to prevent re-running for 1 hour
         Cache::put($cacheKey, true, 3600);

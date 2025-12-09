@@ -1,0 +1,134 @@
+services:
+  # Backend App Service (PHP-FPM)
+  backend:
+    build:
+      context: ./PFTbackend
+      dockerfile: Dockerfile
+    image: pft-backend
+    container_name: pft-backend
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./PFTbackend:/var/www
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: pft_db
+      DB_USERNAME: sail
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+      CACHE_DRIVER: redis
+      SESSION_DRIVER: redis
+    networks:
+      - pft-network
+
+  # Queue Worker Service
+  queue:
+    image: pft-backend
+    container_name: pft-queue
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./PFTbackend:/var/www
+    environment:
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: pft_db
+      DB_USERNAME: sail
+      DB_PASSWORD: password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+    command: php artisan queue:work --tries=3 --timeout=90
+    networks:
+      - pft-network
+    depends_on:
+      - backend
+      - redis
+
+  # Web Server Service (Nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: pft-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./PFTbackend:/var/www
+      - ./PFTbackend/docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - pft-network
+    depends_on:
+      - backend
+
+  # Frontend Service (React/Vite)
+  frontend:
+    build:
+      context: ./PFTfrontend
+      dockerfile: Dockerfile
+    image: pft-frontend
+    container_name: pft-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./PFTfrontend:/app
+      - /app/node_modules
+    networks:
+      - pft-network
+    environment:
+      VITE_API_BASE_URL: http://localhost:8000/api
+
+  # Database Service (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: pft-mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: pft_db
+      MYSQL_USER: sail
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - pft-mysql-data:/var/lib/mysql
+    networks:
+      - pft-network
+
+  # Redis Service
+  redis:
+    image: redis:alpine
+    container_name: pft-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - pft-network
+
+  # Database UI (phpMyAdmin)
+  pma:
+    image: phpmyadmin/phpmyadmin
+    container_name: pft-pma
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: sail
+      PMA_PASSWORD: password
+    networks:
+      - pft-network
+    depends_on:
+      - db
+
+networks:
+  pft-network:
+    driver: bridge
+
+volumes:
+  pft-mysql-data:

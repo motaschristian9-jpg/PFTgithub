@@ -149,18 +149,18 @@ class BudgetController extends Controller
         $today = Carbon::now()->format('Y-m-d');
         $updated = false;
 
-        // 1. Expire outdated budgets
-        $expiredBudgets = Budget::where('user_id', $userId)
+        // 1. Expire outdated budgets (Bulk Update)
+        $expiredCount = Budget::where('user_id', $userId)
             ->where('status', 'active')
             ->where('end_date', '<', $today)
-            ->get();
+            ->update(['status' => 'expired']);
 
-        foreach ($expiredBudgets as $budget) {
-            $budget->update(['status' => 'expired']);
+        if ($expiredCount > 0) {
             $updated = true;
         }
 
         // 2. Check reached budgets
+        // We still need to fetch them to calculate the sum, but we can do a bulk update at the end
         $budgets = Budget::where('user_id', $userId)
             ->where('status', 'active')
             ->withSum(['transactions' => function ($q) {
@@ -168,11 +168,16 @@ class BudgetController extends Controller
             }], 'amount')
             ->get();
 
+        $reachedBudgetIds = [];
         foreach ($budgets as $budget) {
             if (($budget->transactions_sum_amount ?? 0) >= $budget->amount) {
-                $budget->update(['status' => 'reached']);
-                $updated = true;
+                $reachedBudgetIds[] = $budget->id;
             }
+        }
+
+        if (!empty($reachedBudgetIds)) {
+            Budget::whereIn('id', $reachedBudgetIds)->update(['status' => 'reached']);
+            $updated = true;
         }
 
         if ($updated) {
