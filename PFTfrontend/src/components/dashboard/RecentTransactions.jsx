@@ -7,17 +7,17 @@ import { motion } from "framer-motion";
 const RecentTransactions = ({ transactions, userCurrency }) => {
   return (
     <motion.div 
-      className="flex h-[400px] flex-col rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100"
+      className="flex h-[400px] flex-col rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Recent Activity</h3>
-          <p className="text-sm text-gray-500">Latest transactions</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Activity</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Latest transactions</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
           <Activity size={20} />
         </div>
       </div>
@@ -33,17 +33,17 @@ const RecentTransactions = ({ transactions, userCurrency }) => {
             <div
               key={index}
               className={`group flex items-center justify-between rounded-xl p-3 transition-all ${
-                t.pending ? "bg-gray-50/50" : "hover:bg-gray-50"
+                t.pending ? "bg-gray-50/50 dark:bg-gray-800/50" : "hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
             >
               <div className="flex items-center gap-4">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
                     t.pending
-                      ? "bg-gray-100 text-gray-400"
+                      ? "bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500"
                       : t.type === "income"
-                      ? "bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200"
-                      : "bg-red-100 text-red-600 group-hover:bg-red-200"
+                      ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/40"
+                      : "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 group-hover:bg-red-200 dark:group-hover:bg-red-900/40"
                   }`}
                 >
                   {t.pending ? (
@@ -55,10 +55,10 @@ const RecentTransactions = ({ transactions, userCurrency }) => {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-gray-900 truncate max-w-[140px]">
+                  <p className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate max-w-[140px]">
                     {t.name || t.category_name}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {t.pending
                       ? "Syncing..."
                       : new Date(t.date).toLocaleDateString()}
@@ -68,10 +68,10 @@ const RecentTransactions = ({ transactions, userCurrency }) => {
               <p
                 className={`text-sm font-bold ${
                   t.pending
-                    ? "text-gray-400"
+                    ? "text-gray-400 dark:text-gray-500"
                     : t.type === "income"
-                    ? "text-emerald-600"
-                    : "text-gray-900"
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-gray-900 dark:text-white"
                 }`}
               >
                 {t.type === "income" ? "+" : "-"}

@@ -67,16 +67,16 @@ const TransactionsTable = ({
   );
 
   return (
-    <div className="rounded-2xl bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 overflow-hidden min-h-[400px] flex flex-col">
-      <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-gray-900">Transaction History</h3>
-        <span className="text-sm text-gray-500">All Transactions</span>
+    <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 overflow-hidden min-h-[400px] flex flex-col">
+      <div className="p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Transaction History</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">All Transactions</span>
       </div>
 
-      <div className="hidden lg:grid grid-cols-12 gap-4 p-4 bg-white border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+      <div className="hidden lg:grid grid-cols-12 gap-4 p-4 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
         <div
           onClick={() => handleSort("date")}
-          className="col-span-2 cursor-pointer flex items-center hover:text-gray-900 transition-colors"
+          className="col-span-2 cursor-pointer flex items-center hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
         >
           Date {getSortIcon("date")}
         </div>
@@ -84,7 +84,7 @@ const TransactionsTable = ({
         <div className="col-span-2">Category</div>
         <div
           onClick={() => handleSort("amount")}
-          className="col-span-2 cursor-pointer flex items-center hover:text-gray-900 transition-colors"
+          className="col-span-2 cursor-pointer flex items-center hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
         >
           Amount {getSortIcon("amount")}
         </div>
@@ -94,7 +94,7 @@ const TransactionsTable = ({
 
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {[...Array(5)].map((_, i) => (
               <SkeletonRow key={i} />
             ))}
@@ -104,14 +104,14 @@ const TransactionsTable = ({
             <p>Failed to load data.</p>
           </div>
         ) : transactions.length === 0 && !isCreatingTransaction ? (
-          <div className="flex flex-col items-center justify-center h-64 text-gray-400 opacity-60">
-            <div className="mb-3 rounded-full bg-gray-100 p-4">
-              <Receipt size={32} className="text-gray-400" />
+          <div className="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-gray-500 opacity-60">
+            <div className="mb-3 rounded-full bg-gray-100 dark:bg-gray-800 p-4">
+              <Receipt size={32} className="text-gray-400 dark:text-gray-500" />
             </div>
             <p>No transactions found.</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {isCreatingTransaction && <SkeletonRow />}
             {transactions.map((tx) =>
               tx.id === updatingTransactionId ? (
@@ -119,34 +119,34 @@ const TransactionsTable = ({
               ) : (
                 <div
                   key={tx.id}
-                  className={`group hover:bg-gray-50 transition-colors ${
-                    tx.pending ? "bg-gray-50/80" : ""
+                  className={`group hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                    tx.pending ? "bg-gray-50/80 dark:bg-gray-800/80" : ""
                   }`}
                 >
                   <div className="hidden lg:grid grid-cols-12 gap-4 p-4 items-center">
-                    <div className="col-span-2 text-sm text-gray-600 font-medium">
+                    <div className="col-span-2 text-sm text-gray-600 dark:text-gray-300 font-medium">
                       {tx.pending ? "Syncing..." : formatDate(tx.date)}
                     </div>
                     <div className="col-span-3">
-                      <p className="text-sm font-bold text-gray-800 truncate">
+                      <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
                         {tx.name || "Unnamed"}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {tx.description}
                       </p>
                     </div>
                     <div className="col-span-2">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
                         {tx.category_name || "Uncategorized"}
                       </span>
                     </div>
                     <div
                       className={`col-span-2 text-sm font-bold ${
                         tx.pending
-                          ? "text-gray-400"
+                          ? "text-gray-400 dark:text-gray-500"
                           : tx.type === "income"
-                          ? "text-emerald-600"
-                          : "text-red-600"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400"
                       }`}
                     >
                       {tx.type === "income" ? "+" : "-"}
@@ -156,8 +156,8 @@ const TransactionsTable = ({
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wide ${
                           tx.type === "income"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-700"
+                            ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                            : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
                         }`}
                       >
                         {tx.type}
@@ -174,15 +174,15 @@ const TransactionsTable = ({
                         }
                         className={`p-2 rounded-lg transition-colors ${
                           new Date() - new Date(tx.created_at) > 60 * 60 * 1000
-                            ? "text-gray-300 cursor-not-allowed"
-                            : "text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                            : "text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                         }`}
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(tx.id)}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -194,8 +194,8 @@ const TransactionsTable = ({
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                           tx.type === "income"
-                            ? "bg-emerald-100 text-emerald-600"
-                            : "bg-red-100 text-red-600"
+                            ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                            : "bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400"
                         }`}
                       >
                         {tx.type === "income" ? (
@@ -205,10 +205,10 @@ const TransactionsTable = ({
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-gray-800 truncate">
+                        <p className="text-sm font-bold text-gray-800 dark:text-white truncate">
                           {tx.name || "Unnamed"}
                         </p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                           <span>{formatDate(tx.date)}</span>
                           <span>•</span>
                           <span className="truncate max-w-[100px]">
@@ -221,8 +221,8 @@ const TransactionsTable = ({
                       <span
                         className={`text-sm font-bold ${
                           tx.type === "income"
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         {tx.type === "income" ? "+" : "-"}
@@ -234,15 +234,15 @@ const TransactionsTable = ({
                           disabled={new Date() - new Date(tx.created_at) > 60 * 60 * 1000}
                           className={`p-1.5 ${
                             new Date() - new Date(tx.created_at) > 60 * 60 * 1000
-                              ? "text-gray-300 cursor-not-allowed"
-                              : "text-gray-400 hover:text-blue-600"
+                              ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                              : "text-gray-400 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
                           }`}
                         >
                           <Edit2 size={14} />
                         </button>
                         <button
                           onClick={() => handleDelete(tx.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600"
+                          className="p-1.5 text-gray-400 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -257,22 +257,22 @@ const TransactionsTable = ({
       </div>
 
       {transactions.length > 0 && pagination.lastPage > 1 && (
-        <div className="p-4 border-t border-gray-100 flex justify-center bg-white">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center bg-white dark:bg-gray-900">
           <div className="flex space-x-2">
             <button
               onClick={() => onPageChange(Math.max(1, pagination.currentPage - 1))}
               disabled={pagination.currentPage === 1}
-              className="px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
               Previous
             </button>
-            <span className="px-3 py-1 text-gray-600 flex items-center">
+            <span className="px-3 py-1 text-gray-600 dark:text-gray-300 flex items-center">
               Page {pagination.currentPage} of {pagination.lastPage}
             </span>
             <button
               onClick={() => onPageChange(pagination.currentPage + 1)}
               disabled={pagination.currentPage >= pagination.lastPage}
-              className="px-3 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              className="px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
               Next
             </button>

@@ -31,8 +31,8 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-        <h3 className="text-lg font-bold text-gray-900 mb-4">
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
           Budget vs. Spent
         </h3>
         <div className="h-[300px] w-full">
@@ -72,12 +72,12 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
         </div>
       </div>
       
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-center items-center text-center">
-         <div className="p-4 bg-violet-50 rounded-full mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col justify-center items-center text-center">
+         <div className="p-4 bg-violet-50 dark:bg-violet-900/20 rounded-full mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600 dark:text-violet-400"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
          </div>
-         <h3 className="text-xl font-bold text-gray-900 mb-2">Spending Overview</h3>
-         <p className="text-gray-500 max-w-xs">
+         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Spending Overview</h3>
+         <p className="text-gray-500 dark:text-gray-400 max-w-xs">
             Visualize your budget allocation and spending habits to stay on track.
          </p>
       </div>

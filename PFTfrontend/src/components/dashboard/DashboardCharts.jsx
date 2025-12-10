@@ -12,20 +12,21 @@ import {
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
 import { TrendingUp } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
-        <p className="text-sm font-bold text-gray-800 mb-2">{label}</p>
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
         {payload.map((entry, index) => (
           <p key={index} className="text-sm flex items-center gap-2 mb-1">
             <span
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: entry.color }}
             ></span>
-            <span className="text-gray-600 capitalize">{entry.name}:</span>
-            <span className="font-semibold text-gray-900">
+            <span className="text-gray-600 dark:text-gray-300 capitalize">{entry.name}:</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
               {formatCurrency(entry.value, "USD")}
             </span>
           </p>
@@ -39,19 +40,22 @@ const CustomTooltip = ({ active, payload, label }) => {
 import { motion } from "framer-motion";
 
 const DashboardCharts = ({ data }) => {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
   return (
     <motion.div 
-      className="flex h-[400px] flex-col rounded-2xl bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100"
+      className="flex h-[400px] flex-col rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">Financial Overview</h3>
-          <p className="text-sm text-gray-500">Income, Expense & Savings (Last 7 Days)</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Financial Overview</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Income, Expense & Savings (Last 7 Days)</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 text-gray-400">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
           <TrendingUp size={20} />
         </div>
       </div>
@@ -79,7 +83,7 @@ const DashboardCharts = ({ data }) => {
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#F3F4F6"
+              stroke={isDark ? "#374151" : "#F3F4F6"}
             />
             <XAxis
               dataKey="name"

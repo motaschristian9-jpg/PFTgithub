@@ -2,26 +2,26 @@ import { Facebook, Instagram, Twitter } from "lucide-react";
 
 export default function Footer() {
   return (
-    <footer className="relative z-10 bg-white/80 backdrop-blur-sm border-t border-green-100/50 py-6 px-6">
-      <div className="flex flex-col md:flex-row items-center justify-between text-sm text-gray-600">
+    <footer className="relative z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-green-100/50 dark:border-gray-800 py-6 px-6">
+      <div className="flex flex-col md:flex-row items-center justify-between text-sm text-gray-600 dark:text-gray-400">
         <div className="flex items-center space-x-1">
 
           <span>© 2025</span>
-          <span className="font-bold text-gray-900">
-            Money<span className="text-blue-600">Tracker</span>
+          <span className="font-bold text-gray-900 dark:text-white">
+            Money<span className="text-blue-600 dark:text-blue-400">Tracker</span>
           </span>
           <span>· All rights reserved</span>
         </div>
         <div className="flex items-center space-x-4 mt-2 md:mt-0">
           <span>Follow us:</span>
           <div className="flex space-x-3 text-gray-400">
-            <a href="#" className="hover:text-blue-600 hover:scale-110 transition-all">
+            <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 transition-all">
               <Facebook size={20} />
             </a>
-            <a href="#" className="hover:text-pink-600 hover:scale-110 transition-all">
+            <a href="#" className="hover:text-pink-600 dark:hover:text-pink-400 hover:scale-110 transition-all">
               <Instagram size={20} />
             </a>
-            <a href="#" className="hover:text-gray-900 hover:scale-110 transition-all">
+            <a href="#" className="hover:text-gray-900 dark:hover:text-white hover:scale-110 transition-all">
               <Twitter size={20} />
             </a>
           </div>

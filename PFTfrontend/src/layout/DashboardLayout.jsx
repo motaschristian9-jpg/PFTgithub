@@ -23,10 +23,10 @@ const DashboardLayout = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans text-gray-900 selection:bg-green-100 selection:text-green-900">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950 font-sans text-gray-900 dark:text-gray-100 selection:bg-green-100 selection:text-green-900 dark:selection:bg-green-900 dark:selection:text-green-100 transition-colors duration-300">
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-green-200/20 rounded-full blur-[100px] opacity-50"></div>
-        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-gray-200/40 rounded-full blur-[80px] opacity-50"></div>
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-green-200/20 dark:bg-green-900/10 rounded-full blur-[100px] opacity-50"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-gray-200/40 dark:bg-gray-800/10 rounded-full blur-[80px] opacity-50"></div>
       </div>
 
       {mobileMenuOpen && (

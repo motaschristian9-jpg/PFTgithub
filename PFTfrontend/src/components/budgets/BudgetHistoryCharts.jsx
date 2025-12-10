@@ -58,12 +58,12 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Adherence Chart */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
-        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <CheckCircle2 size={20} className="text-violet-600" />
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+          <CheckCircle2 size={20} className="text-violet-600 dark:text-violet-400" />
           Success Rate
         </h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Budgets kept within limit
         </p>
         
@@ -93,7 +93,7 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
           {/* Center Text */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
             <div className="text-center">
-              <span className="text-3xl font-bold text-gray-900">
+              <span className="text-3xl font-bold text-gray-900 dark:text-white">
                 {Math.round((adherenceData[0].value / budgets.length) * 100) || 0}%
               </span>
             </div>
@@ -102,12 +102,12 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
       </div>
 
       {/* Trend Chart */}
-      <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <AlertCircle size={20} className="text-violet-600" />
+      <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+          <AlertCircle size={20} className="text-violet-600 dark:text-violet-400" />
           Spending Trend
         </h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Last 10 budgets: Planned vs. Actual
         </p>
 

@@ -46,15 +46,15 @@ const Dashboard = () => {
       {/* Header Section */}
       <motion.div variants={itemVariants} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Dashboard
           </h1>
-          <p className="text-sm text-gray-500">
-            Welcome back, <span className="font-semibold text-gray-900">{user?.name}</span>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Welcome back, <span className="font-semibold text-gray-900 dark:text-gray-200">{user?.name}</span>
           </p>
         </div>
         <div className="mt-4 flex items-center gap-2 sm:mt-0">
-           <span className="text-xs font-medium text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+           <span className="text-xs font-medium text-gray-400 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
               {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
            </span>
         </div>

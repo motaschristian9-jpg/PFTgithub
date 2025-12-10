@@ -20,7 +20,7 @@ import { formatCurrency, getCurrencySymbol } from "../utils/currency";
 import { useTransactionModalLogic } from "../hooks/useTransactionModalLogic";
 
 const TypeTabs = ({ type, setType, editMode }) => (
-  <div className="flex p-1 bg-gray-100/80 rounded-lg mb-4 relative w-full max-w-[200px] mx-auto">
+  <div className="flex p-1 bg-gray-100/80 dark:bg-gray-800 rounded-lg mb-4 relative w-full max-w-[200px] mx-auto">
     {(!editMode || type === "income") && (
       <button
         type="button"
@@ -28,8 +28,8 @@ const TypeTabs = ({ type, setType, editMode }) => (
         onClick={() => setType("income")}
         className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
           type === "income"
-            ? "bg-white text-emerald-600 shadow-sm ring-1 ring-black/5"
-            : "text-gray-500 hover:text-gray-700"
+            ? "bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5"
+            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
         } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
       >
         <TrendingUp size={14} />
@@ -43,8 +43,8 @@ const TypeTabs = ({ type, setType, editMode }) => (
         onClick={() => setType("expense")}
         className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
           type === "expense"
-            ? "bg-white text-rose-600 shadow-sm ring-1 ring-black/5"
-            : "text-gray-500 hover:text-gray-700"
+            ? "bg-white dark:bg-gray-700 text-rose-600 dark:text-rose-400 shadow-sm ring-1 ring-black/5"
+            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
         } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
       >
         <CreditCard size={14} />
@@ -64,21 +64,21 @@ const BudgetStatusCard = ({ budget, userCurrency }) => {
   const isOver = remaining < 0;
 
   return (
-    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 relative overflow-hidden group">
+    <div className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 relative overflow-hidden group">
       <div className="flex justify-between items-center mb-1.5 relative z-10">
         <div className="flex items-center gap-2">
-          <div className="p-1 bg-white rounded-md shadow-sm text-violet-600">
+          <div className="p-1 bg-white dark:bg-gray-700 rounded-md shadow-sm text-violet-600 dark:text-violet-400">
             <PieChart size={14} />
           </div>
-          <span className="font-semibold text-gray-700 text-xs">
+          <span className="font-semibold text-gray-700 dark:text-gray-200 text-xs">
             {budget.name}
           </span>
         </div>
         <span
           className={`text-[10px] px-2 py-0.5 rounded-full font-medium border ${
             isOver
-              ? "bg-red-50 text-red-700 border-red-100"
-              : "bg-violet-50 text-violet-700 border-violet-100"
+              ? "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800"
+              : "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-100 dark:border-violet-800"
           }`}
         >
           {isOver ? "Over" : "On Track"}
@@ -86,7 +86,7 @@ const BudgetStatusCard = ({ budget, userCurrency }) => {
       </div>
 
       <div className="relative z-10">
-        <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden mb-1">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-1">
           <div
             className={`h-full rounded-full transition-all duration-500 ${
               isOver ? "bg-red-500" : "bg-violet-500"
@@ -95,12 +95,12 @@ const BudgetStatusCard = ({ budget, userCurrency }) => {
           />
         </div>
         <div className="flex justify-between items-center text-[10px]">
-          <span className="text-gray-400">
+          <span className="text-gray-400 dark:text-gray-500">
             {formatCurrency(spent, userCurrency)} spent
           </span>
           <span
             className={`font-semibold ${
-              isOver ? "text-red-600" : "text-violet-600"
+              isOver ? "text-red-600 dark:text-red-400" : "text-violet-600 dark:text-violet-400"
             }`}
           >
             {formatCurrency(remaining, userCurrency)} left
@@ -127,8 +127,8 @@ const SavingsSection = ({
     <div
       className={`border rounded-xl transition-all duration-300 overflow-hidden ${
         saveToSavings
-          ? "border-teal-200 bg-teal-50/30"
-          : "border-gray-200 bg-white hover:border-gray-300"
+          ? "border-teal-200 dark:border-teal-800 bg-teal-50/30 dark:bg-teal-900/10"
+          : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
       }`}
     >
       <label className="flex items-center justify-between p-3 cursor-pointer select-none">
@@ -136,21 +136,21 @@ const SavingsSection = ({
           <div
             className={`p-1.5 rounded-lg transition-colors ${
               saveToSavings
-                ? "bg-teal-100 text-teal-600"
-                : "bg-gray-100 text-gray-500"
+                ? "bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400"
+                : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
             }`}
           >
             <Wallet size={16} />
           </div>
           <div>
-            <p className="font-semibold text-xs text-gray-800">
+            <p className="font-semibold text-xs text-gray-800 dark:text-gray-200">
               Allocate to Savings
             </p>
           </div>
         </div>
         <div
           className={`w-9 h-5 flex items-center rounded-full p-0.5 duration-300 ease-in-out ${
-            saveToSavings ? "bg-teal-500" : "bg-gray-200"
+            saveToSavings ? "bg-teal-500" : "bg-gray-200 dark:bg-gray-600"
           }`}
         >
           <div
@@ -169,10 +169,10 @@ const SavingsSection = ({
 
       {saveToSavings && (
         <div className="px-3 pb-3 pt-0 space-y-3 animate-in slide-in-from-top-2">
-          <div className="h-px bg-teal-100 w-full" />
+          <div className="h-px bg-teal-100 dark:bg-teal-800 w-full" />
           
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">
+            <label className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
               Select Goal
             </label>
             <div className="relative">
@@ -180,7 +180,7 @@ const SavingsSection = ({
                 {...register("savingsGoalId", {
                   required: saveToSavings ? "Please select a goal" : false,
                 })}
-                className="block w-full px-2 py-2 bg-white border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 focus:border-transparent outline-none appearance-none"
+                className="block w-full px-2 py-2 bg-white dark:bg-gray-700 border border-teal-200 dark:border-teal-800 rounded-lg text-xs text-gray-900 dark:text-white focus:ring-1 focus:ring-teal-500 focus:border-transparent outline-none appearance-none"
               >
                 <option value="">Choose a goal...</option>
                 {savingsGoals.map((g) => (
@@ -189,15 +189,15 @@ const SavingsSection = ({
                   </option>
                 ))}
               </select>
-              <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-teal-600">
+              <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-teal-600 dark:text-teal-400">
                 <ArrowRightLeft size={12} className="rotate-90" />
               </div>
             </div>
 
             {selectedGoal && (
-              <div className="flex justify-between items-center text-[10px] bg-white/50 p-1.5 rounded border border-teal-100 mt-1">
-                <span className="text-teal-700">Progress:</span>
-                <span className="font-bold text-teal-800">
+              <div className="flex justify-between items-center text-[10px] bg-white/50 dark:bg-gray-700/50 p-1.5 rounded border border-teal-100 dark:border-teal-800 mt-1">
+                <span className="text-teal-700 dark:text-teal-300">Progress:</span>
+                <span className="font-bold text-teal-800 dark:text-teal-200">
                   {formatCurrency(Number(selectedGoal.current_amount), userCurrency)} 
                   <span className="text-teal-400 mx-1">/</span>
                   {formatCurrency(Number(selectedGoal.target_amount), userCurrency)}
@@ -208,7 +208,7 @@ const SavingsSection = ({
 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">
+              <label className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
                 Amount ({currencySymbol})
               </label>
               <input
@@ -217,15 +217,15 @@ const SavingsSection = ({
                 {...register("savingsAmount")}
                 placeholder="0.00"
                 disabled={!!watch("savingsPercentage")}
-                className={`block w-full px-2 py-2 border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none ${
+                className={`block w-full px-2 py-2 border border-teal-200 dark:border-teal-800 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none ${
                   watch("savingsPercentage")
-                    ? "bg-gray-100 cursor-not-allowed text-gray-400"
-                    : "bg-white"
+                    ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-400 dark:text-gray-500"
+                    : "bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 }`}
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-teal-800 uppercase tracking-wide">
+              <label className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
                 Percent (%)
               </label>
               <input
@@ -234,10 +234,10 @@ const SavingsSection = ({
                 {...register("savingsPercentage")}
                 placeholder="10"
                 disabled={!!watch("savingsAmount")}
-                className={`block w-full px-2 py-2 border border-teal-200 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none ${
+                className={`block w-full px-2 py-2 border border-teal-200 dark:border-teal-800 rounded-lg text-xs focus:ring-1 focus:ring-teal-500 outline-none ${
                   watch("savingsAmount")
-                    ? "bg-gray-100 cursor-not-allowed text-gray-400"
-                    : "bg-white"
+                    ? "bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-400 dark:text-gray-500"
+                    : "bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 }`}
               />
             </div>
@@ -306,27 +306,27 @@ export default function TransactionModal({
             exit={{ opacity: 0, y: 100, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            <div className="bg-white rounded-t-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/20 flex flex-col">
+            <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/20 flex flex-col">
               {/* Header Section - Fixed */}
-              <div className="relative px-6 pt-6 pb-4 bg-white shrink-0 z-20">
+              <div className="relative px-6 pt-6 pb-4 bg-white dark:bg-gray-900 shrink-0 z-20">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                     {editMode ? "Edit Transaction" : "New Transaction"}
                   </h2>
                   <button
                     onClick={onClose}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200"
+                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200"
                   >
                     <X size={20} />
                   </button>
                 </div>
                 
                 {!editMode && (
-                  <div className="mb-4 px-3 py-2 bg-blue-50 rounded-lg flex items-start gap-2">
-                    <div className="mt-0.5 text-blue-500">
+                  <div className="mb-4 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-start gap-2">
+                    <div className="mt-0.5 text-blue-500 dark:text-blue-400">
                       <Loader2 size={14} className="animate-spin" style={{ animationDuration: '3s' }} />
                     </div>
-                    <p className="text-[10px] text-blue-600 leading-tight">
+                    <p className="text-[10px] text-blue-600 dark:text-blue-300 leading-tight">
                       <strong>Note:</strong> Transactions can only be edited within 1 hour of creation.
                     </p>
                   </div>
@@ -337,7 +337,7 @@ export default function TransactionModal({
                 <div className="flex flex-col items-center justify-center py-1">
                   <div className="relative w-full flex justify-center items-baseline group">
                     <span
-                      className="text-3xl font-medium absolute left-[15%] sm:left-[20%] top-1 transition-colors duration-300 text-gray-400"
+                      className="text-3xl font-medium absolute left-[15%] sm:left-[20%] top-1 transition-colors duration-300 text-gray-400 dark:text-gray-500"
                     >
                       {currencySymbol}
                     </span>
@@ -349,12 +349,12 @@ export default function TransactionModal({
                         required: "Required",
                         validate: validateAmount,
                       })}
-                      className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 tracking-tight outline-none text-gray-900"
+                      className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 dark:placeholder-gray-700 tracking-tight outline-none text-gray-900 dark:text-white"
                       autoFocus
                     />
                   </div>
                   {errors.amount && (
-                    <p className="text-red-500 text-xs mt-1 font-medium bg-red-50 px-2 py-0.5 rounded-full">
+                    <p className="text-red-500 dark:text-red-400 text-xs mt-1 font-medium bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
                       {errors.amount.message}
                     </p>
                   )}
@@ -370,7 +370,7 @@ export default function TransactionModal({
                 >
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                      <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
                         <Calendar size={10} /> Date
                       </label>
                       <input
@@ -391,7 +391,7 @@ export default function TransactionModal({
                             return true;
                           },
                         })}
-                        className="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-700"
+                        className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none text-gray-700 dark:text-gray-200"
                       />
                       {errors.transaction_date && (
                         <p className="text-red-500 text-[10px] font-medium">
@@ -401,7 +401,7 @@ export default function TransactionModal({
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                      <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
                         <Tag size={10} /> Category
                       </label>
                       <div className="relative">
@@ -416,7 +416,7 @@ export default function TransactionModal({
                                 field.onChange(e);
                                 trigger("transaction_date");
                               }}
-                              className="block w-full pl-3 pr-7 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none appearance-none cursor-pointer text-gray-700"
+                              className="block w-full pl-3 pr-7 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none appearance-none cursor-pointer text-gray-700 dark:text-gray-200"
                             >
                               <option value="" disabled>
                                 Select
@@ -429,7 +429,7 @@ export default function TransactionModal({
                             </select>
                           )}
                         />
-                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-gray-400">
+                        <div className="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
                           <div className="h-3 w-3 border-l-2 border-b-2 border-current transform -rotate-45 translate-y-[-2px]" />
                         </div>
                       </div>
@@ -442,14 +442,14 @@ export default function TransactionModal({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
                       <Type size={10} /> Description
                     </label>
                     <input
                       type="text"
                       placeholder="What is this for?"
                       {...register("name", { required: "Name is required" })}
-                      className="block w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                      className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                     {errors.name && (
                       <p className="text-red-500 text-[10px] font-medium">{errors.name.message}</p>
@@ -459,13 +459,13 @@ export default function TransactionModal({
                   <div className="relative group">
                     <FileText
                       size={14}
-                      className="absolute left-3 top-3 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+                      className="absolute left-3 top-3 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors"
                     />
                     <textarea
                       placeholder="Add a note (optional)"
                       rows={2}
                       {...register("description")}
-                      className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none resize-none text-gray-700"
+                      className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none resize-none text-gray-700 dark:text-gray-200"
                     />
                   </div>
 
@@ -488,7 +488,7 @@ export default function TransactionModal({
               </div>
 
               {/* Footer Section - Fixed */}
-              <div className="p-6 pt-2 bg-white border-t border-gray-50 shrink-0 z-20">
+              <div className="p-6 pt-2 bg-white dark:bg-gray-900 border-t border-gray-50 dark:border-gray-800 shrink-0 z-20">
                 <button
                   type="submit"
                   form="transaction-form"

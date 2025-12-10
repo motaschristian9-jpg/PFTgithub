@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bell, User, LogOut, Menu, ChevronDown } from "lucide-react";
+import { Bell, User, LogOut, Menu, ChevronDown, X } from "lucide-react";
 import { logoutUser } from "../api/auth";
 import { useDataContext } from "../components/DataLoader";
 import { confirmAction } from "../utils/swal";
+import { useDeleteNotification } from "../hooks/useNotifications";
 import { LogoIcon } from "../components/Logo";
 import { formatDistanceToNow } from "date-fns";
 
@@ -16,7 +17,7 @@ const NotificationMessage = ({ message }) => {
       {parts.map((part, index) => {
         if (part.startsWith("**") && part.endsWith("**")) {
           return (
-            <strong key={index} className="font-semibold text-gray-900">
+            <strong key={index} className="font-semibold text-gray-900 dark:text-gray-100">
               {part.slice(2, -2)}
             </strong>
           );
@@ -41,6 +42,8 @@ export default function Topbar({ toggleMobileMenu, user }) {
     user: contextUser,
   } = useDataContext();
   const finalUser = user || contextUser;
+  
+  const deleteNotification = useDeleteNotification();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -97,7 +100,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
+    <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-colors duration-300">
       <div className="flex items-center justify-between px-6 h-20">
         <div className="flex items-center gap-4">
           {/* Mobile menu button */}
@@ -125,21 +128,23 @@ export default function Topbar({ toggleMobileMenu, user }) {
                 }
               }}
               className={`p-2.5 rounded-xl transition-all duration-200 relative ${
-                notificationOpen ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                notificationOpen 
+                  ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100" 
+                  : "text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
             >
               <Bell size={20} />
               {hasUnread && (
-                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
               )}
             </button>
 
             {notificationOpen && (
-              <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50 max-h-[400px] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
-                <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+              <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 dark:border-gray-800 py-2 z-50 max-h-[400px] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Notifications</h3>
                   {notifications.length > 0 && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{notifications.length}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{notifications.length}</span>
                   )}
                 </div>
                 <div className="p-2">
@@ -155,15 +160,15 @@ export default function Topbar({ toggleMobileMenu, user }) {
                           key={n.id}
                           className={`p-3 rounded-xl text-sm transition-colors ${
                             n.type === "budget-error"
-                              ? "bg-red-50 text-red-900 border border-red-100"
+                              ? "bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-300 border border-red-100 dark:border-red-900/30"
                               : n.type === "budget-warning"
-                              ? "bg-violet-50 text-violet-900 border border-violet-100"
+                              ? "bg-violet-50 dark:bg-violet-900/20 text-violet-900 dark:text-violet-300 border border-violet-100 dark:border-violet-900/30"
                               : n.type === "savings-success"
-                              ? "bg-teal-50 text-teal-900 border border-teal-100"
+                              ? "bg-teal-50 dark:bg-teal-900/20 text-teal-900 dark:text-teal-300 border border-teal-100 dark:border-teal-900/30"
                               : n.type === "savings-warning"
-                              ? "bg-teal-50 text-teal-800 border border-teal-100"
-                              : "bg-gray-50 text-gray-900 border border-gray-100"
-                          }`}
+                              ? "bg-teal-50 dark:bg-teal-900/20 text-teal-800 dark:text-teal-300 border border-teal-100 dark:border-teal-900/30"
+                              : "bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-700"
+                          } group relative`}
                         >
                           <NotificationMessage message={n.message} />
                           <p className="text-xs opacity-60 mt-1">
@@ -171,6 +176,15 @@ export default function Topbar({ toggleMobileMenu, user }) {
                               ? formatDistanceToNow(new Date(n.timestamp), { addSuffix: true })
                               : "Just now"}
                           </p>
+                          <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                deleteNotification.mutate(n.id);
+                            }}
+                            className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-white/50 dark:hover:bg-black/20 transition-colors opacity-0 group-hover:opacity-100"
+                          >
+                             <X size={12} />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -185,7 +199,9 @@ export default function Topbar({ toggleMobileMenu, user }) {
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className={`flex items-center gap-3 pl-1 pr-3 py-1 rounded-full transition-all duration-200 border ${
-                dropdownOpen ? "bg-white border-gray-200 shadow-sm" : "border-transparent hover:bg-gray-50"
+                dropdownOpen 
+                  ? "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm" 
+                  : "border-transparent hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
             >
               <img
@@ -199,7 +215,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
                 }}
               />
               <div className="hidden sm:flex flex-col items-start">
-                 <span className="text-sm font-semibold text-gray-700 leading-none">
+                 <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none">
                   {finalUser?.name?.split(" ")[0]}
                 </span>
               </div>
@@ -207,12 +223,12 @@ export default function Topbar({ toggleMobileMenu, user }) {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                <div className="px-5 py-4 border-b border-gray-50">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+              <div className="absolute right-0 mt-3 w-60 bg-white dark:bg-gray-900 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 dark:border-gray-800 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-5 py-4 border-b border-gray-50 dark:border-gray-800">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                     {finalUser?.name}
                   </p>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                     {finalUser?.email}
                   </p>
                 </div>
@@ -221,7 +237,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
                   <Link 
                     to="/setting"
                     onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     <User size={16} />
                     Account Settings
@@ -230,7 +246,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
                   <button
                     type="button"
                     onClick={onLogoutClick}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left mt-1"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left mt-1"
                   >
                     <LogOut size={16} />
                     Sign out

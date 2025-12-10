@@ -29,7 +29,7 @@ const TransactionsFilters = ({
   setEndDate,
 }) => {
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100">
+    <div className="rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800">
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-5">
         <div className="relative w-full lg:max-w-md group">
           <Search
@@ -44,7 +44,7 @@ const TransactionsFilters = ({
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm text-gray-900 dark:text-gray-100"
           />
         </div>
 
@@ -63,7 +63,7 @@ const TransactionsFilters = ({
               setCategoryId("");
               setPage(1);
             }}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-gray-300 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <option value="all">All Types</option>
             <option value="income">Income</option>
@@ -81,7 +81,7 @@ const TransactionsFilters = ({
               setCategoryId(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-gray-300 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <option value="">All Categories</option>
             {filteredCategories.map((cat) => (
@@ -99,7 +99,7 @@ const TransactionsFilters = ({
           <select
             value={datePreset}
             onChange={(e) => setDatePreset(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-gray-300 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <option value="all">All Dates</option>
             <option value="this_month">This Month</option>
@@ -118,7 +118,7 @@ const TransactionsFilters = ({
               setSortBy(e.target.value);
               setPage(1);
             }}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 font-medium cursor-pointer hover:border-gray-300 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
             <option value="date">Sort by Date</option>
             <option value="amount">Sort by Amount</option>
@@ -128,7 +128,7 @@ const TransactionsFilters = ({
       </div>
 
       {datePreset === "custom" && (
-        <div className="mt-4 pt-4 border-t border-dashed border-gray-200 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex-1 space-y-1">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider ml-1">
               From
@@ -137,7 +137,7 @@ const TransactionsFilters = ({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
           <div className="flex-1 space-y-1">
@@ -148,7 +148,7 @@ const TransactionsFilters = ({
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
         </div>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import PrivateRoutes from "./components/PrivateRoutes.jsx";
 import PublicRoutes from "./components/PublicRoutes.jsx";
 import { UserProvider } from "./context/UserContext.jsx";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 import DataLoader from "./components/DataLoader.jsx";
 import { Toaster } from "react-hot-toast";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -50,55 +51,57 @@ function App() {
       <UserProvider>
         <Toaster position="top-center" reverseOrder={false} />
         <ErrorBoundary>
-          <Suspense fallback={<LoadingScreen />}>
-            <ScrollToTop />
-            <Routes>
-              {/* Public routes under "/" */}
-              <Route path="/" element={<PublicRoutes />}>
-                <Route index element={<LandingPage />} />
-                <Route path="about" element={<AboutPage />} />
-                <Route path="careers" element={<CareersPage />} />
-                <Route path="blog" element={<BlogPage />} />
-                <Route path="contact" element={<ContactPage />} />
-                <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
-                <Route path="terms-of-service" element={<TermsOfServicePage />} />
-                <Route path="login" element={<LoginPage />} />
-                <Route path="signup" element={<SignupPage />} />
-                <Route
-                  path="email-verification"
-                  element={<EmailVerificationPage />}
-                />
-                <Route path="forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="reset-password" element={<ResetPasswordPage />} />
-                <Route
-                  path="auth/google/callback"
-                  element={<GoogleCallbackPage />}
-                />
-              </Route>
-
-              {/* Private routes nested inside PrivateRoutes */}
-              {/* Private routes nested inside PrivateRoutes */}
-              <Route element={<PrivateRoutes />}>
-                <Route
-                  element={
-                    <DataLoader>
-                      <DashboardLayout />
-                    </DataLoader>
-                  }
-                >
-                  <Route path="dashboard" element={<Dashboard />} />
-                  <Route path="transaction" element={<TransactionsPage />} />
-                  <Route path="budget" element={<BudgetPage />} />
-                  <Route path="saving" element={<SavingsPage />} />
-                  <Route path="report" element={<ReportsPage />} />
-                  <Route path="setting" element={<SettingsPage />} />
+          <ThemeProvider>
+            <Suspense fallback={<LoadingScreen />}>
+              <ScrollToTop />
+              <Routes>
+                {/* Public routes under "/" */}
+                <Route path="/" element={<PublicRoutes />}>
+                  <Route index element={<LandingPage />} />
+                  <Route path="about" element={<AboutPage />} />
+                  <Route path="careers" element={<CareersPage />} />
+                  <Route path="blog" element={<BlogPage />} />
+                  <Route path="contact" element={<ContactPage />} />
+                  <Route path="privacy-policy" element={<PrivacyPolicyPage />} />
+                  <Route path="terms-of-service" element={<TermsOfServicePage />} />
+                  <Route path="login" element={<LoginPage />} />
+                  <Route path="signup" element={<SignupPage />} />
+                  <Route
+                    path="email-verification"
+                    element={<EmailVerificationPage />}
+                  />
+                  <Route path="forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="reset-password" element={<ResetPasswordPage />} />
+                  <Route
+                    path="auth/google/callback"
+                    element={<GoogleCallbackPage />}
+                  />
                 </Route>
-              </Route>
 
-              {/* Catch-all route for 404 */}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </Suspense>
+                {/* Private routes nested inside PrivateRoutes */}
+                {/* Private routes nested inside PrivateRoutes */}
+                <Route element={<PrivateRoutes />}>
+                  <Route
+                    element={
+                      <DataLoader>
+                        <DashboardLayout />
+                      </DataLoader>
+                    }
+                  >
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="transaction" element={<TransactionsPage />} />
+                    <Route path="budget" element={<BudgetPage />} />
+                    <Route path="saving" element={<SavingsPage />} />
+                    <Route path="report" element={<ReportsPage />} />
+                    <Route path="setting" element={<SettingsPage />} />
+                  </Route>
+                </Route>
+
+                {/* Catch-all route for 404 */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </ThemeProvider>
         </ErrorBoundary>
       </UserProvider>
     </QueryClientProvider>

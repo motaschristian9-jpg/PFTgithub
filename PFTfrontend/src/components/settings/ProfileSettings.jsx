@@ -26,7 +26,7 @@ export default function ProfileSettings({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-8 pb-8 border-b border-gray-100">
         <div className="relative group shrink-0">
-          <div className="w-32 h-32 rounded-full bg-gray-100 flex items-center justify-center text-4xl font-bold text-gray-400 border-4 border-white shadow-lg overflow-hidden">
+          <div className="w-32 h-32 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-4xl font-bold text-gray-400 dark:text-gray-500 border-4 border-white dark:border-gray-900 shadow-lg overflow-hidden">
             {previewUrl ? (
               <img
                 src={previewUrl}
@@ -40,7 +40,7 @@ export default function ProfileSettings({
           <button
             type="button"
             onClick={() => fileInputRef.current.click()}
-            className="absolute bottom-1 right-1 p-3 bg-white rounded-full shadow-lg border border-gray-100 text-gray-600 hover:text-gray-900 transition-colors hover:scale-105 active:scale-95 cursor-pointer"
+            className="absolute bottom-1 right-1 p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors hover:scale-105 active:scale-95 cursor-pointer"
           >
             <Camera size={18} />
           </button>
@@ -53,8 +53,8 @@ export default function ProfileSettings({
           />
         </div>
         <div className="space-y-2">
-          <h3 className="text-2xl font-bold text-gray-900">Your Profile</h3>
-          <p className="text-gray-500 text-base">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Your Profile</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-base">
             Update your photo and personal details here.
           </p>
         </div>
@@ -62,13 +62,13 @@ export default function ProfileSettings({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-2.5">
-          <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
             Full Name
           </label>
           <div className="relative">
             <User
               size={20}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             />
             <input
               type="text"
@@ -76,41 +76,41 @@ export default function ProfileSettings({
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-base focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all placeholder:text-gray-400"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white text-base focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 dark:focus:border-gray-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
               placeholder="Enter your full name"
             />
           </div>
         </div>
 
         <div className="space-y-2.5">
-          <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
             Email Address
           </label>
           <div className="relative">
             <Mail
               size={20}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             />
             <input
               type="email"
               value={formData.email}
               disabled
-              className="w-full pl-12 pr-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 text-base cursor-not-allowed"
+              className="w-full pl-12 pr-4 py-3 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 dark:text-gray-400 text-base cursor-not-allowed"
             />
           </div>
-          <p className="text-xs text-gray-500 mt-1 ml-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">
             Email address cannot be changed.
           </p>
         </div>
 
         <div className="space-y-2.5">
-          <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">
+          <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
             Currency
           </label>
           <div className="relative">
             <CreditCard
               size={20}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
             />
 
 
@@ -119,7 +119,7 @@ export default function ProfileSettings({
               onChange={(e) =>
                 setFormData({ ...formData, currency: e.target.value })
               }
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 text-base focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none appearance-none cursor-pointer hover:border-gray-300 transition-colors"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white text-base focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 dark:focus:border-gray-500 outline-none appearance-none cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
             >
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -129,18 +129,18 @@ export default function ProfileSettings({
             </select>
             <ChevronRight
               size={20}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 rotate-90 pointer-events-none"
             />
           </div>
         </div>
       </div>
 
 
-      <div className="flex justify-end pt-8 border-t border-gray-100">
+      <div className="flex justify-end pt-8 border-t border-gray-100 dark:border-gray-800">
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+          className="inline-flex items-center justify-center gap-2 px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
         >
           {isSaving ? (
             <Loader2 className="animate-spin" size={18} />

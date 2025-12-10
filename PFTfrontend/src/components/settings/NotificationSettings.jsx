@@ -18,23 +18,23 @@ export default function NotificationSettings({
   return (
     <div className="space-y-8">
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-1">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
           Notification Preferences
         </h3>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Manage how you receive notifications.
         </p>
       </div>
 
       <div className="space-y-6">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm border border-gray-100">
+            <div className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-gray-600">
               <Mail size={20} />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900">Email Notifications</h4>
-              <p className="text-sm text-gray-500">
+              <h4 className="font-semibold text-gray-900 dark:text-white">Email Notifications</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 Receive emails about account activity and updates.
               </p>
             </div>
@@ -52,11 +52,11 @@ export default function NotificationSettings({
         </div>
       </div>
 
-      <div className="flex justify-end pt-4 border-t border-gray-100">
+      <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
         <button
           onClick={onSave}
           disabled={isSaving}
-          className="bg-gray-900 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </button>

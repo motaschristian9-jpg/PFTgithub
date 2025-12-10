@@ -41,9 +41,9 @@ const CurrencyInjectedTooltip = ({
       const color =
         item.name === "Income" ? "text-emerald-600" : "text-rose-600";
       return (
-        <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
-          <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
-          <p className={`text-sm font-semibold ${color}`}>
+        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
+          <p className="text-sm font-bold text-gray-800 dark:text-white mb-1">{label}</p>
+          <p className={`text-sm font-semibold ${color} dark:text-opacity-90`}>
             {formatCurrency(amount, userCurrency)}
           </p>
         </div>
@@ -51,10 +51,10 @@ const CurrencyInjectedTooltip = ({
     }
 
     return (
-      <div className="bg-white p-3 border border-gray-100 shadow-xl rounded-xl z-50">
-        <p className="text-sm font-bold text-gray-800 mb-1">{label}</p>
-        <p className="text-sm text-gray-600">
-          <span className="font-semibold text-emerald-600">
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
+        <p className="text-sm font-bold text-gray-800 dark:text-white mb-1">{label}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">
+          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
             {formatCurrency(amount, userCurrency)}
           </span>
         </p>
@@ -88,10 +88,10 @@ export default function ReportsCharts({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {/* 1. Expense Pie Chart */}
-      <section className="bg-white p-4 sm:p-6 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 min-w-0 overflow-hidden">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 min-w-0 overflow-hidden">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <PieIcon size={20} className="text-gray-400" />
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <PieIcon size={20} className="text-gray-400 dark:text-gray-500" />
             Expense Breakdown
           </h3>
         </div>
@@ -131,17 +131,17 @@ export default function ReportsCharts({
       </section>
 
       {/* 2. Income vs Expense Bar Chart */}
-      <section className="bg-white p-4 sm:p-6 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 min-w-0 overflow-hidden">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 min-w-0 overflow-hidden">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <BarIcon size={20} className="text-gray-400" />
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <BarIcon size={20} className="text-gray-400 dark:text-gray-500" />
             Income vs Expenses
           </h3>
         </div>
         <div className="h-64 sm:h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={barChartData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" className="dark:stroke-gray-800" />
               <XAxis 
                 dataKey="name" 
                 axisLine={false} 
@@ -158,7 +158,7 @@ export default function ReportsCharts({
                 }
               />
               <Tooltip
-                cursor={{ fill: "#f9fafb" }}
+                cursor={{ fill: "#f9fafb", opacity: 0.1 }}
                 content={<CustomBarTooltip userCurrency={userCurrency} />}
               />
               <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
@@ -172,10 +172,10 @@ export default function ReportsCharts({
       </section>
 
       {/* 3. NEW: Savings Performance Focus */}
-      <section className="bg-white p-4 sm:p-6 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 lg:col-span-2 min-w-0">
+      <section className="bg-white dark:bg-gray-900 p-4 sm:p-6 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 lg:col-span-2 min-w-0">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <TrendingUp size={20} className="text-teal-600" />
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <TrendingUp size={20} className="text-teal-600 dark:text-teal-400" />
             Savings Performance
           </h3>
         </div>
@@ -183,45 +183,45 @@ export default function ReportsCharts({
         {savingsMetrics && savingsMetrics.hasActivity ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 h-auto sm:h-64">
                 {/* Card 1: Total Saved */}
-                <div className="bg-teal-50 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-teal-100 min-w-0">
-                    <div className="w-12 h-12 bg-teal-100 text-teal-600 rounded-full flex items-center justify-center mb-4">
+                <div className="bg-teal-50 dark:bg-teal-900/20 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-teal-100 dark:border-teal-900/30 min-w-0">
+                    <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center mb-4">
                         <TrendingUp size={24} />
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-teal-600 uppercase tracking-wider mb-1">Total Saved</p>
-                    <p className="text-2xl sm:text-3xl font-black text-teal-900 truncate max-w-full">
+                    <p className="text-xs sm:text-sm font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-1">Total Saved</p>
+                    <p className="text-2xl sm:text-3xl font-black text-teal-900 dark:text-teal-50 truncate max-w-full">
                         {formatCurrency(savingsMetrics.totalSaved, userCurrency)}
                     </p>
-                    <p className="text-xs text-teal-600/70 mt-2 font-medium">in this period</p>
+                    <p className="text-xs text-teal-600/70 dark:text-teal-400/70 mt-2 font-medium">in this period</p>
                 </div>
 
                 {/* Card 2: Savings Rate */}
-                <div className="bg-indigo-50 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-indigo-100 min-w-0">
-                    <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mb-4">
+                <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-indigo-100 dark:border-indigo-900/30 min-w-0">
+                    <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-4">
                         <PieIcon size={24} />
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-indigo-600 uppercase tracking-wider mb-1">Savings Rate</p>
-                    <p className="text-2xl sm:text-3xl font-black text-indigo-900">
+                    <p className="text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">Savings Rate</p>
+                    <p className="text-2xl sm:text-3xl font-black text-indigo-900 dark:text-indigo-50">
                         {savingsMetrics.savingsRate.toFixed(1)}%
                     </p>
-                    <p className="text-xs text-indigo-600/70 mt-2 font-medium">of total income</p>
+                    <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-2 font-medium">of total income</p>
                 </div>
 
                 {/* Card 3: Top Goal */}
-                <div className="bg-rose-50 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-rose-100 min-w-0">
-                    <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-4">
+                <div className="bg-rose-50 dark:bg-rose-900/20 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-rose-100 dark:border-rose-900/30 min-w-0">
+                    <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mb-4">
                         <PieIcon size={24} className="rotate-180" /> 
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-rose-600 uppercase tracking-wider mb-1">Top Goal</p>
-                    <p className="text-lg sm:text-xl font-bold text-rose-900 truncate w-full px-2">
+                    <p className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">Top Goal</p>
+                    <p className="text-lg sm:text-xl font-bold text-rose-900 dark:text-rose-50 truncate w-full px-2">
                         {savingsMetrics.topGoal ? savingsMetrics.topGoal.name : "N/A"}
                     </p>
-                     <p className="text-lg font-bold text-rose-500 mt-1 truncate max-w-full">
+                     <p className="text-lg font-bold text-rose-500 dark:text-rose-400 mt-1 truncate max-w-full">
                         {savingsMetrics.topGoal ? formatCurrency(savingsMetrics.topGoal.amount, userCurrency) : "-"}
                     </p>
                 </div>
             </div>
         ) : (
-             <div className="h-64 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+             <div className="h-64 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
                <TrendingUp size={48} className="mb-2 opacity-20" />
                <p className="font-medium">No savings activity in this period</p>
                <p className="text-xs mt-1">Contributions will appear here</p>

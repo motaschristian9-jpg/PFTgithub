@@ -5,6 +5,7 @@ import SettingsSidebar from "../../components/settings/SettingsSidebar.jsx";
 import ProfileSettings from "../../components/settings/ProfileSettings.jsx";
 import SecuritySettings from "../../components/settings/SecuritySettings.jsx";
 import NotificationSettings from "../../components/settings/NotificationSettings.jsx";
+import AppSettings from "../../components/settings/AppSettings.jsx";
 
 import { useSettingsPageLogic } from "../../hooks/useSettingsPageLogic";
 
@@ -48,7 +49,7 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          <div className="bg-white rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 p-6 lg:p-8 min-h-[500px] overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 p-6 lg:p-8 min-h-[500px] overflow-hidden">
             <AnimatePresence mode="wait">
               {activeTab === "profile" && (
                 <motion.div
@@ -109,19 +110,8 @@ export default function SettingsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
-                  className="flex flex-col items-center justify-center h-full text-center space-y-4"
                 >
-                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
-                    <Smartphone className="text-gray-300" size={32} />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900">
-                      App Settings
-                    </h3>
-                    <p className="text-gray-500 mt-1">
-                      Application preferences coming soon.
-                    </p>
-                  </div>
+                  <AppSettings />
                 </motion.div>
               )}
             </AnimatePresence>

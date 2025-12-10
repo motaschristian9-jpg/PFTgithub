@@ -124,6 +124,7 @@ class AuthController extends Controller
             'currency' => 'required|string|max:3',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'email_notifications_enabled' => 'nullable|boolean',
+            'theme_preference' => 'nullable|string|in:light,dark,system',
         ]);
 
         $user = $request->user();
@@ -132,6 +133,10 @@ class AuthController extends Controller
 
         if ($request->has('currency')) {
             $user->currency = $request->currency;
+        }
+
+        if ($request->has('theme_preference')) {
+            $user->theme_preference = $request->theme_preference;
         }
 
         if ($request->has('email_notifications_enabled')) {

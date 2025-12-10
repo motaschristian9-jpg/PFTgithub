@@ -89,12 +89,12 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
           sidebarOpen ? "w-72" : "w-20"
         } hidden md:block sticky top-0 z-20 h-screen transition-all duration-300 ease-in-out`}
       >
-        <div className="h-full bg-white border-r border-gray-100 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] relative">
+        <div className="h-full bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] relative">
           
           {/* Floating Toggle Button */}
           <button
             onClick={toggleSidebar}
-            className="absolute -right-3 top-8 bg-white border border-gray-100 shadow-md p-1.5 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all z-50 flex items-center justify-center group"
+            className="absolute -right-3 top-8 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-md p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all z-50 flex items-center justify-center group"
           >
             <ChevronLeft size={16} className={`transition-transform duration-300 ${!sidebarOpen && "rotate-180"}`} />
           </button>
@@ -124,40 +124,40 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
                     // Helper to get theme colors based on path
                     const getThemeColors = (path) => {
                       if (path.includes("/budget")) return {
-                        activeBg: "bg-violet-50",
-                        activeText: "text-violet-700",
-                        activeIcon: "text-violet-600",
-                        hoverBg: "hover:bg-violet-50",
-                        hoverText: "hover:text-violet-700"
+                        activeBg: "bg-violet-50 dark:bg-violet-900/20",
+                        activeText: "text-violet-700 dark:text-violet-300",
+                        activeIcon: "text-violet-600 dark:text-violet-400",
+                        hoverBg: "hover:bg-violet-50 dark:hover:bg-violet-900/10",
+                        hoverText: "hover:text-violet-700 dark:hover:text-violet-300"
                       };
                       if (path.includes("/saving")) return {
-                        activeBg: "bg-teal-50",
-                        activeText: "text-teal-700",
-                        activeIcon: "text-teal-600",
-                        hoverBg: "hover:bg-teal-50",
-                        hoverText: "hover:text-teal-700"
+                        activeBg: "bg-teal-50 dark:bg-teal-900/20",
+                        activeText: "text-teal-700 dark:text-teal-300",
+                        activeIcon: "text-teal-600 dark:text-teal-400",
+                        hoverBg: "hover:bg-teal-50 dark:hover:bg-teal-900/10",
+                        hoverText: "hover:text-teal-700 dark:hover:text-teal-300"
                       };
                       if (path.includes("/report")) return {
-                        activeBg: "bg-indigo-50",
-                        activeText: "text-indigo-700",
-                        activeIcon: "text-indigo-600",
-                        hoverBg: "hover:bg-indigo-50",
-                        hoverText: "hover:text-indigo-700"
+                        activeBg: "bg-indigo-50 dark:bg-indigo-900/20",
+                        activeText: "text-indigo-700 dark:text-indigo-300",
+                        activeIcon: "text-indigo-600 dark:text-indigo-400",
+                        hoverBg: "hover:bg-indigo-50 dark:hover:bg-indigo-900/10",
+                        hoverText: "hover:text-indigo-700 dark:hover:text-indigo-300"
                       };
                       if (path.includes("/setting")) return {
-                        activeBg: "bg-gray-100",
-                        activeText: "text-gray-900",
-                        activeIcon: "text-gray-600",
-                        hoverBg: "hover:bg-gray-100",
-                        hoverText: "hover:text-gray-900"
+                        activeBg: "bg-gray-100 dark:bg-gray-800",
+                        activeText: "text-gray-900 dark:text-gray-100",
+                        activeIcon: "text-gray-600 dark:text-gray-400",
+                        hoverBg: "hover:bg-gray-100 dark:hover:bg-gray-800",
+                        hoverText: "hover:text-gray-900 dark:hover:text-gray-100"
                       };
                       // Default / Dashboard / Transactions (Blue)
                       return {
-                        activeBg: "bg-blue-50",
-                        activeText: "text-blue-700",
-                        activeIcon: "text-blue-600",
-                        hoverBg: "hover:bg-blue-50",
-                        hoverText: "hover:text-blue-700"
+                        activeBg: "bg-blue-50 dark:bg-blue-900/20",
+                        activeText: "text-blue-700 dark:text-blue-300",
+                        activeIcon: "text-blue-600 dark:text-blue-400",
+                        hoverBg: "hover:bg-blue-50 dark:hover:bg-blue-900/10",
+                        hoverText: "hover:text-blue-700 dark:hover:text-blue-300"
                       };
                     };
 
@@ -202,12 +202,12 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
+        className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
           mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-100">
+          <div className="flex items-center justify-between h-20 px-6 border-b border-gray-100 dark:border-gray-800">
             <Logo />
             <button
               onClick={toggleMobileMenu}

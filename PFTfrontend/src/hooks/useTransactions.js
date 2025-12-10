@@ -49,6 +49,8 @@ const invalidateFinancialData = (queryClient) => {
   // Explicitly invalidate active budgets so progress bars update instantly
   queryClient.invalidateQueries({ queryKey: ["budgets", "active"] });
   queryClient.invalidateQueries({ queryKey: KEYS.savings });
+  // Invalidate notifications to show instant alerts for budget/savings events
+  queryClient.invalidateQueries({ queryKey: ["notifications"] });
 };
 
 export const useCreateTransaction = () => {

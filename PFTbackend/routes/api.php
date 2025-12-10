@@ -75,4 +75,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('savings', SavingController::class);
     
     Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index']);
+    Route::delete('/notifications/{id}', [App\Http\Controllers\NotificationController::class, 'destroy']);
 });

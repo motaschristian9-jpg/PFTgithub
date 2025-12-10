@@ -67,16 +67,16 @@ export default function BudgetModal({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/20">
+            <div className="bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl overflow-hidden ring-1 ring-white/20">
               {/* Header Section */}
-              <div className="relative px-8 pt-8 pb-6 bg-white">
+              <div className="relative px-8 pt-8 pb-6 bg-white dark:bg-gray-900">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     {editMode ? "Edit Budget" : "New Budget"}
                   </h2>
                   <button
                     onClick={onClose}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200"
+                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200"
                   >
                     <X size={24} />
                   </button>
@@ -99,7 +99,7 @@ export default function BudgetModal({
                         min: { value: 0.01, message: "Must be greater than 0" },
                       })}
                       disabled={loading}
-                      className="block w-full text-center text-6xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 text-gray-900 tracking-tight outline-none"
+                      className="block w-full text-center text-6xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 dark:placeholder-gray-700 text-gray-900 dark:text-white tracking-tight outline-none"
                       autoFocus
                     />
                   </div>
@@ -128,7 +128,7 @@ export default function BudgetModal({
                       maxLength: { value: 100, message: "Max 100 characters" },
                     })}
                     disabled={loading}
-                    className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all outline-none text-gray-900 placeholder:text-gray-400"
+                    className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   />
                   {errors.name && (
                     <p className="text-red-500 text-xs font-medium">{errors.name.message}</p>
@@ -148,7 +148,7 @@ export default function BudgetModal({
                         <select
                           {...field}
                           disabled={loading}
-                          className="block w-full pl-4 pr-8 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all outline-none appearance-none cursor-pointer text-gray-900"
+                          className="block w-full pl-4 pr-8 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none appearance-none cursor-pointer text-gray-900 dark:text-white"
                         >
                           <option value="" disabled>
                             Select a category
@@ -173,7 +173,7 @@ export default function BudgetModal({
                                 value={cat.id}
                                 disabled={isDisabled}
                                 className={
-                                  isDisabled ? "text-gray-400 bg-gray-100" : ""
+                                  isDisabled ? "text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-600" : "bg-white dark:bg-gray-800"
                                 }
                               >
                                 {cat.name} {isDisabled ? "(Active)" : ""}
@@ -203,7 +203,7 @@ export default function BudgetModal({
                       type="date"
                       {...register("start_date")}
                       disabled={true}
-                      className="block w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-sm font-medium text-gray-500 cursor-not-allowed outline-none"
+                      className="block w-full px-4 py-3 bg-gray-100 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 cursor-not-allowed outline-none"
                     />
                   </div>
 
@@ -230,7 +230,7 @@ export default function BudgetModal({
                       })}
                       min={new Date().toISOString().split("T")[0]}
                       disabled={loading}
-                      className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white transition-all outline-none text-gray-900"
+                      className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none text-gray-900 dark:text-white"
                     />
                     {errors.end_date && (
                       <p className="text-red-500 text-xs font-medium">
@@ -241,7 +241,7 @@ export default function BudgetModal({
                 </div>
 
                 {durationText && !errors.end_date && (
-                  <div className="flex items-center justify-center gap-2 text-xs font-medium text-violet-700 bg-violet-50 py-2.5 rounded-xl border border-violet-100">
+                  <div className="flex items-center justify-center gap-2 text-xs font-medium text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/20 py-2.5 rounded-xl border border-violet-100 dark:border-violet-800">
                     <Clock size={14} />
                     <span>
                       Duration:{" "}

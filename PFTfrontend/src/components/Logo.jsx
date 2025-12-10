@@ -46,8 +46,8 @@ export const Logo = ({ className = "", textClassName = "", iconSize = 32 }) => {
 
       {/* Text */}
       <div className={`flex flex-col ${textClassName}`}>
-        <span className="font-bold text-gray-900 tracking-tight leading-none text-lg">
-          Money<span className="text-blue-600">Tracker</span>
+        <span className="font-bold text-gray-900 dark:text-white tracking-tight leading-none text-lg">
+          Money<span className="text-blue-600 dark:text-blue-400">Tracker</span>
         </span>
       </div>
     </div>

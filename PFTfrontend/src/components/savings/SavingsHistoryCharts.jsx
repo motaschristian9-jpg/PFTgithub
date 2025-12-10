@@ -69,12 +69,12 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Surplus Chart */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
-        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <TrendingUp size={20} className="text-teal-600" />
+      <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+          <TrendingUp size={20} className="text-teal-600 dark:text-teal-400" />
           Savings Surplus
         </h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Base Goals vs. Bonus Savings
         </p>
         
@@ -104,8 +104,8 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
           {/* Center Text */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
             <div className="text-center">
-              <span className="text-xs text-gray-400 font-medium uppercase tracking-wider block mb-1">Total Saved</span>
-              <span className="text-xl font-bold text-gray-900">
+              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider block mb-1">Total Saved</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">
                 {formatCurrency(surplusData.reduce((acc, curr) => acc + curr.value, 0), userCurrency)}
               </span>
             </div>
@@ -114,12 +114,12 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
       </div>
 
       {/* Trend Chart */}
-      <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
-        <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <AlertCircle size={20} className="text-teal-600" />
+      <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+          <AlertCircle size={20} className="text-teal-600 dark:text-teal-400" />
           Savings Performance
         </h3>
-        <p className="text-sm text-gray-500 mb-6">
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
           Last 10 goals: Target vs. Actual Saved
         </p>
 
