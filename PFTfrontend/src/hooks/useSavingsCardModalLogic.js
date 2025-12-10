@@ -274,20 +274,21 @@ export const useSavingsCardModalLogic = ({
     );
 
     if (result.isConfirmed && onDeleteTransaction) {
+      // Calculate new amount first so it's available for the API call
+      const amount = parseFloat(tx.amount);
+      const isContribution =
+        tx.type === "expense" ||
+        tx.description?.toLowerCase().includes("contribution") ||
+        tx.name?.toLowerCase().includes("deposit");
+        
+      let newAmount = stats.current;
+      if (isContribution) {
+        newAmount = Math.max(0, stats.current - amount);
+      } else {
+        newAmount = stats.current + amount;
+      }
+
       setLocalSaving((prev) => {
-        // Optimistic UI update
-        const amount = parseFloat(tx.amount);
-        const isContribution =
-          tx.type === "expense" ||
-          tx.description?.toLowerCase().includes("contribution") ||
-          tx.name?.toLowerCase().includes("deposit");
-          
-        let newAmount = stats.current;
-        if (isContribution) {
-          newAmount = Math.max(0, stats.current - amount);
-        } else {
-          newAmount = stats.current + amount;
-        }
         return { ...prev, current_amount: newAmount };
       });
 
@@ -302,10 +303,9 @@ export const useSavingsCardModalLogic = ({
       );
 
       try {
-        await onDeleteTransaction(tx); // Only delete tx, don't pass saving/amount
+        await onDeleteTransaction(tx, localSaving, newAmount);
         queryClient.invalidateQueries(["transactions"]);
         queryClient.invalidateQueries(["savings"]); // This will fetch strict truth
-        showSuccess("Deleted", "Transaction deleted and balance updated.");
       } catch (error) {
         showError("Error", "Failed to delete transaction.");
         // Should rollback here theoretically, but for now we rely on refetch

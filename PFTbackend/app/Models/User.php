@@ -62,7 +62,7 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAvatarUrlAttribute()
     {
         return $this->avatar
-            ? asset(Storage::url($this->avatar))
+            ? request()->root() . Storage::url($this->avatar)
             : null;
     }
 

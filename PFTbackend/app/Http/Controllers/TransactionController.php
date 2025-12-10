@@ -144,75 +144,85 @@ class TransactionController extends Controller
 
     public function store(CreateTransactionsRequest $request)
     {
-        $validatedData = $request->validated();
-
-        if (empty($validatedData['budget_id']) && $validatedData['type'] === 'expense' && !empty($validatedData['category_id'])) {
-            $activeBudget = Budget::where('user_id', Auth::id())
-                ->where('category_id', $validatedData['category_id'])
-                ->where('status', 'active')
-                ->where('start_date', '<=', $validatedData['date'])
-                ->where('end_date', '>=', $validatedData['date'])
-                ->first();
-
-            if ($activeBudget) {
-                $validatedData['budget_id'] = $activeBudget->id;
-            }
-        }
-
-        if ($request->has('saving_goal_id')) {
-            $validatedData['saving_goal_id'] = $request->saving_goal_id;
-        }
-
-        // Atomic Lock to prevent double submission
-        // Lock for 10 seconds, wait up to 5 seconds to acquire
-        $lock = Cache::lock('transaction_store_' . Auth::id(), 10);
-
         try {
-            // Try to acquire lock, wait 5s if needed
-            $lock->block(5);
+            $validatedData = $request->validated();
 
-            $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($validatedData, $request) {
-                \Illuminate\Support\Facades\Log::info('Transaction Store Request:', $validatedData);
-                
-                // 1. Create Main Transaction
-                // CRITICAL: If this is a split (savings allocation), do NOT link the main income to the savings goal.
-                // The savings goal should only be linked to the transfer (expense) transaction.
-                $mainTxData = $validatedData;
-                if ($request->filled('savings_amount') && $request->savings_amount > 0) {
-                    unset($mainTxData['saving_goal_id']);
+            if (empty($validatedData['budget_id']) && $validatedData['type'] === 'expense' && !empty($validatedData['category_id'])) {
+                $activeBudget = Budget::where('user_id', Auth::id())
+                    ->where('category_id', $validatedData['category_id'])
+                    ->where('status', 'active')
+                    ->where('start_date', '<=', $validatedData['date'])
+                    ->where('end_date', '>=', $validatedData['date'])
+                    ->first();
+
+                if ($activeBudget) {
+                    $validatedData['budget_id'] = $activeBudget->id;
                 }
-                
-                $transaction = Auth::user()->transactions()->create($mainTxData);
-                \Illuminate\Support\Facades\Log::info('Created Main Transaction:', $transaction->toArray());
+            }
 
-                // 2. Handle Savings Split (Atomic)
-                if ($request->filled('savings_amount') && $request->filled('saving_goal_id') && $request->savings_amount > 0) {
-                    $saving = \App\Models\Saving::find($request->saving_goal_id);
+            if ($request->has('saving_goal_id')) {
+                $validatedData['saving_goal_id'] = $request->saving_goal_id;
+            }
+
+            // Atomic Lock to prevent double submission
+            // Lock for 10 seconds, wait up to 5 seconds to acquire
+            $lock = Cache::lock('transaction_store_' . Auth::id(), 10);
+
+            try {
+                // Try to acquire lock, wait 5s if needed
+                $lock->block(5);
+
+                $transaction = \Illuminate\Support\Facades\DB::transaction(function () use ($validatedData, $request) {
+                    \Illuminate\Support\Facades\Log::info('Transaction Store Request:', $validatedData);
                     
-                    if ($saving) {
-                        // Create Transfer Transaction (Expense)
-                        Auth::user()->transactions()->create([
-                            'name' => 'Transfer to ' . $saving->name,
-                            'type' => 'expense',
-                            'amount' => $request->savings_amount,
-                            'description' => 'Auto-allocation from ' . $transaction->name,
-                            'date' => $transaction->date,
-                            'category_id' => $request->transfer_category_id,
-                            'saving_goal_id' => $saving->id,
-                            'budget_id' => null,
-                        ]);
+                    // 1. Create Main Transaction
+                    // CRITICAL: If this is a split (savings allocation), do NOT link the main income to the savings goal.
+                    // The savings goal should only be linked to the transfer (expense) transaction.
+                    $mainTxData = $validatedData;
+                    if ($request->filled('savings_amount') && $request->savings_amount > 0) {
+                        unset($mainTxData['saving_goal_id']);
                     }
-                }
+                    
+                    $transaction = Auth::user()->transactions()->create($mainTxData);
+                    \Illuminate\Support\Facades\Log::info('Created Main Transaction:', $transaction->toArray());
 
-                return $transaction;
-            });
+                    // 2. Handle Savings Split (Atomic)
+                    if ($request->filled('savings_amount') && $request->filled('saving_goal_id') && $request->savings_amount > 0) {
+                        $saving = \App\Models\Saving::find($request->saving_goal_id);
+                        
+                        if ($saving) {
+                            // Create Transfer Transaction (Expense)
+                            Auth::user()->transactions()->create([
+                                'name' => 'Transfer to ' . $saving->name,
+                                'type' => 'expense',
+                                'amount' => $request->savings_amount,
+                                'description' => 'Auto-allocation from ' . $transaction->name,
+                                'date' => $transaction->date,
+                                'category_id' => $request->transfer_category_id,
+                                'saving_goal_id' => $saving->id,
+                                'budget_id' => null,
+                            ]);
+                        }
+                    }
 
-            return new TransactionResource($transaction);
+                    return $transaction;
+                });
 
-        } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
-            return response()->json(['message' => 'Too many requests. Please try again.'], 429);
-        } finally {
-            optional($lock)->release();
+                return new TransactionResource($transaction);
+
+            } catch (\Illuminate\Contracts\Cache\LockTimeoutException $e) {
+                return response()->json(['message' => 'Too many requests. Please try again.'], 429);
+            } finally {
+                optional($lock)->release();
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Transaction Store Error: ' . $e->getMessage() . ' Trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'error' => 'Transaction Failed',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
     }
 
@@ -263,13 +273,22 @@ class TransactionController extends Controller
 
     public function destroy(Transaction $transaction)
     {
-        $this->authorize('delete', $transaction);
-        $transaction->delete();
+        try {
+            $this->authorize('delete', $transaction);
+            $transaction->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Transaction deleted successfully.'
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction deleted successfully.'
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Transaction Delete Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Delete Failed',
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
     }
 
     public function search(Request $request)

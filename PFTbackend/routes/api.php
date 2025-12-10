@@ -26,6 +26,12 @@ Route::get('/test-queue', function () {
     return 'Job dispatched to Redis queue!';
 });
 
+Route::get('/test-log', function () {
+    \Illuminate\Support\Facades\Log::info("TEST LOG ENTRY " . now());
+    return 'Log written';
+});
+
+
 // Auth routes (Public/Unprotected)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
