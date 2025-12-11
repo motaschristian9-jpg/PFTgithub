@@ -3,7 +3,7 @@ services:
   backend:
     build:
       context: ./PFTbackend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     image: pft-backend
     container_name: pft-backend
     restart: unless-stopped
