@@ -40,18 +40,12 @@ COPY --chown=www-data:www-data . /var/www
 # Run Composer Install (Production)
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Create Laravel Caching Directories and set permissions
-RUN mkdir -p storage/framework/cache/data \
-    && mkdir -p storage/framework/sessions \
-    && mkdir -p storage/framework/views \
-    && chown -R www-data:www-data storage bootstrap/cache
-
-# Switch to root to run supervisor (it switches users internally if configured, or runs as root)
-# Standard supervisor usage dictates running as root to spawn processes
-USER root
+# Copy Entrypoint
+COPY docker/entrypoint.prod.sh /usr/local/bin/start-container
+RUN chmod +x /usr/local/bin/start-container
 
 # Expose port 80
 EXPOSE 80
 
-# Start Supervisor
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+# Start Container
+ENTRYPOINT ["start-container"]
