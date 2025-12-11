@@ -50,7 +50,9 @@ class GoogleAuthController extends Controller
 
             $stateParts = explode('|', $combinedState);
             if (count($stateParts) !== 2) {
-                return redirect('http://localhost:5173/auth/google/callback?error=invalid_state&message=' . urlencode('Invalid state parameter.'));
+                // Use frontend URL from env or fallback
+                $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+                return redirect($frontendUrl . '/auth/google/callback?error=invalid_state&message=' . urlencode('Invalid state parameter.'));
             }
 
             $state = $stateParts[0];
