@@ -110,9 +110,11 @@ export const useLoginLogic = () => {
   const loginWithGoogle = async () => {
     setGoogleLoading(true);
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/google/login?state=login&redirect_uri=http://localhost:5173/auth/google/callback"
-      );
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const targetUrl = `${baseUrl}/auth/google/login?state=login&redirect_uri=${redirectUri}`;
+
+      const response = await fetch(targetUrl);
 
       if (!response.ok) {
         throw new Error("Failed to get Google OAuth URL");
