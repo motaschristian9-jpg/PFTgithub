@@ -24,17 +24,25 @@ const COLORS = [
 const CustomTooltip = ({ active, payload, label, userCurrency }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    // RadialBar payload often has the fill color in the payload object itself or in the top level payload attributes
+    const color = data.fill || payload[0].fill;
+
     return (
-      <div className="bg-white dark:bg-gray-800 p-3 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 text-xs">
-        <p className="font-bold text-gray-900 dark:text-white mb-1">{data.name}</p>
-        <div className="space-y-0.5">
-          <p className="text-gray-500 dark:text-gray-300">
-            Saved: <span className="font-bold text-teal-600 dark:text-teal-400">{formatCurrency(data.current, userCurrency)}</span>
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
+        <div className="flex items-center gap-2 mb-2">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }}></span>
+            <p className="text-sm font-bold text-gray-800 dark:text-gray-100">{data.name}</p>
+        </div>
+        <div className="space-y-1">
+          <p className="text-sm flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-300">Saved:</span>
+            <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(data.current, userCurrency)}</span>
           </p>
-          <p className="text-gray-500 dark:text-gray-300">
-            Target: <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(data.target, userCurrency)}</span>
+          <p className="text-sm flex items-center gap-2">
+            <span className="text-gray-600 dark:text-gray-300">Target:</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(data.target, userCurrency)}</span>
           </p>
-          <p className="text-gray-400 dark:text-gray-500 text-[10px] mt-1">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             {((data.current / data.target) * 100).toFixed(1)}% Completed
           </p>
         </div>

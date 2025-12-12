@@ -253,10 +253,10 @@ export default function BudgetModal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`w-full py-4 px-6 rounded-xl text-white font-bold text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
+                  className={`w-full py-4 px-6 rounded-xl text-white font-bold text-base transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
                     loading
                       ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-violet-600 hover:bg-violet-500 shadow-violet-200"
+                      : "bg-violet-600 hover:bg-violet-500"
                   }`}
                 >
                   {loading ? (

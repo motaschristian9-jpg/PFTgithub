@@ -17,10 +17,14 @@ const itemVariants = {
 };
 import { useTransactionsPageLogic } from "../../hooks/useTransactionsPageLogic";
 import TransactionModal from "../../components/TransactionModal.jsx";
+import ImportModal from "../../components/ImportModal.jsx";
+import { useBulkCreateTransactions } from "../../hooks/useTransactions";
 import TransactionsHeader from "../../components/transactions/TransactionsHeader";
 import TransactionsStats from "../../components/transactions/TransactionsStats";
 import TransactionsFilters from "../../components/transactions/TransactionsFilters";
 import TransactionsTable from "../../components/transactions/TransactionsTable";
+import Papa from "papaparse";
+import { format } from "date-fns";
 
 export default function TransactionsPage() {
   const {
@@ -60,6 +64,47 @@ export default function TransactionsPage() {
     updatingTransactionId,
   } = useTransactionsPageLogic();
 
+  const { mutateAsync: bulkCreate } = useBulkCreateTransactions();
+  const [importModalOpen, setImportModalOpen] = React.useState(false);
+
+  const handleImport = async (data) => {
+      try {
+          await bulkCreate({ transactions: data });
+      } catch (error) {
+          console.error("Import error in page:", error);
+      }
+  };
+
+  const handleExport = () => {
+    if (!transactions || transactions.length === 0) {
+        return;
+    }
+
+    // Format data for CSV
+    const csvData = transactions.map(t => ({
+        Date: format(new Date(t.date), 'yyyy-MM-dd'), // Ensure standard ISO format
+        Category: t.category ? t.category.name : 'Uncategorized',
+        Name: t.name,
+        Amount: t.amount,
+        Type: t.type,
+        Description: t.description || ''
+    }));
+
+    // Convert to CSV string
+    const csv = Papa.unparse(csvData);
+
+    // Create download link
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `transactions_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+
   const userCurrency = user?.currency || "USD";
   const netBalance = totalIncome - totalExpenses;
 
@@ -76,6 +121,8 @@ export default function TransactionsPage() {
             setEditingTransaction(null);
             setModalOpen(true);
           }}
+          onImport={() => setImportModalOpen(true)}
+          onExport={handleExport}
         />
       </motion.div>
 
@@ -138,6 +185,12 @@ export default function TransactionsPage() {
         onTransactionAdded={() => setPage(1)}
         editMode={!!editingTransaction}
         transactionToEdit={editingTransaction}
+      />
+
+      <ImportModal url=""
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onImport={handleImport}
       />
     </motion.div>
   );

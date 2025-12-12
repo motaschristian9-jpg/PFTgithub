@@ -85,7 +85,7 @@ export const useSavingsPageLogic = () => {
   );
 
   const historyTotalPages = useMemo(
-    () => historySavingsRaw?.last_page || 1,
+    () => historySavingsRaw?.meta?.last_page || historySavingsRaw?.last_page || 1,
     [historySavingsRaw]
   );
 
@@ -101,11 +101,27 @@ export const useSavingsPageLogic = () => {
       0
     );
     const totalRemaining = Math.max(totalTarget - totalSaved, 0);
+
+    // Calculate Top Goal (Highest Current Amount)
+    // Combine active and loaded history to find the absolute max
+    const allLoadedSavings = [...activeSavings, ...historySavings];
+    let topGoal = null;
+    let maxAmount = -1;
+
+    allLoadedSavings.forEach(s => {
+        const amount = Number(s.current_amount || 0);
+        if (amount > maxAmount) {
+            maxAmount = amount;
+            topGoal = s;
+        }
+    });
+
     return {
       totalSaved,
       totalTarget,
       totalRemaining,
       count: listToCalculate.length,
+      topGoal: topGoal ? { name: topGoal.name, amount: maxAmount } : null
     };
   }, [activeTab, activeSavings, historySavings]);
 

@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Data Routes
     Route::get('transactions/search', [TransactionController::class, 'search']);
 
+    Route::post('transactions/bulk', [TransactionController::class, 'bulkStore']);
     Route::apiResource('transactions', TransactionController::class);
 
     Route::apiResource('categories', CategoryController::class)->only(['index', 'show']);

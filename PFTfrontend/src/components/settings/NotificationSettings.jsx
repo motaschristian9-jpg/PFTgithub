@@ -3,16 +3,17 @@ import { Bell, Mail } from "lucide-react";
 
 export default function NotificationSettings({
   formData,
-  setFormData,
-  onSave,
+  setFormData, // Still accepted but maybe unused for this specific field now, or consistent interface
+  onSave,      // Unused now for this component, but kept for props compatibility if needed
   isSaving,
+  onToggle,    // New prop
 }) {
   const handleChange = (e) => {
-    const { name, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: checked,
-    }));
+    const { checked } = e.target;
+    // Call the auto-save toggle handler
+    if (onToggle) {
+        onToggle(checked);
+    }
   };
 
   return (
@@ -45,22 +46,18 @@ export default function NotificationSettings({
               name="email_notifications_enabled"
               checked={formData.email_notifications_enabled ?? true}
               onChange={handleChange}
+              disabled={isSaving}
               className="sr-only peer"
             />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
           </label>
         </div>
       </div>
-
-      <div className="flex justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
-        <button
-          onClick={onSave}
-          disabled={isSaving}
-          className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-2.5 rounded-xl font-semibold hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {isSaving ? "Saving..." : "Save Changes"}
-        </button>
-      </div>
+      
+      {/* 
+         Removed "Save Changes" button as requested.
+         The toggle now saves automatically.
+      */}
     </div>
   );
 }

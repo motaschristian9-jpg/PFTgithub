@@ -187,6 +187,7 @@ const DataLoader = ({ children }) => {
 
     const budgetsList = getList(activeBudgetsDataRaw);
     const savingsList = getList(activeSavingsDataRaw);
+    const historyList = getList(historySavingsRaw); // Process history list
 
     return {
       user,
@@ -194,6 +195,7 @@ const DataLoader = ({ children }) => {
       categoriesData,
       activeBudgetsData: budgetsList,
       activeSavingsData: savingsList,
+      historySavingsData: historyList, // Expose history
       notifications,
       hasUnread,
       setHasUnread: acknowledgeNotifications,

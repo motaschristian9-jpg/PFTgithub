@@ -11,6 +11,29 @@ import {
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
 
+const CustomTooltip = ({ active, payload, label, userCurrency }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm flex items-center gap-2 mb-1">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: entry.color || entry.fill }}
+            ></span>
+            <span className="text-gray-600 dark:text-gray-300 capitalize">{entry.name}:</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
+              {formatCurrency(entry.value, userCurrency)}
+            </span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
   // Aggregate totals for all active budgets
   const totalAllocated = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
@@ -56,14 +79,8 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
                 tickFormatter={(value) => formatCurrency(value, userCurrency, true)}
               />
               <Tooltip
-                cursor={{ fill: "#f9fafb" }}
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "12px",
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-                formatter={(value) => [formatCurrency(value, userCurrency), ""]}
+                cursor={{ fill: "#9ca3af", opacity: 0.1 }}
+                content={<CustomTooltip userCurrency={userCurrency} />}
               />
               <Bar dataKey="allocated" name="Allocated" fill="#ddd6fe" radius={[4, 4, 0, 0]} />
               <Bar dataKey="spent" name="Spent" fill="#8b5cf6" radius={[4, 4, 0, 0]} />

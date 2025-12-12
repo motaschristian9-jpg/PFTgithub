@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Transaction;
 use App\Models\Budget;
 use App\Http\Requests\CreateTransactionsRequest;
+use App\Http\Requests\BulkStoreTransactionsRequest;
 use App\Http\Resources\TransactionResource;
 use App\Http\Resources\TransactionCollection;
 use Illuminate\Http\Request;
@@ -287,6 +288,89 @@ class TransactionController extends Controller
                 'error' => 'Delete Failed',
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
+
+    public function bulkStore(BulkStoreTransactionsRequest $request)
+    {
+        try {
+            $validated = $request->validated();
+            $transactionsData = $validated['transactions'];
+            $userId = Auth::id();
+
+            $insertedCount = 0;
+            
+            \Illuminate\Support\Facades\DB::transaction(function () use ($transactionsData, $userId, &$insertedCount) {
+                foreach ($transactionsData as $data) {
+                    // Enrich data
+                    $data['user_id'] = $userId;
+                    $data['created_at'] = now();
+                    $data['updated_at'] = now();
+                    
+                    // Logic to resolve Category Name -> ID
+                    if (isset($data['category']) && !empty($data['category'])) {
+                        // 1. Try to find exact match
+                        $category = \App\Models\Category::where('name', $data['category'])
+                            ->where(function($q) use ($data) {
+                                $q->where('type', $data['type'])
+                                  ->orWhere('type', 'expense'); // Fallback if type mismatch? Mostly stick to strict type.
+                            })
+                            ->first();
+
+                        if ($category) {
+                            $data['category_id'] = $category->id;
+                        } else {
+                            // 2. Not found -> Fallback to "Other"
+                            $otherCategory = \App\Models\Category::where('name', 'Other')
+                                ->where('type', $data['type'])
+                                ->first();
+                            
+                            if ($otherCategory) {
+                                $data['category_id'] = $otherCategory->id;
+                            } else {
+                                $data['category_id'] = null; // Should not happen if seeded, but safe fallback
+                            }
+                        }
+                    } else {
+                        // No category provided -> Default to "Other" as requested? 
+                        // Or Uncategorized (null)? 
+                        // User said: "maybe make it the "Other" category" when upload csv and it is successful. 
+                        // This implies if NO match or NO category, use Other.
+                        
+                        $otherCategory = \App\Models\Category::where('name', 'Other')
+                            ->where('type', $data['type'])
+                            ->first();
+                            
+                         if ($otherCategory) {
+                            $data['category_id'] = $otherCategory->id;
+                        } else {
+                            $data['category_id'] = null;
+                        }
+                    }
+                    
+                    // Cleanup - remove the 'category' string field as it's not in the DB table
+                    unset($data['category']);
+
+                    // Create transaction
+                    // We use create() in a loop instead of insert() to ensure any model observers run 
+                    Auth::user()->transactions()->create($data);
+                    $insertedCount++;
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully imported {$insertedCount} transactions.",
+                'count' => $insertedCount
+            ], 201);
+
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Bulk Import Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Import Failed',
+                'message' => 'An error occurred while processing the CSV file.',
+                'details' => $e->getMessage()
             ], 500);
         }
     }

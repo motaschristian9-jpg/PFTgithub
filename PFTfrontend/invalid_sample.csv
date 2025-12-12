@@ -1,0 +1,4 @@
+Date,Name,Amount,Type,Description
+2024-12-01,Valid Salary,5000,income,This row is fine
+2024-12-02,INVALID ROW,Five Hundred,expense,This amount is text not number!
+2024-12-03,Valid Coffee,5.50,expense,This row is fine too

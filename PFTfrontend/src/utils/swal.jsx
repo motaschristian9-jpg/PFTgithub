@@ -11,14 +11,14 @@ const baseConfig = {
   customClass: {
     container: "z-[10000] font-sans", // Global Z-Index Fix & Font
     popup:
-      "rounded-[2rem] shadow-2xl border border-gray-100 bg-white/95 backdrop-blur-md p-0 overflow-hidden ring-1 ring-white/20",
-    title: "text-2xl font-bold text-gray-900 pt-8 px-8 tracking-tight",
-    htmlContainer: "text-gray-500 text-base px-8 pb-8 pt-2 m-0 leading-relaxed",
+      "rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md p-0 overflow-hidden ring-1 ring-white/20 dark:ring-white/5",
+    title: "text-2xl font-bold text-gray-900 dark:text-gray-100 pt-8 px-8 tracking-tight",
+    htmlContainer: "text-gray-500 dark:text-gray-300 text-base px-8 pb-8 pt-2 m-0 leading-relaxed",
     actions: "flex gap-4 w-full px-8 pb-8 pt-2 justify-center",
     confirmButton:
       "bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-200 transition-all duration-200 transform hover:-translate-y-0.5 text-base",
     cancelButton:
-      "bg-gray-50 hover:bg-gray-100 text-gray-600 font-bold py-3.5 px-8 rounded-xl transition-all duration-200 text-base border border-gray-200",
+      "bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 text-gray-600 font-bold py-3.5 px-8 rounded-xl transition-all duration-200 text-base border border-gray-200 dark:border-gray-600",
     denyButton:
       "bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-red-200",
   },
@@ -76,21 +76,44 @@ export const confirmAction = async ({
 import toast from "react-hot-toast";
 
 // --- 2. Success Alert (Toast) ---
+// --- 0. Helper for Theme ---
+const getThemeStyles = () => {
+    const isDark = document.documentElement.classList.contains("dark");
+    return {
+        background: isDark ? "#1f2937" : "#fff", // gray-800 : white
+        color: isDark ? "#f3f4f6" : "#333",       // gray-100 : gray-900
+        border: isDark ? "1px solid #374151" : "1px solid #f3f4f6", // gray-700 : gray-100
+    };
+};
+
+const getTitleClass = () => {
+     const isDark = document.documentElement.classList.contains("dark");
+     return isDark ? "font-bold text-gray-100" : "font-bold text-gray-900";
+}
+
+const getTextClass = () => {
+     const isDark = document.documentElement.classList.contains("dark");
+     return isDark ? "text-sm text-gray-400 mt-0.5" : "text-sm text-gray-500 mt-0.5";
+}
+
+
+// --- 2. Success Alert (Toast) ---
 export const showSuccess = (title = "Success", text = "") => {
+  const styles = getThemeStyles();
   toast.success(
     <div className="flex flex-col">
-      <span className="font-bold text-gray-900">{title}</span>
-      {text && <span className="text-sm text-gray-500 mt-0.5">{text}</span>}
+      <span className={getTitleClass()}>{title}</span>
+      {text && <span className={getTextClass()}>{text}</span>}
     </div>,
     {
       duration: 3000,
       style: {
         borderRadius: "16px",
-        background: "#fff",
-        color: "#333",
+        background: styles.background,
+        color: styles.color,
         boxShadow:
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        border: "1px solid #f3f4f6",
+        border: styles.border,
         padding: "16px",
       },
       iconTheme: {
@@ -103,20 +126,21 @@ export const showSuccess = (title = "Success", text = "") => {
 
 // --- 3. Error Alert (Toast) ---
 export const showError = (title = "Error", text = "Something went wrong") => {
+  const styles = getThemeStyles();
   toast.error(
     <div className="flex flex-col">
-      <span className="font-bold text-gray-900">{title}</span>
-      {text && <span className="text-sm text-gray-500 mt-0.5">{text}</span>}
+      <span className={getTitleClass()}>{title}</span>
+      {text && <span className={getTextClass()}>{text}</span>}
     </div>,
     {
       duration: 4000,
       style: {
         borderRadius: "16px",
-        background: "#fff",
-        color: "#333",
+        background: styles.background,
+        color: styles.color,
         boxShadow:
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        border: "1px solid #f3f4f6",
+        border: styles.border,
         padding: "16px",
       },
       iconTheme: {
@@ -129,21 +153,22 @@ export const showError = (title = "Error", text = "Something went wrong") => {
 
 // --- 4. Info Alert (Toast) ---
 export const showInfo = (title = "Info", text = "") => {
+  const styles = getThemeStyles();
   toast(
     <div className="flex flex-col">
-      <span className="font-bold text-gray-900">{title}</span>
-      {text && <span className="text-sm text-gray-500 mt-0.5">{text}</span>}
+      <span className={getTitleClass()}>{title}</span>
+      {text && <span className={getTextClass()}>{text}</span>}
     </div>,
     {
       icon: "ℹ️",
       duration: 4000,
       style: {
         borderRadius: "16px",
-        background: "#fff",
-        color: "#333",
+        background: styles.background,
+        color: styles.color,
         boxShadow:
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        border: "1px solid #f3f4f6",
+        border: styles.border,
         padding: "16px",
       },
     }
@@ -152,21 +177,22 @@ export const showInfo = (title = "Info", text = "") => {
 
 // --- 5. Warning Alert (Toast) ---
 export const showWarning = (title = "Warning", text = "") => {
+  const styles = getThemeStyles();
   toast(
     <div className="flex flex-col">
-      <span className="font-bold text-gray-900">{title}</span>
-      {text && <span className="text-sm text-gray-500 mt-0.5">{text}</span>}
+      <span className={getTitleClass()}>{title}</span>
+      {text && <span className={getTextClass()}>{text}</span>}
     </div>,
     {
       icon: "⚠️",
       duration: 4000,
       style: {
         borderRadius: "16px",
-        background: "#fff",
-        color: "#333",
+        background: styles.background,
+        color: styles.color,
         boxShadow:
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-        border: "1px solid #f3f4f6",
+        border: styles.border,
         padding: "16px",
       },
     }
@@ -182,7 +208,11 @@ export const showCustomAlert = async ({
   showCancelButton = false,
   cancelButtonText = "Cancel",
   allowOutsideClick = true,
+  // Add support for dark mode in standard Swal popups
+  customClass = {}, 
 }) => {
+  // We can also add dynamic classes here if needed, but standard Swal customClass handles it well
+  // if we updated baseConfig. Let's rely on baseConfig update below for Popups.
   return MySwal.fire({
     ...baseConfig,
     title,
@@ -194,8 +224,8 @@ export const showCustomAlert = async ({
     allowOutsideClick,
     customClass: {
       ...baseConfig.customClass,
-      // Ensure confirm button has the blue theme by default unless overridden
       confirmButton: baseConfig.customClass.confirmButton,
+      ...customClass
     },
   });
 };

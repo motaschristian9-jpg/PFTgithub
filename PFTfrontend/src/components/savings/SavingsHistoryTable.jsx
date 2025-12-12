@@ -169,7 +169,7 @@ export default function SavingsHistoryTable({
           </div>
         )}
       </div>
-      {savings.length > 0 && totalPages > 1 && (
+      {savings.length > 0 && (
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center">
           <div className="flex space-x-2">
             <button

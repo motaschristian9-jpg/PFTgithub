@@ -1,0 +1,168 @@
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
+import axios from "../api/axios";
+import { useAuth } from "./useAuth";
+
+const KEYS = {
+  transactions: (params) => ["transactions", params],
+  allTransactions: ["transactions"],
+  budgets: ["budgets"],
+  savings: ["savings"],
+};
+
+const fetchTransactions = async (params) => {
+  const response = await axios.get("/transactions", { params });
+  return response.data;
+};
+
+const createTransaction = async (data) => {
+  const response = await axios.post("/transactions", data);
+  return response.data;
+};
+
+const createBulkTransactions = async ({ transactions }) => {
+    const response = await axios.post("/transactions/bulk", { transactions });
+    return response.data;
+};
+
+const updateTransaction = async ({ id, data }) => {
+  const response = await axios.put(`/transactions/${id}`, data);
+  return response.data;
+};
+
+const deleteTransaction = async (id) => {
+  const response = await axios.delete(`/transactions/${id}`);
+  return response.data;
+};
+
+export const useTransactions = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: KEYS.transactions(params),
+    queryFn: () => fetchTransactions(params),
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+const invalidateFinancialData = (queryClient, userId) => {
+  queryClient.invalidateQueries({ queryKey: KEYS.allTransactions });
+  queryClient.invalidateQueries({ queryKey: KEYS.budgets });
+  // Explicitly invalidate active budgets so progress bars update instantly
+  queryClient.invalidateQueries({ queryKey: ["budgets", "active"] });
+  queryClient.invalidateQueries({ queryKey: KEYS.savings });
+  
+  // Invalidate notifications to show instant alerts for budget/savings events
+  if (userId) {
+      queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      
+      // Double check in case of delayed backend events
+      setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+      }, 1000);
+  } else {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  }
+};
+
+export const useCreateTransaction = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: createTransaction,
+    onMutate: async (newTransaction) => {
+      // Cancel any outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: KEYS.allTransactions });
+
+      // Snapshot the previous value
+      const previousTransactions = queryClient.getQueryData({ queryKey: KEYS.allTransactions });
+
+      // Optimistically update
+      // Logic mirrors useSavingsCardModalLogic's optimisticUpdateGlobal
+      queryClient.setQueriesData({ queryKey: KEYS.allTransactions }, (oldData) => {
+        if (!oldData) return undefined;
+        
+        // Create a temporary transaction object
+        const tempTx = {
+            ...newTransaction,
+            id: Date.now(), // Temporary ID
+            pending: true,
+            created_at: new Date().toISOString(),
+        };
+
+        const hasDuplicate = (list) => list.some((item) => item.id === tempTx.id);
+
+        if (oldData.data && Array.isArray(oldData.data)) {
+            if (hasDuplicate(oldData.data)) return oldData;
+            return {
+                ...oldData,
+                data: [tempTx, ...oldData.data],
+                total: (oldData.total || 0) + 1,
+            };
+        }
+
+        if (Array.isArray(oldData)) {
+             if (hasDuplicate(oldData)) return oldData;
+             return [tempTx, ...oldData];
+        }
+
+        return oldData;
+      });
+
+      // Return context with the previous transactions
+      return { previousTransactions };
+    },
+    onError: (err, newTransaction, context) => {
+      if (context?.previousTransactions) {
+        queryClient.setQueryData(
+          { queryKey: KEYS.allTransactions },
+          context.previousTransactions
+        );
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to get real IDs and calculated totals
+      invalidateFinancialData(queryClient, user?.id);
+    },
+  });
+};
+
+export const useBulkCreateTransactions = () => {
+    const queryClient = useQueryClient();
+    const { user } = useAuth();
+    return useMutation({
+        mutationFn: createBulkTransactions,
+         onSettled: () => {
+            invalidateFinancialData(queryClient, user?.id);
+        },
+    });
+};
+
+export const useUpdateTransaction = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: updateTransaction,
+    onSettled: () => {
+      invalidateFinancialData(queryClient, user?.id);
+    },
+  });
+};
+
+export const useDeleteTransaction = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: deleteTransaction,
+    onSettled: () => {
+      invalidateFinancialData(queryClient, user?.id);
+    },
+  });
+};

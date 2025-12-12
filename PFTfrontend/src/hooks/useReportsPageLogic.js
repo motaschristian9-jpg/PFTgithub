@@ -32,6 +32,7 @@ export const useReportsPageLogic = () => {
     user,
     activeBudgetsData,
     activeSavingsData,
+    historySavingsData,
     categoriesData,
   } = useDataContext();
 
@@ -194,20 +195,23 @@ export const useReportsPageLogic = () => {
     const income = stats.income || 1; 
     const savingsRate = (totalSaved / income) * 100;
 
-    // 4. Find Top Goal
-    const map = {};
-    savingsTx.forEach((t) => {
-      const id = t.saving_goal_id;
-      const goal = activeSavingsData?.find(s => s.id === id);
-      const name = goal ? goal.name : "Unknown Goal";
-      map[name] = (map[name] || 0) + Number(t.amount || 0);
-    });
-
-    const sortedGoals = Object.entries(map)
-        .map(([name, amount]) => ({ name, amount }))
-        .sort((a, b) => b.amount - a.amount);
+    // 4. Find Top Goal (Highest Current Value, independent of period contributions)
+    let topGoal = null;
+    let maxAmount = -1;
     
-    const topGoal = sortedGoals.length > 0 ? sortedGoals[0] : null;
+    // Combine active and history to find true Top Goal (like Savings Page)
+    const allSavings = [
+        ...(activeSavingsData && Array.isArray(activeSavingsData) ? activeSavingsData : []),
+        ...(historySavingsData && Array.isArray(historySavingsData) ? historySavingsData : [])
+    ];
+
+    allSavings.forEach(s => {
+        const current = Number(s.current_amount || 0);
+        if (current > maxAmount) {
+            maxAmount = current;
+            topGoal = { name: s.name, amount: current };
+        }
+    });
 
     return {
         totalSaved,

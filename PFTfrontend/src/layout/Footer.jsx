@@ -15,13 +15,13 @@ export default function Footer() {
         <div className="flex items-center space-x-4 mt-2 md:mt-0">
           <span>Follow us:</span>
           <div className="flex space-x-3 text-gray-400">
-            <a href="#" className="hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 transition-all">
+            <a href="https://web.facebook.com/profile.php?id=61584426275753&_rdc=1&_rdr#" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 dark:hover:text-blue-400 hover:scale-110 transition-all">
               <Facebook size={20} />
             </a>
-            <a href="#" className="hover:text-pink-600 dark:hover:text-pink-400 hover:scale-110 transition-all">
+            <a href="https://www.instagram.com/yourpersonal.moneytracker/" target="_blank" rel="noopener noreferrer" className="hover:text-pink-600 dark:hover:text-pink-400 hover:scale-110 transition-all">
               <Instagram size={20} />
             </a>
-            <a href="#" className="hover:text-gray-900 dark:hover:text-white hover:scale-110 transition-all">
+            <a href="https://x.com/money_tracker01" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900 dark:hover:text-white hover:scale-110 transition-all">
               <Twitter size={20} />
             </a>
           </div>

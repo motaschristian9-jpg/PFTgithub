@@ -1,4 +1,4 @@
-import { Banknote, Target, Award } from "lucide-react";
+import { Banknote, Target, Award, Trophy } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
 const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClass }) => {
@@ -46,12 +46,12 @@ export default function SavingsStats({ stats, userCurrency }) {
         iconColorClass="text-teal-600"
       />
       <StatCard
-        title="Total Target"
-        value={formatCurrency(stats.totalTarget, userCurrency)}
-        icon={Target}
-        colorClass="text-teal-600"
-        bgClass="bg-teal-50"
-        iconColorClass="text-teal-600"
+        title="Top Goal"
+        value={stats.topGoal ? stats.topGoal.name : "N/A"}
+        icon={Trophy}
+        colorClass="text-emerald-600"
+        bgClass="bg-emerald-50"
+        iconColorClass="text-emerald-600"
       />
       <StatCard
         title="Remaining"

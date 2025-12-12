@@ -15,8 +15,34 @@ import {
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
+  const { theme } = useTheme();
+  const [effectiveTheme, setEffectiveTheme] = React.useState("light");
+
+  React.useEffect(() => {
+    if (theme === "system") {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setEffectiveTheme(isDark ? "dark" : "light");
+    } else {
+      setEffectiveTheme(theme);
+    }
+  }, [theme]);
+
+  const isDark = effectiveTheme === "dark";
+
+  // Colors
+  // Colors
+  const gridColor = isDark ? "#374151" : "#f3f4f6";
+  const axisTextColor = isDark ? "#9ca3af" : "#6b7280";
+  const tooltipBg = isDark ? "#1f2937" : "#ffffff";
+  const tooltipBorder = isDark ? "#374151" : "#e5e7eb";
+  const tooltipText = isDark ? "#f3f4f6" : "#111827"; // gray-100 : gray-900
+  
+  // Theme-specific accent for text (Violet)
+  const tooltipAccent = isDark ? "#a78bfa" : "#7c3aed"; // violet-400 : violet-600
+
   // --- 1. Adherence Data (Pie Chart) ---
   const adherenceData = useMemo(() => {
     let under = 0;
@@ -85,7 +111,14 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
               </Pie>
               <Tooltip 
                 formatter={(value) => [`${value} Budgets`, ""]}
-                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                contentStyle={{ 
+                  backgroundColor: tooltipBg,
+                  borderRadius: "12px", 
+                  border: `1px solid ${tooltipBorder}`, 
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  color: tooltipText
+                }}
+                itemStyle={{ color: tooltipAccent, fontWeight: 500 }}
               />
               <Legend verticalAlign="bottom" height={36} iconType="circle" />
             </PieChart>
@@ -117,12 +150,12 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
               data={trendData}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
               <XAxis 
                 dataKey="name" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: "#6b7280", fontSize: 12 }}
+                tick={{ fill: axisTextColor, fontSize: 12 }}
                 dy={10}
                 interval={0}
                 angle={-15}
@@ -132,17 +165,18 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: "#6b7280", fontSize: 12 }}
+                tick={{ fill: axisTextColor, fontSize: 12 }}
                 tickFormatter={(value) => formatCurrency(value, userCurrency, true)}
               />
               <Tooltip
-                cursor={{ fill: "#f9fafb" }}
+                cursor={{ fill: isDark ? "#374151" : "#f9fafb", opacity: 0.4 }}
                 contentStyle={{
-                  backgroundColor: "#fff",
+                  backgroundColor: tooltipBg,
                   borderRadius: "12px",
-                  border: "1px solid #e5e7eb",
+                  border: `1px solid ${tooltipBorder}`,
                   boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                 }}
+                itemStyle={{ color: tooltipAccent, fontWeight: 500 }}
                 formatter={(value) => [formatCurrency(value, userCurrency), ""]}
               />
               <Legend verticalAlign="top" align="right" height={36} iconType="circle" />

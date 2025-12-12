@@ -99,6 +99,44 @@ export const useSettingsPageLogic = () => {
     }
   };
 
+  const handleNotificationToggle = async (enabled) => {
+    // Optimistic Update
+    setFormData((prev) => ({ ...prev, email_notifications_enabled: enabled }));
+
+    try {
+      const data = new FormData();
+      // We need to send other required fields if the backend requires them for a "profile update", 
+      // but typically we should send what we have. 
+      // Based on typical updateProfile implementations, it often updates whatever is passed.
+      // Safest is to pass current state for others + new value for toggle.
+      // BUT current formData might be stale? No, it's state.
+      data.append("name", formData.name);
+      data.append("currency", formData.currency);
+      data.append("email_notifications_enabled", enabled ? "1" : "0");
+      
+      // We don't append avatar here as we aren't changing it and don't want to re-upload undefined
+
+      const response = await updateProfile(data);
+
+      if (response?.data?.user) {
+        const updatedUser = response.data.user;
+        setUser(updatedUser);
+        const currentStorage = localStorage.getItem("user");
+        if (currentStorage) {
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+        }
+      }
+      
+      // Optional: Show a small toast
+      showSuccess("Preferences Updated", enabled ? "Email notices enabled" : "Email notices disabled");
+    } catch (error) {
+      console.error("Toggle failed", error);
+      // Revert optimism
+      setFormData((prev) => ({ ...prev, email_notifications_enabled: !enabled }));
+      showError("Update Failed", "Could not update preference");
+    }
+  };
+
   return {
     user,
     setUser,
@@ -114,5 +152,6 @@ export const useSettingsPageLogic = () => {
     setPreviewUrl,
     handleSave,
     handleDeleteAccount,
+    handleNotificationToggle,
   };
 };

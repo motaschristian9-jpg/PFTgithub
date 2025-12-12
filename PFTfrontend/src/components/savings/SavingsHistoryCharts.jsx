@@ -15,9 +15,50 @@ import {
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
 import { TrendingUp, AlertCircle } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
+
+const CustomTooltip = ({ active, payload, label, userCurrency }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm flex items-center gap-2 mb-1">
+            <span
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: entry.color || entry.fill }}
+            ></span>
+            <span className="text-gray-600 dark:text-gray-300 capitalize">{entry.name}:</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
+               {typeof entry.value === 'number' ? formatCurrency(entry.value, userCurrency) : entry.value}
+            </span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 const SavingsHistoryCharts = ({ savings, userCurrency }) => {
-  // --- 1. Completion Status Data (Pie Chart) ---
+  const { theme } = useTheme();
+  const [effectiveTheme, setEffectiveTheme] = React.useState("light");
+
+  React.useEffect(() => {
+    if (theme === "system") {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setEffectiveTheme(isDark ? "dark" : "light");
+    } else {
+      setEffectiveTheme(theme);
+    }
+  }, [theme]);
+
+  const isDark = effectiveTheme === "dark";
+
+  // Colors
+  const gridColor = isDark ? "#374151" : "#f3f4f6";
+  const axisTextColor = isDark ? "#9ca3af" : "#6b7280";
+
   // --- 1. Surplus Analysis Data (Pie Chart) ---
   const surplusData = useMemo(() => {
     let totalTargetMet = 0;
@@ -39,7 +80,7 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
     // Handle case where no data
     if (totalTargetMet === 0 && totalSurplus === 0) {
         return [
-            { name: "No Data", value: 1, color: "#f3f4f6" }
+            { name: "No Data", value: 1, color: isDark ? "#374151" : "#f3f4f6" }
         ];
     }
 
@@ -47,7 +88,7 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
       { name: "Target Met", value: totalTargetMet, color: "#0d9488" }, // Teal-600
       { name: "Surplus (Bonus)", value: totalSurplus, color: "#facc15" },   // Yellow-400
     ];
-  }, [savings]);
+  }, [savings, isDark]);
 
   // --- 2. Savings Trend Data (Bar + Line Chart) ---
   const trendData = useMemo(() => {
@@ -94,10 +135,7 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
                   <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                 ))}
               </Pie>
-              <Tooltip 
-                formatter={(value) => [formatCurrency(value, userCurrency), ""]}
-                contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-              />
+              <Tooltip content={<CustomTooltip userCurrency={userCurrency} />} />
               <Legend verticalAlign="bottom" height={36} iconType="circle" />
             </PieChart>
           </ResponsiveContainer>
@@ -106,7 +144,7 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
             <div className="text-center">
               <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider block mb-1">Total Saved</span>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                {formatCurrency(surplusData.reduce((acc, curr) => acc + curr.value, 0), userCurrency)}
+                {formatCurrency(surplusData.reduce((acc, curr) => (curr.name === "No Data" ? 0 : acc + curr.value), 0), userCurrency)}
               </span>
             </div>
           </div>
@@ -129,12 +167,12 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
               data={trendData}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
               <XAxis 
                 dataKey="name" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: "#6b7280", fontSize: 12 }}
+                tick={{ fill: axisTextColor, fontSize: 12 }}
                 dy={10}
                 interval={0}
                 angle={-15}
@@ -144,19 +182,10 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
               <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: "#6b7280", fontSize: 12 }}
+                tick={{ fill: axisTextColor, fontSize: 12 }}
                 tickFormatter={(value) => formatCurrency(value, userCurrency, true)}
               />
-              <Tooltip
-                cursor={{ fill: "#f9fafb" }}
-                contentStyle={{
-                  backgroundColor: "#fff",
-                  borderRadius: "12px",
-                  border: "1px solid #e5e7eb",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                }}
-                formatter={(value) => [formatCurrency(value, userCurrency), ""]}
-              />
+              <Tooltip content={<CustomTooltip userCurrency={userCurrency} />} cursor={{ fill: isDark ? "#374151" : "#f9fafb", opacity: 0.4 }} />
               <Legend verticalAlign="top" align="right" height={36} iconType="circle" />
               <Bar dataKey="target" name="Target" fill="#ccfbf1" radius={[4, 4, 0, 0]} barSize={30} />
               <Line 

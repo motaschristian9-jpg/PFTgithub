@@ -13,7 +13,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { BarChart as BarIcon, PieChart as PieIcon, TrendingUp } from "lucide-react";
+import { BarChart as BarIcon, PieChart as PieIcon, TrendingUp, Trophy } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
 const COLORS = [
@@ -34,30 +34,35 @@ const CurrencyInjectedTooltip = ({
   isBar = false,
 }) => {
   if (payload && payload.length) {
-    const item = payload[0];
-    const amount = Number(item.value);
-
-    if (isBar) {
-      const color =
-        item.name === "Income" ? "text-emerald-600" : "text-rose-600";
-      return (
-        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
-          <p className="text-sm font-bold text-gray-800 dark:text-white mb-1">{label}</p>
-          <p className={`text-sm font-semibold ${color} dark:text-opacity-90`}>
-            {formatCurrency(amount, userCurrency)}
-          </p>
-        </div>
-      );
-    }
+    // For Bar chart (Income vs Expense), we only show one value usually per hovered bar?
+    // Actually, reCharts default bar/pie tooltip shows all payload items.
+    // The previous implementation assumed index 0. Recharts tooltips can have multiple items if stacked or shared.
+    // But let's stick to mapping payload to be safe and consistent.
 
     return (
       <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
-        <p className="text-sm font-bold text-gray-800 dark:text-white mb-1">{label}</p>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-            {formatCurrency(amount, userCurrency)}
-          </span>
-        </p>
+        <p className="text-sm font-bold text-gray-800 dark:text-gray-100 mb-2">{label}</p>
+        {payload.map((entry, index) => {
+             // For Bar Chart (Income vs Expense), color might need logic if not in payload
+             let color = entry.color || entry.fill;
+             // Fallback logic for Bar chart if color isn't explicit in payload item
+             if (isBar && !color) {
+                 color = entry.name === "Income" ? "#10B981" : "#EF4444";
+             }
+             
+             return (
+              <p key={index} className="text-sm flex items-center gap-2 mb-1">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: color }}
+                ></span>
+                <span className="text-gray-600 dark:text-gray-300 capitalize">{entry.name}:</span>
+                <span className={`font-semibold text-gray-900 dark:text-gray-100`}>
+                  {formatCurrency(entry.value, userCurrency)}
+                </span>
+              </p>
+             );
+        })}
       </div>
     );
   }
@@ -209,7 +214,7 @@ export default function ReportsCharts({
                 {/* Card 3: Top Goal */}
                 <div className="bg-rose-50 dark:bg-rose-900/20 rounded-2xl p-6 flex flex-col justify-center items-center text-center border border-rose-100 dark:border-rose-900/30 min-w-0">
                     <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mb-4">
-                        <PieIcon size={24} className="rotate-180" /> 
+                        <Trophy size={24} /> 
                     </div>
                     <p className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">Top Goal</p>
                     <p className="text-lg sm:text-xl font-bold text-rose-900 dark:text-rose-50 truncate w-full px-2">

@@ -12,5 +12,6 @@ export default defineConfig({
     watch: {
       usePolling: true, // Needed for Windows Docker
     },
+    allowedHosts: true,
   },
 })

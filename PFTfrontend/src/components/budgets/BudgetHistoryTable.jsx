@@ -199,7 +199,7 @@ const BudgetHistoryTable = ({
         )}
       </div>
 
-      {budgets.length > 0 && totalPages > 1 && (
+      {budgets.length > 0 && (
         <div className="p-4 border-t border-gray-100 dark:border-gray-800 flex justify-center bg-gray-50/30 dark:bg-gray-800/30">
           <div className="flex space-x-2">
             <button

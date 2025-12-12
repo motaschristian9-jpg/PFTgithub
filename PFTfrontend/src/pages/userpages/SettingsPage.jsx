@@ -22,6 +22,7 @@ export default function SettingsPage() {
     setPreviewUrl,
     handleSave,
     handleDeleteAccount,
+    handleNotificationToggle,
   } = useSettingsPageLogic();
 
   return (
@@ -99,6 +100,7 @@ export default function SettingsPage() {
                     setFormData={setFormData}
                     onSave={handleSave}
                     isSaving={isSaving}
+                    onToggle={handleNotificationToggle}
                   />
                 </motion.div>
               )}

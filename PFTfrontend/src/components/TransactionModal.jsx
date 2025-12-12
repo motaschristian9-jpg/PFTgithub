@@ -493,10 +493,10 @@ export default function TransactionModal({
                   type="submit"
                   form="transaction-form"
                   disabled={loading}
-                  className={`w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
+                  className={`w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
                     loading
                       ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-blue-600 hover:bg-blue-500 shadow-blue-200"
+                      : "bg-blue-600 hover:bg-blue-500"
                   }`}
                 >
                   {loading ? (

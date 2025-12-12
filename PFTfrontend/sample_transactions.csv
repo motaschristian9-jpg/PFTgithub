@@ -1,0 +1,6 @@
+Date,Name,Amount,Type,Category,Description
+2024-12-01,Salary,5000,income,Salary,Monthly input
+2024-12-02,Grocery Store,150.50,expense,Food,Weekly Groceries
+2024-12-05,Unknown Shop,5.75,expense,RandomStuff,Should go to Other
+2024-12-10,Freelance Project,1200,income,Freelance,Website Design
+2024-12-12,No Category Bill,120.00,expense,,Should also go to Other

@@ -124,7 +124,7 @@ export const useBudgetPageLogic = () => {
   }, [historyBudgetsRaw, activeBudgetsData, search, activeTab]);
 
   const historyTotalPages = useMemo(
-    () => historyBudgetsRaw?.last_page || 1,
+    () => historyBudgetsRaw?.meta?.last_page || historyBudgetsRaw?.last_page || 1,
     [historyBudgetsRaw]
   );
 
