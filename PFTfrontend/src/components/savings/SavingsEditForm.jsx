@@ -1,4 +1,5 @@
 import { Loader2, Check, Target, TrendingUp, FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function SavingsEditForm({
   register,
@@ -7,11 +8,12 @@ export default function SavingsEditForm({
   isSaving,
   currencySymbol,
 }) {
+  const { t } = useTranslation();
   return (
     <form onSubmit={handleSubmit(handleSaveChanges)} className="p-8 space-y-8 flex-1">
       <div className="flex flex-col items-center justify-center py-6">
         <label className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-2">
-          Current Saved
+          {t('app.savings.modal.currentSaved')}
         </label>
         <div className="flex items-baseline justify-center relative w-full group">
           <span className="text-4xl font-medium text-teal-400 dark:text-teal-400/80 absolute left-[15%] top-1 transition-colors duration-300">
@@ -31,7 +33,7 @@ export default function SavingsEditForm({
       <div className="space-y-6">
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-            <Target size={12} /> Goal Name
+            <Target size={12} /> {t('app.savings.modal.nameLabel')}
           </label>
           <input
             type="text"
@@ -41,7 +43,7 @@ export default function SavingsEditForm({
         </div>
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-            <TrendingUp size={12} /> Target Amount
+            <TrendingUp size={12} /> {t('app.savings.modal.targetLabel')}
           </label>
           <input
             type="number"
@@ -54,7 +56,7 @@ export default function SavingsEditForm({
         </div>
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-            <FileText size={12} /> Description
+            <FileText size={12} /> {t('app.savings.modal.descriptionLabel')}
           </label>
           <textarea
             rows={3}
@@ -72,7 +74,7 @@ export default function SavingsEditForm({
           <Loader2 className="animate-spin" size={24} />
         ) : (
           <>
-            <Check size={20} strokeWidth={3} /> Save Changes
+            <Check size={20} strokeWidth={3} /> {t('app.savings.modal.saveChanges')}
           </>
         )}
       </button>

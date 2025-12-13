@@ -2,8 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useUserContext } from "../context/UserContext";
 import { showSuccess, showCustomAlert } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useGoogleCallbackLogic = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -29,7 +31,7 @@ export const useGoogleCallbackLogic = () => {
             localStorage.setItem("token", decodeURIComponent(token));
             localStorage.setItem("user", decodeURIComponent(user));
 
-            showSuccess("Login Successful!", "Welcome back!");
+            showSuccess(t('app.swal.loginSuccess'));
             setUser(JSON.parse(decodeURIComponent(user)));
             setIsAuthenticated(true);
             navigate("/dashboard");

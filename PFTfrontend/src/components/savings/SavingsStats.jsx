@@ -1,5 +1,6 @@
 import { Banknote, Target, Award, Trophy } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClass }) => {
   // Extract base color from classes
@@ -35,10 +36,12 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClas
 };
 
 export default function SavingsStats({ stats, userCurrency }) {
+  const { t } = useTranslation();
+
   return (
     <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <StatCard
-        title="Total Saved"
+        title={t('app.savings.stats.totalSaved')}
         value={formatCurrency(stats.totalSaved, userCurrency)}
         icon={Banknote}
         colorClass="text-teal-600"
@@ -46,15 +49,15 @@ export default function SavingsStats({ stats, userCurrency }) {
         iconColorClass="text-teal-600"
       />
       <StatCard
-        title="Top Goal"
-        value={stats.topGoal ? stats.topGoal.name : "N/A"}
+        title={t('app.savings.stats.topGoal')}
+        value={stats.topGoal ? stats.topGoal.name : t('app.savings.stats.startGoal')}
         icon={Trophy}
-        colorClass="text-emerald-600"
-        bgClass="bg-emerald-50"
-        iconColorClass="text-emerald-600"
+        colorClass={stats.topGoal ? "text-emerald-600" : "text-teal-600"}
+        bgClass={stats.topGoal ? "bg-emerald-50" : "bg-teal-50"}
+        iconColorClass={stats.topGoal ? "text-emerald-600" : "text-teal-600"}
       />
       <StatCard
-        title="Remaining"
+        title={t('app.savings.stats.remaining')}
         value={formatCurrency(stats.totalRemaining, userCurrency)}
         icon={Award}
         colorClass="text-teal-600"

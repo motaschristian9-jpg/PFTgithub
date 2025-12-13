@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm, useWatch } from "react-hook-form";
 import { showSuccess, showError } from "../utils/swal";
 import { getCurrencySymbol } from "../utils/currency";
@@ -12,6 +13,7 @@ export const useBudgetModalLogic = ({
   budget,
   categories,
 }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const { user } = useDataContext();
   const userCurrency = user?.currency || "USD";
@@ -60,9 +62,9 @@ export const useBudgetModalLogic = ({
     const diffTime = Math.abs(end - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return "Invalid duration";
-    if (diffDays === 0) return "1 Day";
-    return `${diffDays + 1} Days`;
+    if (diffDays < 0) return t('app.budgets.modal.durationValues.invalid');
+    if (diffDays === 0) return `1 ${t('app.budgets.modal.durationValues.day')}`;
+    return `${diffDays + 1} ${t('app.budgets.modal.durationValues.days')}`;
   }, [startDate, endDate]);
 
   useEffect(() => {
@@ -123,7 +125,7 @@ export const useBudgetModalLogic = ({
           });
         }
       } else {
-        showError("Error", "Failed to save budget");
+        showError(t('app.swal.errorTitle'), t('app.swal.budgetSaveError'));
       }
     } finally {
       setLoading(false);

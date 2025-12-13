@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   ChevronRight,
   CheckCircle2,
@@ -19,9 +20,15 @@ import {
 import { LogoIcon } from "../components/Logo";
 
 export default function LandingPage() {
+  const { t, i18n } = useTranslation(); // Init hook
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+
+  // Language Switcher Function
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,27 +80,36 @@ export default function LandingPage() {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
-            {["Features", "Testimonials", "FAQ"].map((item) => (
+            {["features", "testimonials", "faq"].map((item) => (
               <button
                 key={item}
-                onClick={() => scrollToSection(item.toLowerCase())}
+                onClick={() => scrollToSection(item)}
                 className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+                // Ideally translate these map items too or use explicit buttons
               >
-                {item}
+                {t(`landing.nav.menu.${item}`)}
               </button>
             ))}
+            
+            {/* Language Switcher */}
+            <div className="flex items-center gap-2 border-l pl-6 border-gray-200">
+                <button onClick={() => changeLanguage('en')} className={`text-xs font-bold ${i18n.language === 'en' ? 'text-blue-600' : 'text-gray-400'} hover:text-blue-600`}>EN</button>
+                <button onClick={() => changeLanguage('zh')} className={`text-xs font-bold ${i18n.language === 'zh' ? 'text-blue-600' : 'text-gray-400'} hover:text-blue-600`}>中</button>
+                <button onClick={() => changeLanguage('fil')} className={`text-xs font-bold ${i18n.language === 'fil' ? 'text-blue-600' : 'text-gray-400'} hover:text-blue-600`}>PH</button>
+            </div>
+
             <div className="h-6 w-px bg-gray-200" />
             <button
               onClick={() => handleNavigation("/login")}
               className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors"
             >
-              Log in
+              {t('landing.nav.login')}
             </button>
             <button
               onClick={() => handleNavigation("/signup")}
               className="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
             >
-              Get Started
+               {t('landing.nav.signup')}
             </button>
           </div>
 
@@ -144,31 +160,30 @@ export default function LandingPage() {
           <div className="relative z-10 max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide mb-6 md:mb-8 animate-fade-in-up">
               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              v2.0 is now live
+              {t('landing.hero.version')}
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold leading-[1.1] tracking-tight mb-6 md:mb-8 text-gray-900 animate-fade-in-up delay-100">
-              Master your money,{" "}
+              {t('landing.hero.title')}{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-violet-500">
-                effortlessly.
+                {t('landing.hero.highlight')}
               </span>
             </h1>
             <p className="text-base md:text-lg text-gray-600 leading-relaxed mb-8 md:mb-10 max-w-lg mx-auto lg:mx-0 animate-fade-in-up delay-200">
-              The all-in-one platform to track expenses, set budgets, and grow your savings. 
-              Beautifully designed for modern life.
+              {t('landing.hero.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start animate-fade-in-up delay-300">
               <button
                 onClick={() => handleNavigation("/signup")}
                 className="group flex items-center justify-center gap-2 bg-gray-900 text-white px-8 py-4 rounded-full font-semibold text-lg transition-all hover:shadow-2xl hover:shadow-gray-200 hover:-translate-y-1"
               >
-                Start for free
+                {t('landing.hero.cta')}
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
               <button
                 onClick={() => scrollToSection("features")}
                 className="flex items-center justify-center gap-2 bg-white text-gray-700 border border-gray-200 px-8 py-4 rounded-full font-semibold text-lg transition-all hover:bg-gray-50 hover:border-gray-300"
               >
-                See how it works
+                {t('landing.hero.secondaryCta')}
               </button>
             </div>
             
@@ -184,7 +199,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-1 text-amber-400">
                   {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={14} fill="currentColor" />)}
                 </div>
-                <span>Loved by 10,000+ users</span>
+                <span>{t('landing.hero.lovedBy')}</span>
               </div>
             </div>
           </div>
@@ -196,8 +211,8 @@ export default function LandingPage() {
               <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-6 relative z-20">
                 <div className="flex items-center justify-between mb-8">
                   <div>
-                    <p className="text-sm text-gray-500 font-medium">Total Balance</p>
-                    <h3 className="text-3xl font-bold text-gray-900">$24,500.00</h3>
+                    <p className="text-sm text-gray-500 font-medium">{t('landing.hero.card.totalBalance')}</p>
+                    <h3 className="text-3xl font-bold text-gray-900">{t('landing.currencySymbol')}24,500.00</h3>
                   </div>
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                     <TrendingUp size={24} />
@@ -215,9 +230,9 @@ export default function LandingPage() {
 
                 <div className="space-y-4">
                   {[
-                    { icon: Zap, label: "Netflix Subscription", date: "Today", amount: "-$14.99", color: "text-red-500" },
-                    { icon: CheckCircle2, label: "Freelance Project", date: "Yesterday", amount: "+$450.00", color: "text-blue-600" },
-                    { icon: Globe, label: "Grocery Store", date: "Yesterday", amount: "-$85.20", color: "text-red-500" },
+                    { icon: Zap, label: "Netflix Subscription", date: "Today", amount: `-${t('landing.currencySymbol')}14.99`, color: "text-red-500" },
+                    { icon: CheckCircle2, label: "Freelance Project", date: "Yesterday", amount: `+${t('landing.currencySymbol')}450.00`, color: "text-blue-600" },
+                    { icon: Globe, label: "Grocery Store", date: "Yesterday", amount: `-${t('landing.currencySymbol')}85.20`, color: "text-red-500" },
                   ].map((item, i) => (
                     <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors">
                       <div className="flex items-center gap-3">
@@ -242,7 +257,7 @@ export default function LandingPage() {
                     <PieChart size={20} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-bold uppercase">Savings Goal</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase">{t('landing.hero.card.savingsGoal')}</p>
                     <p className="text-lg font-bold text-gray-900">MacBook Pro</p>
                   </div>
                 </div>
@@ -257,8 +272,8 @@ export default function LandingPage() {
                     <CheckCircle2 size={20} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium opacity-80">Budget Status</p>
-                    <p className="text-lg font-bold">On Track</p>
+                    <p className="text-sm font-medium opacity-80">{t('landing.hero.card.budgetStatus')}</p>
+                    <p className="text-lg font-bold">{t('landing.hero.card.onTrack')}</p>
                   </div>
                 </div>
               </div>
@@ -272,12 +287,11 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12 md:mb-20">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
-              Everything you need to <br />
-              <span className="text-blue-600">build wealth.</span>
+              {t('landing.features.title')} <br />
+              <span className="text-blue-600">{t('landing.features.highlight')}</span>
             </h2>
             <p className="text-base md:text-lg text-gray-600">
-              Powerful tools to help you take control of your financial future, 
-              packaged in a simple, intuitive interface.
+              {t('landing.features.subtitle')}
             </p>
           </div>
 
@@ -288,10 +302,9 @@ export default function LandingPage() {
                 <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm mb-6 group-hover:scale-110 transition-transform">
                   <TrendingUp size={28} />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Interactive Dashboard</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{t('landing.features.items.dashboard.title')}</h3>
                 <p className="text-gray-600 max-w-md">
-                  Get a bird's-eye view of your finances. Track income, expenses, and savings 
-                  in real-time with beautiful, interactive charts.
+                  {t('landing.features.items.dashboard.desc')}
                 </p>
               </div>
               <div className="absolute right-[-20px] bottom-[-20px] opacity-50 group-hover:opacity-100 transition-opacity">
@@ -305,10 +318,9 @@ export default function LandingPage() {
                 <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-violet-300 mb-6 backdrop-blur-sm group-hover:scale-110 transition-transform">
                   <PieChart size={28} />
                 </div>
-                <h3 className="text-2xl font-bold mb-4">Smart Budgeting</h3>
+                <h3 className="text-2xl font-bold mb-4">{t('landing.features.items.budgeting.title')}</h3>
                 <p className="text-violet-200">
-                  Set monthly limits for every category. We'll track your spending and 
-                  alert you when you're close to your limit.
+                  {t('landing.features.items.budgeting.desc')}
                 </p>
               </div>
               <div className="mt-8 relative h-40 bg-violet-800/50 rounded-2xl border border-white/5 overflow-hidden">
@@ -333,10 +345,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-teal-600 shadow-sm mb-6 group-hover:scale-110 transition-transform">
                 <CheckCircle2 size={28} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Goal Tracking</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{t('landing.features.items.goals.title')}</h3>
               <p className="text-gray-600 text-sm">
-                Create custom savings goals for your dreams. Track your progress 
-                and reach your targets faster.
+                {t('landing.features.items.goals.desc')}
               </p>
             </div>
 
@@ -345,10 +356,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 transition-transform">
                 <Activity size={28} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Detailed Reports</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{t('landing.features.items.reports.title')}</h3>
               <p className="text-gray-600 text-sm">
-                Analyze your spending habits with comprehensive breakdowns 
-                and exportable reports.
+                {t('landing.features.items.reports.desc')}
               </p>
             </div>
           </div>
@@ -367,35 +377,32 @@ export default function LandingPage() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-900/50 border border-blue-800 text-blue-300 text-xs font-bold uppercase tracking-wide mb-6">
                 <Shield size={14} />
-                Bank-Grade Security
+                {t('landing.security.badge')}
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
-                Your data is safe <br />
+                {t('landing.security.title')} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
-                  and sound.
+                  {t('landing.security.highlight')}
                 </span>
               </h2>
               <p className="text-lg text-gray-400 mb-8 leading-relaxed">
-                We take security seriously. From the moment you sign up, your financial data 
-                is protected by industry-leading security protocols.
+                {t('landing.security.subtitle')}
               </p>
               
               <div className="space-y-6">
-                {[
-                  { title: "Secure Authentication", desc: "Powered by Laravel Sanctum for robust token-based protection." },
-                  { title: "Password Hashing", desc: "Passwords are hashed using Bcrypt/Argon2 standards. We never see your password." },
-                  { title: "Data Privacy", desc: "Your data belongs to you. We never sell or share your personal information." },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-blue-400 shrink-0">
-                      <CheckCircle2 size={24} />
+                {
+                   t('landing.security.items', { returnObjects: true }).map((item, i) => (
+                    <div key={i} className="flex gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center text-blue-400 shrink-0">
+                        <CheckCircle2 size={24} />
+                      </div>
+                      <div>
+                        <h4 className="text-xl font-bold mb-1">{item.title}</h4>
+                        <p className="text-gray-400 text-sm">{item.desc}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xl font-bold mb-1">{item.title}</h4>
-                      <p className="text-gray-400 text-sm">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                }
               </div>
             </div>
             
@@ -406,26 +413,26 @@ export default function LandingPage() {
                     <Shield size={24} />
                   </div>
                   <div>
-                    <h4 className="font-bold text-lg">Security Status</h4>
+                    <h4 className="font-bold text-lg">{t('landing.security.card.statusTitle')}</h4>
                     <p className="text-green-400 text-sm flex items-center gap-1">
                       <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                      Active & Monitored
+                      {t('landing.security.card.status')}
                     </p>
                   </div>
                 </div>
                 
                 <div className="space-y-4">
                   <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
-                    <span className="text-gray-300 text-sm">Encryption</span>
+                    <span className="text-gray-300 text-sm">{t('landing.security.card.encryption')}</span>
                     <span className="text-blue-400 text-sm font-mono">TLS 1.3 / HTTPS</span>
                   </div>
                   <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
-                    <span className="text-gray-300 text-sm">Database</span>
-                    <span className="text-blue-400 text-sm font-mono">Isolated & Protected</span>
+                    <span className="text-gray-300 text-sm">{t('landing.security.card.database')}</span>
+                    <span className="text-blue-400 text-sm font-mono">{t('landing.security.card.isolated')}</span>
                   </div>
                   <div className="bg-gray-900/50 p-4 rounded-xl border border-gray-700 flex items-center justify-between">
-                    <span className="text-gray-300 text-sm">Backups</span>
-                    <span className="text-blue-400 text-sm font-mono">Daily Encrypted</span>
+                    <span className="text-gray-300 text-sm">{t('landing.security.card.backups')}</span>
+                    <span className="text-blue-400 text-sm font-mono">{t('landing.security.card.daily')}</span>
                   </div>
                 </div>
               </div>
@@ -443,49 +450,36 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
-              Building for the <span className="text-blue-600">future</span>
+              {t('landing.roadmap.title')} <span className="text-blue-600">{t('landing.roadmap.highlight')}</span>
             </h2>
             <p className="text-base md:text-lg text-gray-600">
-              We're constantly improving. Here's what's coming next to MoneyTracker.
+              {t('landing.roadmap.subtitle')}
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-            {[
-              {
-                quarter: "Q1 2026",
-                title: "Data Export",
-                desc: "Download your complete financial history in CSV and PDF formats for tax season.",
-                status: "In Progress",
-                color: "bg-blue-100 text-blue-700"
-              },
-              {
-                quarter: "Q2 2026",
-                title: "Recurring Transactions",
-                desc: "Set up automated recurring income and expenses so you never have to enter bills manually.",
-                status: "Planned",
-                color: "bg-violet-100 text-violet-700"
-              },
-              {
-                quarter: "Q3 2026",
-                title: "Multi-Currency",
-                desc: "Track assets and spending in multiple currencies with real-time conversion rates.",
-                status: "Planned",
-                color: "bg-teal-100 text-teal-700"
-              }
-            ].map((item, i) => (
-              <div key={i} className="bg-gray-50 rounded-3xl p-6 md:p-8 border border-gray-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
-                <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 ${item.color}`}>
-                  {item.status}
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                <p className="text-gray-600 text-sm mb-4">{item.desc}</p>
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Target: {item.quarter}
-                </div>
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/0 to-white/50 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ))}
+            {
+               t('landing.roadmap.items', { returnObjects: true }).map((item, i) => {
+                 const colors = [
+                   "bg-blue-100 text-blue-700",
+                   "bg-violet-100 text-violet-700",
+                   "bg-teal-100 text-teal-700"
+                 ];
+                 return (
+                  <div key={i} className="bg-gray-50 rounded-3xl p-6 md:p-8 border border-gray-100 relative overflow-hidden group hover:shadow-lg transition-all hover:-translate-y-1">
+                    <div className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-4 ${colors[i]}`}>
+                      {item.status}
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4">{item.desc}</p>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      Target: {item.quarter}
+                    </div>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/0 to-white/50 rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                 )
+               })
+            }
           </div>
         </div>
       </section>
@@ -495,58 +489,47 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-12 md:mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
-              Loved by <span className="text-blue-600">thousands</span>
+              {t('landing.testimonials.title')} <span className="text-blue-600">{t('landing.testimonials.highlight')}</span>
             </h2>
             <p className="text-base md:text-lg text-gray-600">
-              Don't just take our word for it. Here's what our community has to say.
+              {t('landing.testimonials.subtitle')}
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 md:gap-8">
-            {[
-              {
-                name: "Sarah Johnson",
-                role: "Freelance Designer",
-                image: "https://i.pravatar.cc/150?img=1",
-                quote: "MoneyTracker completely transformed how I manage my freelance income. The tax estimation feature is a lifesaver!",
-                rating: 5
-              },
-              {
-                name: "Michael Chen",
-                role: "Software Engineer",
-                image: "https://i.pravatar.cc/150?img=11",
-                quote: "The cleanest budgeting app I've ever used. No clutter, just the insights I need to grow my savings.",
-                rating: 5
-              },
-              {
-                name: "Emily Davis",
-                role: "Small Business Owner",
-                image: "https://i.pravatar.cc/150?img=5",
-                quote: "I finally understand where my money is going. The visual reports are stunning and so easy to understand.",
-                rating: 4
-              }
-            ].map((testimonial, i) => (
-              <div key={i} className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-1 text-amber-400 mb-6">
-                  {[...Array(5)].map((_, starIndex) => (
-                    <Star 
-                      key={starIndex} 
-                      size={18} 
-                      fill={starIndex < testimonial.rating ? "currentColor" : "none"} 
-                      className={starIndex < testimonial.rating ? "text-amber-400" : "text-gray-300"}
-                    />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6 leading-relaxed">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-4">
-                  <img src={testimonial.image} alt={testimonial.name} className="w-12 h-12 rounded-full object-cover" />
-                  <div>
-                    <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-500">{testimonial.role}</p>
+            {
+               t('landing.testimonials.items', { returnObjects: true }).map((testimonial, i) => {
+                 // Merchant data with images and ratings so it persists across languages
+                 const meta = [
+                   { image: "https://i.pravatar.cc/150?img=1", rating: 5 },
+                   { image: "https://i.pravatar.cc/150?img=11", rating: 5 },
+                   { image: "https://i.pravatar.cc/150?img=5", rating: 4 },
+                 ][i];
+                 
+                 return (
+                  <div key={i} className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex items-center gap-1 text-amber-400 mb-6">
+                      {[...Array(5)].map((_, starIndex) => (
+                        <Star 
+                          key={starIndex} 
+                          size={18} 
+                          fill={starIndex < meta.rating ? "currentColor" : "none"} 
+                          className={starIndex < meta.rating ? "text-amber-400" : "text-gray-300"}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-gray-700 mb-6 leading-relaxed">"{testimonial.quote}"</p>
+                    <div className="flex items-center gap-4">
+                      <img src={meta.image} alt={testimonial.name} className="w-12 h-12 rounded-full object-cover" />
+                      <div>
+                        <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
+                        <p className="text-sm text-gray-500">{testimonial.role}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                 )
+               })
+            }
           </div>
         </div>
       </section>
@@ -556,46 +539,31 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 md:px-6 max-w-4xl">
           <div className="text-center mb-12 md:mb-16">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 md:mb-6">
-              Frequently Asked Questions
+              {t('landing.faq.title')}
             </h2>
             <p className="text-base md:text-lg text-gray-600">
-              Got questions? We've got answers.
+              {t('landing.faq.subtitle')}
             </p>
           </div>
 
           <div className="space-y-4">
-            {[
-              {
-                question: "Is MoneyTracker really free?",
-                answer: "Yes! Our core features are completely free forever. We also offer a Premium plan for power users who need advanced automation and unlimited history."
-              },
-              {
-                question: "Is my financial data safe?",
-                answer: "We prioritize your security. Your password is securely hashed using industry standards, and we never sell your personal information to third parties."
-              },
-              {
-                question: "Can I export my data?",
-                answer: "Yes, you can export your transaction history and reports to CSV or PDF formats at any time."
-              },
-              {
-                question: "Does it connect to my bank account?",
-                answer: "Currently, we focus on manual entry for maximum privacy and control, but we are working on optional bank syncing for the near future."
-              }
-            ].map((faq, i) => (
-              <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden hover:border-blue-200 transition-colors">
-                <details className="group">
-                  <summary className="flex items-center justify-between p-6 cursor-pointer bg-white">
-                    <h3 className="text-lg font-semibold text-gray-900">{faq.question}</h3>
-                    <span className="text-gray-400 group-open:rotate-180 transition-transform duration-300">
-                      <ChevronRight />
-                    </span>
-                  </summary>
-                  <div className="px-6 pb-6 text-gray-600 leading-relaxed">
-                    {faq.answer}
-                  </div>
-                </details>
-              </div>
-            ))}
+            {
+               t('landing.faq.items', { returnObjects: true }).map((faq, i) => (
+                <div key={i} className="border border-gray-200 rounded-2xl overflow-hidden hover:border-blue-200 transition-colors">
+                  <details className="group">
+                    <summary className="flex items-center justify-between p-6 cursor-pointer bg-white">
+                      <h3 className="text-lg font-semibold text-gray-900">{faq.question}</h3>
+                      <span className="text-gray-400 group-open:rotate-180 transition-transform duration-300">
+                        <ChevronRight />
+                      </span>
+                    </summary>
+                    <div className="px-6 pb-6 text-gray-600 leading-relaxed">
+                      {faq.answer}
+                    </div>
+                  </details>
+                </div>
+              ))
+            }
           </div>
         </div>
       </section>
@@ -612,19 +580,19 @@ export default function LandingPage() {
 
             <div className="relative z-10">
               <h2 className="text-3xl md:text-4xl lg:text-6xl font-bold text-white mb-6 md:mb-8 tracking-tight">
-                Ready to take control?
+                {t('landing.cta_section.title')}
               </h2>
               <p className="text-lg md:text-xl text-gray-400 mb-8 md:mb-12 max-w-2xl mx-auto">
-                Join thousands of users who are building a better financial future with MoneyTracker.
+                {t('landing.cta_section.subtitle')}
               </p>
               <button
                 onClick={() => handleNavigation("/signup")}
                 className="bg-white text-gray-900 px-8 md:px-10 py-4 md:py-5 rounded-full font-bold text-lg transition-all hover:scale-105 hover:shadow-2xl hover:shadow-white/20"
               >
-                Create Free Account
+                {t('landing.cta_section.button')}
               </button>
               <p className="mt-6 md:mt-8 text-sm text-gray-500">
-                No credit card required • Free forever plan available
+                {t('landing.cta_section.disclaimer')}
               </p>
             </div>
           </div>
@@ -632,30 +600,28 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-12 md:py-16 px-4 md:px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-4 gap-8 md:gap-12 mb-12 md:mb-16">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-6">
-                <LogoIcon size={32} />
-                <span className="text-xl font-bold text-gray-900">MoneyTracker</span>
+      <footer className="bg-white border-t border-gray-100 pt-16 pb-8">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="grid md:grid-cols-4 gap-12 mb-16">
+            <div className="md:col-span-1">
+              <div className="flex items-center gap-2 mb-6 text-gray-900">
+                <div className="p-2 bg-blue-600 rounded-lg text-white">
+                  <LogoIcon size={24} />
+                </div>
+                <span className="font-bold text-xl">MoneyTracker</span>
               </div>
-              <p className="text-gray-500 max-w-sm">
-                The smartest way to manage your personal finances. 
-                Built with security and simplicity in mind.
+              <p className="text-gray-500 leading-relaxed">
+                {t('landing.footer.description')}
               </p>
             </div>
             
             <div>
-              <h4 className="font-bold text-gray-900 mb-6">Product</h4>
-              <ul className="space-y-4 text-gray-500">
-                {["Features", "Security", "Roadmap"].map((item) => (
+              <h4 className="font-bold text-gray-900 mb-6">{t('landing.footer.headers.product')}</h4>
+              <ul className="space-y-4">
+                {["features", "security", "roadmap"].map((item) => (
                   <li key={item}>
-                    <button
-                      onClick={() => scrollToSection(item.toLowerCase())}
-                      className="hover:text-blue-600 transition-colors"
-                    >
-                      {item}
+                    <button onClick={() => scrollToSection(item)} className="text-gray-500 hover:text-blue-600 transition-colors">
+                       {t(`landing.footer.links.${item}`)}
                     </button>
                   </li>
                 ))}
@@ -663,17 +629,20 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h4 className="font-bold text-gray-900 mb-6">Company</h4>
-              <ul className="space-y-4 text-gray-500">
+              <h4 className="font-bold text-gray-900 mb-6">{t('landing.footer.headers.company')}</h4>
+              <ul className="space-y-4">
                 {[
-                  { label: "About", path: "/about" },
-                  { label: "Careers", path: "/careers" },
-                  { label: "Blog", path: "/blog" },
-                  { label: "Contact", path: "/contact" }
-                ].map(item => (
-                  <li key={item.label}>
-                    <button onClick={() => handleNavigation(item.path)} className="hover:text-blue-600 transition-colors">
-                      {item.label}
+                  { key: "about", path: "/about" },
+                  { key: "careers", path: "/careers" },
+                  { key: "blog", path: "/blog" },
+                  { key: "contact", path: "/contact" }
+                ].map((item) => (
+                  <li key={item.key}>
+                    <button 
+                      onClick={() => handleNavigation(item.path)} 
+                      className="text-gray-500 hover:text-blue-600 transition-colors"
+                    >
+                      {t(`landing.footer.links.${item.key}`)}
                     </button>
                   </li>
                 ))}
@@ -681,14 +650,22 @@ export default function LandingPage() {
             </div>
           </div>
           
-          <div className="pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-            <p>© 2025 MoneyTracker. All rights reserved.</p>
-            <div className="flex gap-8">
-              <button onClick={() => handleNavigation("/privacy-policy")} className="hover:text-gray-600 transition-colors">
-                Privacy Policy
+          <div className="border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-400">
+              {t('landing.footer.copyright')}
+            </p>
+            <div className="flex gap-6">
+              <button 
+                onClick={() => handleNavigation("/privacy-policy")} 
+                className="text-sm text-gray-400 hover:text-gray-900 transition-colors"
+              >
+                {t('landing.footer.links.privacy')}
               </button>
-              <button onClick={() => handleNavigation("/terms-of-service")} className="hover:text-gray-600 transition-colors">
-                Terms of Service
+              <button 
+                onClick={() => handleNavigation("/terms-of-service")} 
+                className="text-sm text-gray-400 hover:text-gray-900 transition-colors"
+              >
+                {t('landing.footer.links.terms')}
               </button>
             </div>
           </div>

@@ -1,11 +1,12 @@
-import ExcelJS from "exceljs";
-
 /**
  * Export Full Report to Excel
  * Generates a comprehensive report with Income, Expenses, Budgets, and Savings.
  * Uses ExcelJS to apply specific styling matching the application theme.
  */
 export const exportFullReport = async (data) => {
+  // Dynamically import ExcelJS so it keeps the main bundle small
+  const { default: ExcelJS } = await import("exceljs");
+
   const {
     income,
     expenses,

@@ -5,8 +5,10 @@ import { loginUser } from "../api/auth";
 import { setToken } from "../api/axios";
 import { useUserContext } from "../context/UserContext";
 import { showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useLoginLogic = () => {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -52,7 +54,8 @@ export const useLoginLogic = () => {
       const result = await loginUser(formData);
       setToken(result.data.token, formData.remember);
       setUser(result.data.user);
-      showSuccess("Login Successful! Welcome back!");
+      setUser(result.data.user);
+      showSuccess(t('app.swal.loginSuccess'));
       navigate("/dashboard");
     } catch (err) {
       if (err.response && err.response.data) {
@@ -100,7 +103,7 @@ export const useLoginLogic = () => {
           }
         }
       } else {
-        showError("Something went wrong. Try again later.");
+        showError(t('app.swal.errorText'));
       }
     } finally {
       setLoading(false);
@@ -129,7 +132,8 @@ export const useLoginLogic = () => {
       }
     } catch (err) {
       console.error("Google login error:", err);
-      showError("Something went wrong with Google login. Try again later.");
+      console.error("Google login error:", err);
+      showError(t('app.swal.googleLoginError'));
     } finally {
       setGoogleLoading(false);
     }

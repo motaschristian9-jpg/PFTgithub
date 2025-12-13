@@ -1,5 +1,6 @@
 import React from "react";
 import { PieChart, AlertTriangle, Clock, Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/currency";
 
 const ActiveBudgetsList = ({
@@ -10,6 +11,8 @@ const ActiveBudgetsList = ({
   handleBudgetCardModalOpen,
   userCurrency,
 }) => {
+  const { t } = useTranslation();
+
   if (budgets.length === 0) {
     return (
       <div className="rounded-2xl bg-white dark:bg-gray-900 p-12 text-center border border-gray-100 dark:border-gray-800 shadow-sm">
@@ -17,10 +20,10 @@ const ActiveBudgetsList = ({
           <PieChart className="text-gray-300 dark:text-gray-600" size={40} />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          No active budgets found
+          {t('app.budgets.list.emptyTitle')}
         </h3>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 max-w-xs mx-auto">
-          Try adjusting your filters or create a new budget to start tracking.
+          {t('app.budgets.list.emptyDesc')}
         </p>
       </div>
     );
@@ -83,13 +86,13 @@ const ActiveBudgetsList = ({
 
               <div className="space-y-3 mb-5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Allocated</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('app.budgets.list.allocated')}</span>
                   <span className="font-bold text-violet-600 dark:text-violet-400">
                     {formatCurrency(allocated, userCurrency)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Spent</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('app.budgets.list.spent')}</span>
                   <span className="font-bold text-violet-600 dark:text-violet-400">
                     {formatCurrency(spent, userCurrency)}
                   </span>
@@ -116,7 +119,7 @@ const ActiveBudgetsList = ({
                 
                 <div className="mt-4 flex justify-end">
                     <span className="text-xs font-medium text-violet-600 dark:text-violet-400">
-                        View Details →
+                        {t('app.budgets.list.viewDetails')} →
                     </span>
                 </div>
               </div>

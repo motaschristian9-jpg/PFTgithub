@@ -1,4 +1,5 @@
 import { Search, ArrowUpDown, TrendingUp, TrendingDown, LayoutGrid, History } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function SavingsFilters({
   search,
@@ -10,6 +11,8 @@ export default function SavingsFilters({
   sortDir,
   setSortDir,
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 flex flex-col gap-5">
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
@@ -20,7 +23,7 @@ export default function SavingsFilters({
           />
           <input
             type="text"
-            placeholder="Search savings goals..."
+            placeholder={t('app.savings.filters.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500 text-sm text-gray-900 dark:text-white"
@@ -36,7 +39,7 @@ export default function SavingsFilters({
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
-            <LayoutGrid size={16} /> <span>Active</span>
+            <LayoutGrid size={16} /> <span>{t('app.savings.filters.activeTab')}</span>
           </button>
           <button
             onClick={() => setActiveTab("history")}
@@ -46,7 +49,7 @@ export default function SavingsFilters({
                 : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             }`}
           >
-            <History size={16} /> <span>History</span>
+            <History size={16} /> <span>{t('app.savings.filters.historyTab')}</span>
           </button>
         </div>
       </div>
@@ -61,10 +64,10 @@ export default function SavingsFilters({
             onChange={(e) => setSortBy(e.target.value)}
             className="w-full pl-9 pr-8 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
-            <option value="created_at">Newest First</option>
-            <option value="target_amount">Target Amount</option>
-            <option value="current_amount">Current Amount</option>
-            <option value="name">Name</option>
+            <option value="created_at">{t('app.savings.filters.sortBy.newest')}</option>
+            <option value="target_amount">{t('app.savings.filters.sortBy.targetAmount')}</option>
+            <option value="current_amount">{t('app.savings.filters.sortBy.currentAmount')}</option>
+            <option value="name">{t('app.savings.filters.sortBy.name')}</option>
           </select>
         </div>
         <button
@@ -72,15 +75,15 @@ export default function SavingsFilters({
             setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))
           }
           className="flex items-center justify-center space-x-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors text-sm font-medium"
-          title={sortDir === "asc" ? "Ascending" : "Descending"}
+          title={sortDir === "asc" ? t('app.savings.filters.ascending') : t('app.savings.filters.descending')}
         >
           {sortDir === "asc" ? (
             <>
-              <TrendingUp size={16} /> <span>Ascending</span>
+              <TrendingUp size={16} /> <span>{t('app.savings.filters.ascending')}</span>
             </>
           ) : (
             <>
-              <TrendingDown size={16} /> <span>Descending</span>
+              <TrendingDown size={16} /> <span>{t('app.savings.filters.descending')}</span>
             </>
           )}
         </button>

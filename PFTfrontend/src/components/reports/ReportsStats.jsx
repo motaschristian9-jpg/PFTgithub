@@ -1,5 +1,6 @@
 import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClass }) => {
   // Extract base color from classes
@@ -33,10 +34,12 @@ const StatCard = ({ title, value, icon: Icon, colorClass, bgClass, iconColorClas
 };
 
 export default function ReportsStats({ stats, userCurrency }) {
+  const { t } = useTranslation();
+
   return (
     <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard
-        title="Total Income"
+        title={t('app.reports.stats.income')}
         value={formatCurrency(stats.income, userCurrency)}
         icon={TrendingUp}
         colorClass="text-emerald-600"
@@ -44,7 +47,7 @@ export default function ReportsStats({ stats, userCurrency }) {
         iconColorClass="text-emerald-600"
       />
       <StatCard
-        title="Total Expenses"
+        title={t('app.reports.stats.expenses')}
         value={formatCurrency(stats.expenses, userCurrency)}
         icon={TrendingDown}
         colorClass="text-rose-600"
@@ -52,7 +55,7 @@ export default function ReportsStats({ stats, userCurrency }) {
         iconColorClass="text-rose-600"
       />
       <StatCard
-        title="Net Balance"
+        title={t('app.reports.stats.net')}
         value={formatCurrency(stats.net, userCurrency)}
         icon={Wallet}
         colorClass={stats.net >= 0 ? "text-blue-600" : "text-rose-600"}

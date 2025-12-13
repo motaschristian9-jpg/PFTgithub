@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getUser } from "../api/auth";
+import i18n from "../i18n";
 
 const UserContext = createContext(null);
 
@@ -47,6 +48,11 @@ export const UserProvider = ({ children }) => {
     if (user) {
       localStorage.setItem("user", JSON.stringify(user));
       setIsAuthenticated(true);
+      
+      // Sync Language
+      if (user.language && user.language !== i18n.language) {
+        i18n.changeLanguage(user.language);
+      }
     } else {
       localStorage.removeItem("user");
       setIsAuthenticated(false);

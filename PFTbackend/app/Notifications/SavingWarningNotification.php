@@ -43,6 +43,7 @@ class SavingWarningNotification extends Notification implements ShouldQueue
             'title' => 'Savings Milestone',
             'message' => 'You are 85% of the way to your **' . $this->saving->name . '** goal!',
             'saving_id' => $this->saving->id,
+            'saving_name' => $this->saving->name,
             'type' => 'saving_warning',
         ];
     }

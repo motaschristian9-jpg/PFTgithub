@@ -15,8 +15,10 @@ import {
 } from "./useTransactions";
 import { confirmDelete, showSuccess, showError } from "../utils/swal";
 import { formatCurrency } from "../utils/currency";
+import { useTranslation } from "react-i18next";
 
 export const useSavingsPageLogic = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -196,7 +198,7 @@ export const useSavingsPageLogic = () => {
   ) => {
     const categoryId = findTransferCategory("income");
     if (!categoryId) {
-      showError("Error", "No Income category found.");
+      showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
       return false;
     }
     const payload = {
@@ -216,7 +218,7 @@ export const useSavingsPageLogic = () => {
       return newTransaction;
     } catch (error) {
       console.error("Failed to create withdrawal transaction:", error);
-      showError("Transaction Failed", "Could not create the income record for this withdrawal.");
+      showError(t('app.swal.transactionFailed'), t('app.swal.transactionFailedMsg'));
       return false;
     }
   };
@@ -228,7 +230,7 @@ export const useSavingsPageLogic = () => {
   ) => {
     const categoryId = findTransferCategory("expense");
     if (!categoryId) {
-      showError("Error", "No Expense category found.");
+      showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
       return false;
     }
     const payload = {
@@ -248,7 +250,7 @@ export const useSavingsPageLogic = () => {
       return newTransaction;
     } catch (error) {
       console.error("Failed to create contribution transaction:", error);
-      showError("Transaction Failed", "Could not create the expense record for this contribution.");
+      showError(t('app.swal.transactionFailed'), t('app.swal.transactionFailedMsg'));
       return false;
     }
   };
@@ -257,8 +259,8 @@ export const useSavingsPageLogic = () => {
     const currentCount = activeSavingsData?.length || 0;
     if (currentCount >= 6) {
       showError(
-        "Limit Reached",
-        "You can only have 6 active savings goals at a time."
+        t('app.swal.limitReached'),
+        t('app.swal.limitReachedMsg')
       );
       return;
     }
@@ -278,12 +280,12 @@ export const useSavingsPageLogic = () => {
         await updateMutation.mutateAsync({ id: selectedSaving.id, data });
         setIsFormModalOpen(false);
         setSelectedSaving(null);
-        showSuccess("Updated!", "Savings goal updated successfully.");
+        showSuccess(t('app.swal.savingsUpdated'), t('app.swal.savingsUpdatedMsg'));
       } else {
         const newSaving = await createMutation.mutateAsync(data);
         setIsFormModalOpen(false);
         setSelectedSaving(null);
-        showSuccess("Created!", "Savings goal created successfully.");
+        showSuccess(t('app.swal.savingsCreated'), t('app.swal.savingsCreatedMsg'));
 
         if (initialAmount > 0) {
           handleCreateContributionTransaction(
@@ -297,7 +299,7 @@ export const useSavingsPageLogic = () => {
       // queryClient.invalidateQueries(["savings"]); // Handled by mutation onSettled
     } catch (error) {
       console.error("Error saving:", error);
-      showError("Error", "Failed to save savings goal.");
+      showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
     }
   };
 
@@ -314,10 +316,10 @@ export const useSavingsPageLogic = () => {
       setSelectedSaving((prev) => ({ ...prev, current_amount: newBalance }));
       queryClient.invalidateQueries(["transactions"]);
       queryClient.invalidateQueries(["savings"]);
-      showSuccess("Deleted", "Transaction deleted and balance updated.");
+      showSuccess(t('app.swal.transactionDeleted'), t('app.swal.transactionDeletedMsg'));
     } catch (error) {
       console.error("Error deleting transaction:", error);
-      showError("Error", "Failed to delete transaction.");
+      showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
     }
   };
 
@@ -350,20 +352,25 @@ export const useSavingsPageLogic = () => {
 
     const hasFunds = linkedTransactions.length > 0 || Number(goalToDelete.current_amount) > 0;
 
-    let title = "Delete Goal?";
-    let text = "This action cannot be undone.";
-
     const formattedCurrentAmount = formatCurrency(
       Number(goalToDelete.current_amount),
       user?.currency || "USD"
     );
 
+    let title = t('app.savings.alerts.deleteGoalTitle');
+    let text = t('app.savings.alerts.deleteGoalMsg');
+
     if (hasFunds) {
-      title = "Return Funds to Balance?";
-      text = `This goal has ${linkedTransactions.length} transaction(s) totaling ${formattedCurrentAmount}. Deleting this will remove these transactions and return the money to your Available Balance.`;
+      title = t('app.savings.alerts.returnFundsTitle');
+      text = t('app.savings.alerts.returnFundsMsg', { count: linkedTransactions.length, amount: formattedCurrentAmount });
     }
 
-    const result = await confirmDelete(title, text);
+    const result = await confirmDelete(
+      title,
+      text,
+      t('app.savings.alerts.deleteTxBtn'), // Reusing "Yes, delete it" button
+      t('app.savings.alerts.cancelBtn')
+    );
 
     if (result.isConfirmed) {
       // Close modals immediately for better UX
@@ -381,14 +388,14 @@ export const useSavingsPageLogic = () => {
         await queryClient.invalidateQueries(["transactions"]);
 
         showSuccess(
-          "Deleted",
+          t('app.savings.alerts.deleteSuccessTitle'),
           hasFunds
-            ? "Goal deleted and funds returned to balance."
-            : "Goal deleted successfully."
+            ? t('app.savings.alerts.returnSuccessMsg')
+            : t('app.savings.alerts.deleteSuccessMsg')
         );
       } catch (error) {
         console.error("Delete failed", error);
-        showError("Error", "Failed to delete goal or refund transactions.");
+        showError(t('app.savings.alerts.deleteGoalErrorTitle'), t('app.savings.alerts.deleteGoalErrorMsg'));
       }
     }
   };

@@ -12,6 +12,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 const TransactionsTable = ({
   isLoading,
@@ -29,6 +30,8 @@ const TransactionsTable = ({
   updatingTransactionId,
   onPageChange,
 }) => {
+  const { t } = useTranslation();
+
   const getSortIcon = (key) => {
     if (sortBy !== key)
       return <ArrowUpDown size={14} className="text-gray-400 opacity-50" />;
@@ -69,8 +72,8 @@ const TransactionsTable = ({
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 overflow-hidden min-h-[400px] flex flex-col">
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Transaction History</h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">All Transactions</span>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('app.transactions.table.title')}</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{t('app.transactions.table.subtitle')}</span>
       </div>
 
       <div className="hidden lg:grid grid-cols-12 gap-4 p-4 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -78,18 +81,18 @@ const TransactionsTable = ({
           onClick={() => handleSort("date")}
           className="col-span-2 cursor-pointer flex items-center hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
         >
-          Date {getSortIcon("date")}
+          {t('app.transactions.table.headers.date')} {getSortIcon("date")}
         </div>
-        <div className="col-span-3">Name & Description</div>
-        <div className="col-span-2">Category</div>
+        <div className="col-span-3">{t('app.transactions.table.headers.description')}</div>
+        <div className="col-span-2">{t('app.transactions.table.headers.category')}</div>
         <div
           onClick={() => handleSort("amount")}
           className="col-span-2 cursor-pointer flex items-center hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
         >
-          Amount {getSortIcon("amount")}
+          {t('app.transactions.table.headers.amount')} {getSortIcon("amount")}
         </div>
-        <div className="col-span-1">Type</div>
-        <div className="col-span-2 text-right">Actions</div>
+        <div className="col-span-1">{t('app.transactions.table.headers.type')}</div>
+        <div className="col-span-2 text-right">{t('app.transactions.table.headers.actions')}</div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -108,7 +111,7 @@ const TransactionsTable = ({
             <div className="mb-3 rounded-full bg-gray-100 dark:bg-gray-800 p-4">
               <Receipt size={32} className="text-gray-400 dark:text-gray-500" />
             </div>
-            <p>No transactions found.</p>
+            <p>{t('app.transactions.table.empty')}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -125,7 +128,7 @@ const TransactionsTable = ({
                 >
                   <div className="hidden lg:grid grid-cols-12 gap-4 p-4 items-center">
                     <div className="col-span-2 text-sm text-gray-600 dark:text-gray-300 font-medium">
-                      {tx.pending ? "Syncing..." : formatDate(tx.date)}
+                      {tx.pending ? t('app.transactions.table.syncing') : formatDate(tx.date)}
                     </div>
                     <div className="col-span-3">
                       <p className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
@@ -160,7 +163,7 @@ const TransactionsTable = ({
                             : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400"
                         }`}
                       >
-                        {tx.type}
+                        {tx.type === "income" ? t('app.transactions.filters.type.income') : t('app.transactions.filters.type.expense')}
                       </span>
                     </div>
                     <div className="col-span-2 flex justify-end space-x-2">
@@ -169,8 +172,8 @@ const TransactionsTable = ({
                         disabled={new Date() - new Date(tx.created_at) > 60 * 60 * 1000}
                         title={
                           new Date() - new Date(tx.created_at) > 60 * 60 * 1000
-                            ? "Editing disabled after 1 hour"
-                            : "Edit Transaction"
+                            ? t('app.transactions.table.editingDisabled')
+                            : t('app.transactions.table.editTooltip')
                         }
                         className={`p-2 rounded-lg transition-colors ${
                           new Date() - new Date(tx.created_at) > 60 * 60 * 1000
@@ -264,17 +267,17 @@ const TransactionsTable = ({
               disabled={pagination.currentPage === 1}
               className="px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
-              Previous
+              {t('app.transactions.table.prev')}
             </button>
             <span className="px-3 py-1 text-gray-600 dark:text-gray-300 flex items-center">
-              Page {pagination.currentPage} of {pagination.lastPage}
+              {t('app.transactions.table.page')} {pagination.currentPage} {t('app.transactions.table.of')} {pagination.lastPage}
             </span>
             <button
               onClick={() => onPageChange(pagination.currentPage + 1)}
               disabled={pagination.currentPage >= pagination.lastPage}
               className="px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
             >
-              Next
+              {t('app.transactions.table.next')}
             </button>
           </div>
         </div>

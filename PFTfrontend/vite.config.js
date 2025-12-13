@@ -13,5 +13,17 @@ export default defineConfig({
       usePolling: true, // Needed for Windows Docker
     },
     allowedHosts: true,
+    proxy: {
+      '/api': {
+        target: 'http://nginx:80',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/sanctum': {
+        target: 'http://nginx:80',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
   },
 })

@@ -43,6 +43,7 @@ class BudgetWarningNotification extends Notification implements ShouldQueue
             'title' => 'Budget Alert: Near Limit',
             'message' => 'You have used over 85% of your **' . $this->budget->name . '** budget.',
             'budget_id' => $this->budget->id,
+            'budget_name' => $this->budget->name,
             'type' => 'budget_warning',
         ];
     }

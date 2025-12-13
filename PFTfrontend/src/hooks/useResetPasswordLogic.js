@@ -3,8 +3,10 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { resetPassword } from "../api/auth";
 import { showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useResetPasswordLogic = () => {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,8 +63,8 @@ export const useResetPasswordLogic = () => {
       });
 
       showSuccess(
-        "Password Reset!",
-        "Your password has been successfully reset. You can now log in with your new password."
+        t('app.swal.passwordReset'),
+        t('app.swal.passwordResetMsg')
       );
       navigate("/login");
     } catch (err) {
@@ -105,10 +107,10 @@ export const useResetPasswordLogic = () => {
         } else if (err.response.data.error) {
           setError("password", { message: err.response.data.error });
         } else {
-          showError("Something went wrong. Try again later.");
+          showError(t('app.swal.errorText'));
         }
       } else {
-        showError("Something went wrong. Try again later.");
+        showError(t('app.swal.errorText'));
       }
     } finally {
       setLoading(false);

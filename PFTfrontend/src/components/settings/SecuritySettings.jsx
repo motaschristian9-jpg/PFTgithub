@@ -6,10 +6,12 @@ import { showSuccess, showError } from "../../utils/swal";
 import { useUserContext } from "../../context/UserContext";
 import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
+import { useTranslation } from "react-i18next";
 
 export default function SecuritySettings({ user, onDeleteAccount }) {
   const { clearUser } = useUserContext();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -40,8 +42,8 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
             password_confirmation: data.confirmPassword,
           });
           showSuccess(
-            "Password Set!",
-            "You can now log in with your email and password."
+            t('app.settings.security.alerts.pwSetTitle'),
+            t('app.settings.security.alerts.pwSetMsg')
           );
       } else {
           // Change existing password
@@ -51,15 +53,16 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
             new_password_confirmation: data.confirmPassword,
           });
           showSuccess(
-            "Password Changed!",
-            "Your password has been updated successfully."
+            t('app.settings.security.alerts.pwChangeTitle'),
+            t('app.settings.security.alerts.pwChangeMsg')
           );
       }
       reset();
     } catch (error) {
       console.error(error);
+      console.error(error);
       showError(
-        "Error",
+        t('app.settings.security.alerts.error'),
         error.response?.data?.message ||
           "Failed to update password. Please try again."
       );
@@ -77,10 +80,10 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
             </div>
             <div>
               <h4 className="text-lg font-bold text-amber-800 dark:text-amber-200 mb-1">
-                Set a Password
+                {t('app.settings.security.setPw.title')}
               </h4>
               <p className="text-amber-700/80 dark:text-amber-300 leading-relaxed">
-                You are currently logged in via Google. You don't need a password, but you can set one if you'd like to log in with email/password as well.
+                {t('app.settings.security.setPw.desc')}
               </p>
             </div>
           </div>
@@ -88,7 +91,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-md">
             <div className="space-y-2.5">
               <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                New Password
+                {t('app.settings.security.changePw.new')}
               </label>
               <div className="relative">
                 <Lock
@@ -98,10 +101,10 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
                 <input
                   type="password"
                   {...register("password", {
-                    required: "Password is required",
+                    required: t('app.settings.security.validation.required'),
                     minLength: {
                       value: 8,
-                      message: "Password must be at least 8 characters",
+                      message: t('app.settings.security.validation.min'),
                     },
                   })}
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 dark:focus:border-gray-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -117,7 +120,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
 
             <div className="space-y-2.5">
               <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                Confirm Password
+                {t('app.settings.security.changePw.confirm')}
               </label>
               <div className="relative">
                 <Lock
@@ -127,9 +130,9 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
                 <input
                   type="password"
                   {...register("confirmPassword", {
-                    required: "Please confirm your password",
+                    required: t('app.settings.security.validation.confirmReq'),
                     validate: (val) =>
-                      val === password || "Passwords do not match",
+                      val === password || t('app.settings.security.validation.match'),
                   })}
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 dark:focus:border-gray-500 outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   placeholder="••••••••"
@@ -152,7 +155,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
               ) : (
                 <Save size={20} />
               )}
-              <span>Set Password</span>
+              <span>{t('app.settings.security.setPw.submit')}</span>
             </button>
           </form>
         </div>
@@ -168,10 +171,10 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
           </div>
           <div>
             <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              Change Password
+              {t('app.settings.security.changePw.title')}
             </h4>
             <p className="text-gray-500 dark:text-gray-400 leading-relaxed">
-              Update your password to keep your account secure.
+              {t('app.settings.security.changePw.desc')}
             </p>
           </div>
         </div>
@@ -180,10 +183,10 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
           <div className="space-y-2.5">
             <div className="flex justify-between items-center">
                 <label className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                    Current Password
+                    {t('app.settings.security.changePw.current')}
                 </label>
                 <a href="/forgot-password" onClick={handleForgotPassword} className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer">
-                    Forgot Password?
+                    {t('app.settings.security.changePw.forgot')}
                 </a>
             </div>
             
@@ -195,7 +198,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
               <input
                 type="password"
                 {...register("currentPassword", {
-                  required: "Current password is required",
+                  required: t('app.settings.security.validation.currentReq'),
                 })}
                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all placeholder:text-gray-400"
                 placeholder="••••••••"
@@ -210,7 +213,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
 
           <div className="space-y-2.5">
             <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">
-              New Password
+              {t('app.settings.security.changePw.new')}
             </label>
             <div className="relative">
               <Lock
@@ -220,10 +223,10 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
               <input
                 type="password"
                 {...register("password", {
-                  required: "New password is required",
+                  required: t('app.settings.security.validation.required'),
                   minLength: {
                     value: 8,
-                    message: "Password must be at least 8 characters",
+                    message: t('app.settings.security.validation.min'),
                   },
                 })}
                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all placeholder:text-gray-400"
@@ -239,7 +242,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
 
           <div className="space-y-2.5">
             <label className="text-sm font-bold text-gray-700 uppercase tracking-wide">
-              Confirm New Password
+              {t('app.settings.security.changePw.confirm')}
             </label>
             <div className="relative">
               <Lock
@@ -249,9 +252,9 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
               <input
                 type="password"
                 {...register("confirmPassword", {
-                  required: "Please confirm your new password",
+                  required: t('app.settings.security.validation.confirmReq'),
                   validate: (val) =>
-                    val === password || "Passwords do not match",
+                    val === password || t('app.settings.security.validation.match'),
                 })}
                 className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-900 outline-none transition-all placeholder:text-gray-400"
                 placeholder="••••••••"
@@ -274,7 +277,7 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
             ) : (
               <Save size={20} />
             )}
-            <span>Change Password</span>
+            <span>{t('app.settings.security.changePw.submit')}</span>
           </button>
         </form>
       </div>
@@ -286,22 +289,21 @@ export default function SecuritySettings({ user, onDeleteAccount }) {
       {renderPasswordSection()}
 
       <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
-        <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4">Danger Zone</h3>
+        <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4">{t('app.settings.security.danger.title')}</h3>
         <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-2xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h4 className="text-base font-semibold text-red-900 dark:text-red-200 mb-1">
-              Delete Account
+              {t('app.settings.security.danger.deleteTitle')}
             </h4>
             <p className="text-sm text-red-700/80 dark:text-red-300">
-              Permanently delete your account and all associated data. This
-              action cannot be undone.
+              {t('app.settings.security.danger.deleteDesc')}
             </p>
           </div>
           <button
             onClick={onDeleteAccount}
             className="px-6 py-2.5 bg-white dark:bg-gray-900 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-300 dark:hover:border-red-700 transition-all shadow-sm hover:shadow active:translate-y-0.5 whitespace-nowrap"
           >
-            Delete Account
+            {t('app.settings.security.danger.deleteBtn')}
           </button>
         </div>
       </div>

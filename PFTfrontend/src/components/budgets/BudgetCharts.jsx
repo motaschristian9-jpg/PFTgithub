@@ -10,6 +10,7 @@ import {
   Cell,
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 const CustomTooltip = ({ active, payload, label, userCurrency }) => {
   if (active && payload && payload.length) {
@@ -35,6 +36,7 @@ const CustomTooltip = ({ active, payload, label, userCurrency }) => {
 };
 
 const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
+  const { t } = useTranslation();
   // Aggregate totals for all active budgets
   const totalAllocated = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
   const totalSpent = budgets.reduce((sum, b) => {
@@ -44,7 +46,7 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
 
   const data = [
     {
-      name: "Total Active Budgets",
+      name: t('app.budgets.charts.totalActiveBudgets'),
       allocated: totalAllocated,
       spent: totalSpent,
     },
@@ -56,7 +58,7 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-          Budget vs. Spent
+          {t('app.budgets.charts.budgetVsSpent')}
         </h3>
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -82,8 +84,8 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
                 cursor={{ fill: "#9ca3af", opacity: 0.1 }}
                 content={<CustomTooltip userCurrency={userCurrency} />}
               />
-              <Bar dataKey="allocated" name="Allocated" fill="#ddd6fe" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="spent" name="Spent" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="allocated" name={t('app.budgets.charts.allocated')} fill="#ddd6fe" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="spent" name={t('app.budgets.charts.spent')} fill="#8b5cf6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -93,9 +95,9 @@ const BudgetCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
          <div className="p-4 bg-violet-50 dark:bg-violet-900/20 rounded-full mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-violet-600 dark:text-violet-400"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
          </div>
-         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Spending Overview</h3>
+         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{t('app.budgets.charts.spendingOverview')}</h3>
          <p className="text-gray-500 dark:text-gray-400 max-w-xs">
-            Visualize your budget allocation and spending habits to stay on track.
+            {t('app.budgets.charts.spendingOverviewDesc')}
          </p>
       </div>
     </div>

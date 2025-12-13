@@ -3,8 +3,10 @@ import { PlusCircle, Target, PiggyBank } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const SavingsGoals = ({ savings, userCurrency }) => {
+  const { t } = useTranslation();
   return (
     <motion.div 
       className="rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800"
@@ -14,8 +16,8 @@ const SavingsGoals = ({ savings, userCurrency }) => {
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Savings Goals</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Track your dreams</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('app.dashboard.savings.title')}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('app.dashboard.savings.subtitle')}</p>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
           <Target size={20} />
@@ -28,7 +30,7 @@ const SavingsGoals = ({ savings, userCurrency }) => {
             <PiggyBank size={24} className="text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            No active savings goals. Start saving for your dreams.
+            {t('app.dashboard.savings.noGoals')}
           </p>
         </div>
       ) : (
@@ -50,7 +52,7 @@ const SavingsGoals = ({ savings, userCurrency }) => {
                   {s.name}
                 </h4>
                 <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
-                  Target: {formatCurrency(s.target, userCurrency)}
+                  {t('app.dashboard.savings.target')}: {formatCurrency(s.target, userCurrency)}
                 </p>
 
                 <div className="mb-2 flex items-end justify-between">

@@ -42,6 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'bio',
         'currency',
         'theme_preference',
+        'language',
         'login_method',
         'last_notification_ack_time',
         'email_notifications_enabled',
@@ -63,9 +64,23 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getAvatarUrlAttribute()
     {
-        return $this->avatar
-            ? request()->root() . Storage::url($this->avatar)
-            : null;
+        if (!$this->avatar) {
+            return null;
+        }
+
+        // Normalize path separators for Windows compatibility
+        $avatarPath = str_replace('\\', '/', $this->avatar);
+        $url = Storage::url($avatarPath);
+
+        // If the URL is already absolute (starts with http), return it directly.
+        if (str_starts_with($url, 'http')) {
+            return $url;
+        }
+
+        // standardizing the output to ensure valid web path
+        $url = str_replace('\\', '/', $url);
+
+        return rtrim(config('app.url'), '/') . $url;
     }
 
     public function transactions()

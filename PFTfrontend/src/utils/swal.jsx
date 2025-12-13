@@ -1,19 +1,20 @@
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
+import i18n from "../i18n";
 
 const MySwal = withReactContent(Swal);
 
 // --- Base Theme Configuration ---
-const baseConfig = {
+export const baseConfig = {
   buttonsStyling: false,
   heightAuto: false,
   scrollbarPadding: false,
   customClass: {
     container: "z-[10000] font-sans", // Global Z-Index Fix & Font
     popup:
-      "rounded-[2rem] shadow-2xl border border-gray-100 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md p-0 overflow-hidden ring-1 ring-white/20 dark:ring-white/5",
-    title: "text-2xl font-bold text-gray-900 dark:text-gray-100 pt-8 px-8 tracking-tight",
-    htmlContainer: "text-gray-500 dark:text-gray-300 text-base px-8 pb-8 pt-2 m-0 leading-relaxed",
+      "rounded-[2rem] shadow-2xl border border-gray-100 !bg-white dark:!bg-gray-800/95 dark:border-gray-700 backdrop-blur-md p-0 overflow-hidden ring-1 ring-white/20 dark:ring-white/5",
+    title: "text-2xl font-bold text-gray-900 dark:!text-gray-100 pt-8 px-8 tracking-tight",
+    htmlContainer: "text-gray-500 dark:!text-gray-300 text-base px-8 pb-8 pt-2 m-0 leading-relaxed",
     actions: "flex gap-4 w-full px-8 pb-8 pt-2 justify-center",
     confirmButton:
       "bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-200 transition-all duration-200 transform hover:-translate-y-0.5 text-base",
@@ -26,8 +27,10 @@ const baseConfig = {
 
 // --- 1. Delete Confirmation (Red Theme) ---
 export const confirmDelete = async (
-  title = "Are you sure?",
-  text = "This action cannot be undone."
+  title = i18n.t('app.swal.confirmTitle'),
+  text = i18n.t('app.swal.confirmText'),
+  confirmButtonText = i18n.t('app.swal.confirmBtn'),
+  cancelButtonText = i18n.t('app.swal.cancelBtn')
 ) => {
   return MySwal.fire({
     ...baseConfig,
@@ -35,25 +38,25 @@ export const confirmDelete = async (
     text,
     icon: "warning",
     showCancelButton: true,
-    confirmButtonText: "Yes, delete it",
-    cancelButtonText: "Cancel",
+    confirmButtonText,
+    cancelButtonText,
     reverseButtons: true,
     customClass: {
       ...baseConfig.customClass,
       popup:
-        "rounded-[2rem] shadow-2xl border border-red-100 bg-white/95 backdrop-blur-md p-0 overflow-hidden ring-1 ring-red-50",
-      icon: "border-red-100 text-red-500",
+        "rounded-[2rem] shadow-2xl border border-red-100 dark:border-red-900/50 !bg-white dark:!bg-gray-900/95 backdrop-blur-md p-0 overflow-hidden ring-1 ring-red-50 dark:ring-red-900/20",
+      icon: "border-red-100 dark:border-red-900/50 text-red-500 dark:text-red-400",
       confirmButton:
-        "bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-red-200 transition-all duration-200 transform hover:-translate-y-0.5 text-base",
+        "bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-red-200 dark:shadow-red-900/20 transition-all duration-200 transform hover:-translate-y-0.5 text-base",
     },
   });
 };
 
 export const confirmAction = async ({
-  title = "Are you sure?",
+  title = i18n.t('app.swal.confirmTitle'),
   text = "",
-  confirmButtonText = "Yes",
-  cancelButtonText = "Cancel",
+  confirmButtonText = i18n.t('app.swal.yesBtn'),
+  cancelButtonText = i18n.t('app.swal.cancelBtn'),
   icon = "question",
   confirmButtonColorClass = "bg-blue-600 hover:bg-blue-500",
 }) => {
@@ -98,7 +101,7 @@ const getTextClass = () => {
 
 
 // --- 2. Success Alert (Toast) ---
-export const showSuccess = (title = "Success", text = "") => {
+export const showSuccess = (title = i18n.t('app.swal.successTitle'), text = "") => {
   const styles = getThemeStyles();
   toast.success(
     <div className="flex flex-col">
@@ -125,7 +128,7 @@ export const showSuccess = (title = "Success", text = "") => {
 };
 
 // --- 3. Error Alert (Toast) ---
-export const showError = (title = "Error", text = "Something went wrong") => {
+export const showError = (title = i18n.t('app.swal.errorTitle'), text = i18n.t('app.swal.errorText')) => {
   const styles = getThemeStyles();
   toast.error(
     <div className="flex flex-col">
@@ -152,7 +155,7 @@ export const showError = (title = "Error", text = "Something went wrong") => {
 };
 
 // --- 4. Info Alert (Toast) ---
-export const showInfo = (title = "Info", text = "") => {
+export const showInfo = (title = i18n.t('app.swal.infoTitle'), text = "") => {
   const styles = getThemeStyles();
   toast(
     <div className="flex flex-col">
@@ -176,7 +179,7 @@ export const showInfo = (title = "Info", text = "") => {
 };
 
 // --- 5. Warning Alert (Toast) ---
-export const showWarning = (title = "Warning", text = "") => {
+export const showWarning = (title = i18n.t('app.swal.warningTitle'), text = "") => {
   const styles = getThemeStyles();
   toast(
     <div className="flex flex-col">
@@ -204,9 +207,9 @@ export const showCustomAlert = async ({
   title,
   text,
   icon = "info",
-  confirmButtonText = "OK",
+  confirmButtonText = i18n.t('app.swal.okBtn'),
   showCancelButton = false,
-  cancelButtonText = "Cancel",
+  cancelButtonText = i18n.t('app.swal.cancelBtn'),
   allowOutsideClick = true,
   // Add support for dark mode in standard Swal popups
   customClass = {}, 

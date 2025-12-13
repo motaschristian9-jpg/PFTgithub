@@ -1,5 +1,6 @@
 import React from "react";
 import { Eye, Trash2, PieChart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { formatCurrency } from "../../utils/currency";
 
 const BudgetHistoryTable = ({
@@ -15,11 +16,12 @@ const BudgetHistoryTable = ({
   setHistoryPage,
   totalPages,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 overflow-hidden">
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Budget History</h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">Completed & Expired</span>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('app.budgets.history.title')}</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{t('app.budgets.history.subtitle')}</span>
       </div>
 
       {/* Desktop Table View */}
@@ -28,22 +30,22 @@ const BudgetHistoryTable = ({
           <thead className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
             <tr>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Name
+                {t('app.budgets.history.headers.name')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Category
+                {t('app.budgets.history.headers.category')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Allocated
+                {t('app.budgets.history.headers.allocated')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Spent
+                {t('app.budgets.history.headers.spent')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
+                {t('app.budgets.history.headers.status')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                Actions
+                {t('app.budgets.history.headers.actions')}
               </th>
             </tr>
           </thead>
@@ -51,7 +53,7 @@ const BudgetHistoryTable = ({
             {loading ? (
               <tr>
                 <td colSpan="6" className="p-8 text-center text-gray-500">
-                  Loading history...
+                  {t('app.budgets.history.loading')}
                 </td>
               </tr>
             ) : budgets.length === 0 ? (
@@ -61,7 +63,7 @@ const BudgetHistoryTable = ({
                     <div className="mb-3 rounded-full bg-gray-100 dark:bg-gray-800 p-3">
                       <PieChart size={24} className="text-gray-400 dark:text-gray-500" />
                     </div>
-                    <p className="text-sm">No budget history found matching your filters.</p>
+                    <p className="text-sm">{t('app.budgets.history.empty')}</p>
                   </div>
                 </td>
               </tr>
@@ -129,14 +131,14 @@ const BudgetHistoryTable = ({
       {/* Mobile Card View */}
       <div className="lg:hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading history...</div>
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">{t('app.budgets.history.loading')}</div>
         ) : budgets.length === 0 ? (
           <div className="p-12 text-center text-gray-500 dark:text-gray-400">
             <div className="flex flex-col items-center justify-center opacity-60">
               <div className="mb-3 rounded-full bg-gray-100 dark:bg-gray-800 p-3">
                 <PieChart size={24} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm">No budget history found.</p>
+              <p className="text-sm">{t('app.budgets.history.empty')}</p>
             </div>
           </div>
         ) : (
@@ -207,17 +209,17 @@ const BudgetHistoryTable = ({
               disabled={historyPage === 1}
               className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 text-sm font-medium shadow-sm"
             >
-              Previous
+              {t('app.budgets.history.previous')}
             </button>
             <span className="px-3 py-1.5 text-gray-600 dark:text-gray-300 text-sm font-medium flex items-center">
-              Page {historyPage} of {totalPages}
+              {t('app.budgets.history.page')} {historyPage} {t('app.budgets.history.of')} {totalPages}
             </span>
             <button
               onClick={() => setHistoryPage((p) => p + 1)}
               disabled={historyPage >= totalPages}
               className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 text-sm font-medium shadow-sm"
             >
-              Next
+              {t('app.budgets.history.next')}
             </button>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { confirmAction } from "../utils/swal";
 import { useDeleteNotification } from "../hooks/useNotifications";
 import { LogoIcon } from "../components/Logo";
 import { formatDistanceToNow } from "date-fns";
+import { useTranslation } from "react-i18next";
 
 // --- NEW COMPONENT: Formats messages for bolding ---
 const NotificationMessage = ({ message }) => {
@@ -30,6 +31,7 @@ const NotificationMessage = ({ message }) => {
 // ---------------------------------------------------
 
 export default function Topbar({ toggleMobileMenu, user }) {
+  const { t } = useTranslation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -73,10 +75,10 @@ export default function Topbar({ toggleMobileMenu, user }) {
 
   const handleInternalLogout = async () => {
     const result = await confirmAction({
-      title: "Log out?",
-      text: "Are you sure you want to end your session?",
+      title: t('app.topbar.logoutModal.title'),
+      text: t('app.topbar.logoutModal.text'),
       icon: "question",
-      confirmButtonText: "Log out",
+      confirmButtonText: t('app.topbar.logoutModal.confirm'),
       confirmButtonColorClass: "bg-gray-900 hover:bg-gray-800",
     });
 
@@ -140,9 +142,9 @@ export default function Topbar({ toggleMobileMenu, user }) {
             </button>
 
             {notificationOpen && (
-              <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 dark:border-gray-800 py-2 z-50 max-h-[400px] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
+              <div className="fixed inset-x-4 top-24 mt-2 sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-3 w-auto sm:w-80 bg-white dark:bg-gray-900 rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] border border-gray-100 dark:border-gray-800 py-2 z-50 max-h-[400px] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800 flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Notifications</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{t('app.topbar.notifications')}</h3>
                   {notifications.length > 0 && (
                     <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{notifications.length}</span>
                   )}
@@ -151,7 +153,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
                   {notifications.length === 0 ? (
                     <div className="text-center text-gray-400 py-12">
                       <Bell size={32} className="mx-auto mb-3 opacity-20" />
-                      <p className="text-sm">No new notifications</p>
+                      <p className="text-sm">{t('app.topbar.noNotifications')}</p>
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -170,11 +172,11 @@ export default function Topbar({ toggleMobileMenu, user }) {
                               : "bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-100 dark:border-gray-700"
                           } group relative`}
                         >
-                          <NotificationMessage message={n.message} />
+                          <NotificationMessage message={n.translationKey ? t(n.translationKey, n.translationParams) : n.message} />
                           <p className="text-xs opacity-60 mt-1">
                             {n.timestamp 
                               ? formatDistanceToNow(new Date(n.timestamp), { addSuffix: true })
-                              : "Just now"}
+                              : t('app.topbar.justNow')}
                           </p>
                           <button 
                             onClick={(e) => {
@@ -240,7 +242,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
                     <User size={16} />
-                    Account Settings
+                    {t('app.topbar.accountSettings')}
                   </Link>
                   
                   <button
@@ -249,7 +251,7 @@ export default function Topbar({ toggleMobileMenu, user }) {
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left mt-1"
                   >
                     <LogOut size={16} />
-                    Sign out
+                    {t('app.topbar.signOut')}
                   </button>
                 </div>
               </div>

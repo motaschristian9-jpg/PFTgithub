@@ -4,8 +4,10 @@ import { useForm } from "react-hook-form";
 import { resendVerificationEmail } from "../api/auth";
 import api from "../api/axios";
 import { showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useEmailVerificationLogic = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isEmailFromUrl, setIsEmailFromUrl] = useState(false);
@@ -49,7 +51,7 @@ export const useEmailVerificationLogic = () => {
         window.location.href = response.data.data.redirect_url;
       }
     } catch (err) {
-      showError("Error", "Invalid or expired verification link.");
+      showError(t('app.swal.errorTitle'), "Invalid or expired verification link.");
     }
   };
 
@@ -57,7 +59,7 @@ export const useEmailVerificationLogic = () => {
     setLoading(true);
     try {
       await resendVerificationEmail(formData);
-      showSuccess("Success!", "Verification email sent. Please check your inbox.");
+      showSuccess(t('app.swal.successTitle'), t('app.swal.verificationSent'));
     } catch (err) {
       if (err.response && err.response.data) {
         let errorMessage = "Failed to resend verification email";
@@ -75,9 +77,9 @@ export const useEmailVerificationLogic = () => {
           errorMessage = err.response.data.error;
         }
 
-        showError("Error", errorMessage);
+        showError(t('app.swal.errorTitle'), errorMessage);
       } else {
-        showError("Error", "Something went wrong. Try again later.");
+        showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
       }
     } finally {
       setLoading(false);

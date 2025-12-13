@@ -1,5 +1,6 @@
 import { createPortal } from "react-dom";
 import { Controller } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -11,6 +12,7 @@ import {
   Clock,
   Type,
   Tag,
+  AlertCircle,
 } from "lucide-react";
 
 import { useBudgetModalLogic } from "../hooks/useBudgetModalLogic";
@@ -23,7 +25,9 @@ export default function BudgetModal({
   budget = null,
   categories = [],
   currentBudgets = [],
+  initialData = null,
 }) {
+  const { t } = useTranslation();
   const {
     loading,
     currencySymbol,
@@ -35,6 +39,8 @@ export default function BudgetModal({
     sortedCategories,
     durationText,
     onSubmit,
+    isSubmitting,
+    durationDays,
   } = useBudgetModalLogic({
     isOpen,
     onClose,
@@ -42,6 +48,7 @@ export default function BudgetModal({
     editMode,
     budget,
     categories,
+    initialData,
   });
 
   return createPortal(
@@ -71,9 +78,9 @@ export default function BudgetModal({
               {/* Header Section */}
               <div className="relative px-8 pt-8 pb-6 bg-white dark:bg-gray-900">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {editMode ? "Edit Budget" : "New Budget"}
-                  </h2>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {initialData ? t('app.budgets.modal.titleEdit') : t('app.budgets.modal.titleNew')}
+                  </h3>
                   <button
                     onClick={onClose}
                     className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-all duration-200"
@@ -84,7 +91,7 @@ export default function BudgetModal({
 
                 <div className="flex flex-col items-center justify-center py-2">
                   <label className="text-xs font-bold text-violet-600 uppercase tracking-wide mb-2">
-                    Budget Limit
+                    {t('app.budgets.modal.limitLabel')}
                   </label>
                   <div className="relative w-full flex justify-center items-baseline group">
                     <span className="text-4xl font-medium text-violet-300 absolute left-[15%] sm:left-[20%] top-1 transition-colors duration-300">
@@ -95,8 +102,8 @@ export default function BudgetModal({
                       placeholder="0.00"
                       step="0.01"
                       {...register("amount", {
-                        required: "Amount is required",
-                        min: { value: 0.01, message: "Must be greater than 0" },
+                        required: t('app.budgets.modal.validation.amountRequired'),
+                        min: { value: 0.01, message: t('app.budgets.modal.validation.amountMin') },
                       })}
                       disabled={loading}
                       className="block w-full text-center text-6xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 dark:placeholder-gray-700 text-gray-900 dark:text-white tracking-tight outline-none"
@@ -104,8 +111,8 @@ export default function BudgetModal({
                     />
                   </div>
                   {errors.amount && (
-                    <p className="text-red-500 text-sm mt-2 font-medium bg-red-50 px-3 py-1 rounded-full">
-                      {errors.amount.message}
+                    <p className="text-red-500 text-sm mt-2 font-medium bg-red-50 px-3 py-1 rounded-full flex items-center gap-1">
+                      <AlertCircle size={12} /> {errors.amount.message}
                     </p>
                   )}
                 </div>
@@ -118,32 +125,34 @@ export default function BudgetModal({
               >
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                    <Type size={12} /> Budget Name
+                    <Type size={12} /> {t('app.budgets.modal.nameLabel')}
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g., Monthly Groceries"
                     {...register("name", {
-                      required: "Name is required",
-                      maxLength: { value: 100, message: "Max 100 characters" },
+                      required: t('app.budgets.modal.validation.nameRequired'),
+                      maxLength: { value: 100, message: t('app.budgets.modal.validation.nameMax') },
                     })}
                     disabled={loading}
                     className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    placeholder={t('app.budgets.modal.namePlaceholder')}
                   />
                   {errors.name && (
-                    <p className="text-red-500 text-xs font-medium">{errors.name.message}</p>
+                    <p className="text-red-500 text-xs font-medium flex items-center gap-1">
+                      <AlertCircle size={12} /> {errors.name.message}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                    <Tag size={12} /> Category
+                    <Tag size={12} /> {t('app.budgets.modal.categoryLabel')}
                   </label>
                   <div className="relative">
                     <Controller
                       name="category_id"
                       control={control}
-                      rules={{ required: "Category is required" }}
+                      rules={{ required: t('app.budgets.modal.validation.categoryRequired') }}
                       render={({ field }) => (
                         <select
                           {...field}
@@ -151,7 +160,7 @@ export default function BudgetModal({
                           className="block w-full pl-4 pr-8 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none appearance-none cursor-pointer text-gray-900 dark:text-white"
                         >
                           <option value="" disabled>
-                            Select a category
+                            {t('app.budgets.modal.selectCategory')}
                           </option>
                           {sortedCategories.map((cat) => {
                             const activeBudget = currentBudgets.find((b) => {
@@ -176,7 +185,7 @@ export default function BudgetModal({
                                   isDisabled ? "text-gray-400 bg-gray-100 dark:bg-gray-800 dark:text-gray-600" : "bg-white dark:bg-gray-800"
                                 }
                               >
-                                {cat.name} {isDisabled ? "(Active)" : ""}
+                                {cat.name} {isDisabled ? `(${t('app.budgets.modal.activeCategory')})` : ""}
                               </option>
                             );
                           })}
@@ -188,8 +197,8 @@ export default function BudgetModal({
                     </div>
                   </div>
                   {errors.category_id && (
-                    <p className="text-red-500 text-xs font-medium">
-                      {errors.category_id.message}
+                    <p className="text-red-500 text-xs font-medium flex items-center gap-1">
+                      <AlertCircle size={12} /> {errors.category_id.message}
                     </p>
                   )}
                 </div>
@@ -197,7 +206,7 @@ export default function BudgetModal({
                 <div className="grid grid-cols-2 gap-5">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                      <Calendar size={12} /> Start Date
+                      <Calendar size={12} /> {t('app.budgets.modal.startDateLabel')}
                     </label>
                     <input
                       type="date"
@@ -209,32 +218,29 @@ export default function BudgetModal({
 
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                      <Calendar size={12} /> End Date
+                      <Calendar size={12} /> {t('app.budgets.modal.endDateLabel')}
                     </label>
                     <input
                       type="date"
                       {...register("end_date", {
-                        required: "End date is required",
-                        min: {
-                          value: new Date().toISOString().split("T")[0],
-                          message: "Cannot be in the past",
-                        },
-                        validate: (value) => {
-                          const sDate = getValues("start_date");
-                          if (!sDate) return true;
-                          return (
-                            new Date(value) > new Date(sDate) ||
-                            "Must be after start date"
-                          );
-                        },
+                        required: t('app.budgets.modal.validation.endDateRequired'),
+                        validate: {
+                          notPast: (value) => {
+                            if (initialData) return true;
+                            return new Date(value) >= new Date(new Date().setHours(0,0,0,0)) || t('app.budgets.modal.validation.endDatePast');
+                          },
+                          afterStart: (value, formValues) => {
+                            return new Date(value) >= new Date(formValues.start_date) || t('app.budgets.modal.validation.endDateBeforeStart');
+                          }
+                        }
                       })}
                       min={new Date().toISOString().split("T")[0]}
                       disabled={loading}
                       className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none text-gray-900 dark:text-white"
                     />
                     {errors.end_date && (
-                      <p className="text-red-500 text-xs font-medium">
-                        {errors.end_date.message}
+                      <p className="text-red-500 text-xs font-medium flex items-center gap-1">
+                        <AlertCircle size={12} /> {errors.end_date.message}
                       </p>
                     )}
                   </div>
@@ -244,7 +250,7 @@ export default function BudgetModal({
                   <div className="flex items-center justify-center gap-2 text-xs font-medium text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-900/20 py-2.5 rounded-xl border border-violet-100 dark:border-violet-800">
                     <Clock size={14} />
                     <span>
-                      Duration:{" "}
+                      {t('app.budgets.modal.duration')}{" "}
                       <span className="font-bold">{durationText}</span>
                     </span>
                   </div>
@@ -252,15 +258,18 @@ export default function BudgetModal({
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || isSubmitting}
                   className={`w-full py-4 px-6 rounded-xl text-white font-bold text-base transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 ${
-                    loading
+                    loading || isSubmitting
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-violet-600 hover:bg-violet-500"
                   }`}
                 >
-                  {loading ? (
-                    <Loader2 className="animate-spin" size={24} />
+                  {loading || isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={24} />
+                      {t('app.budgets.modal.saving')}
+                    </>
                   ) : (
                     <>
                       <Check size={24} strokeWidth={3} />

@@ -1,10 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, CheckCircle, AlertTriangle } from "lucide-react";
+import { FileText, CheckCircle, AlertTriangle, Globe, ChevronDown } from "lucide-react";
 import { LogoIcon } from "../components/Logo";
+import { useTranslation } from "react-i18next";
 
 export default function TermsOfServicePage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setIsLangMenuOpen(false);
+  };
+
+  const icons = [CheckCircle, FileText, AlertTriangle];
+  const sections = t('terms.sections', { returnObjects: true });
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -14,57 +25,73 @@ export default function TermsOfServicePage() {
             <LogoIcon size={28} />
             <span className="text-xl font-bold text-gray-900">MoneyTracker</span>
           </div>
-          <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Back to Home
-          </button>
+
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <button 
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                <Globe size={18} />
+                <span className="uppercase">{i18n.language === 'zh' ? 'CN' : i18n.language}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {isLangMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                  {[
+                    { code: 'en', label: 'English' },
+                    { code: 'fil', label: 'Filipino' },
+                    { code: 'zh', label: '中文 (CN)' }
+                  ].map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => changeLanguage(lang.code)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${i18n.language === lang.code ? 'text-blue-600 font-bold' : 'text-gray-600'}`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-600 hover:text-blue-600">
+              {t('common.backToHome')}
+            </button>
+          </div>
         </div>
       </nav>
 
       <main className="container mx-auto px-6 py-16 max-w-3xl">
         <div className="mb-12">
-          <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
-          <p className="text-gray-500">Last updated: December 05, 2025</p>
+          <h1 className="text-4xl font-bold mb-4">{t('terms.title')}</h1>
+          <p className="text-gray-500">{t('terms.lastUpdated')}</p>
         </div>
 
         <div className="prose prose-lg text-gray-600">
           <p>
-            Please read these Terms of Service ("Terms", "Terms of Service") carefully before using the MoneyTracker website and mobile application (the "Service") operated by MoneyTracker ("us", "we", or "our").
-          </p>
-          <p>
-            Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who access or use the Service.
+            {t('terms.intro')}
           </p>
 
-          <h3 className="text-gray-900 font-bold mt-8 mb-4 flex items-center gap-2">
-            <CheckCircle size={20} className="text-green-600" /> Accounts
-          </h3>
-          <p>
-            When you create an account with us, you must provide us information that is accurate, complete, and current at all times. Failure to do so constitutes a breach of the Terms, which may result in immediate termination of your account on our Service.
-          </p>
-          <p>
-            You are responsible for safeguarding the password that you use to access the Service and for any activities or actions under your password, whether your password is with our Service or a third-party service.
-          </p>
-
-          <h3 className="text-gray-900 font-bold mt-8 mb-4 flex items-center gap-2">
-            <FileText size={20} className="text-blue-600" /> Intellectual Property
-          </h3>
-          <p>
-            The Service and its original content, features, and functionality are and will remain the exclusive property of MoneyTracker and its licensors. The Service is protected by copyright, trademark, and other laws of both the United States and foreign countries.
-          </p>
-
-          <h3 className="text-gray-900 font-bold mt-8 mb-4 flex items-center gap-2">
-            <AlertTriangle size={20} className="text-amber-600" /> Termination
-          </h3>
-          <p>
-            We may terminate or suspend access to our Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
-          </p>
-          <p>
-            All provisions of the Terms which by their nature should survive termination shall survive termination, including, without limitation, ownership provisions, warranty disclaimers, indemnity, and limitations of liability.
-          </p>
+          {sections.map((section, i) => {
+            const Icon = icons[i] || CheckCircle;
+            return (
+              <div key={i}>
+                <h3 className="text-gray-900 font-bold mt-8 mb-4 flex items-center gap-2">
+                  <Icon size={20} className="text-blue-600" /> {section.title}
+                </h3>
+                <p>
+                  {section.content}
+                </p>
+              </div>
+            );
+          })}
 
           <div className="mt-12 p-6 bg-gray-50 rounded-2xl border border-gray-100">
-            <h4 className="font-bold text-gray-900 mb-2">Questions?</h4>
+            <h4 className="font-bold text-gray-900 mb-2">{t('terms.contact.title')}</h4>
             <p className="text-sm">
-              If you have any questions about these Terms, please contact us at: <br />
+              {t('terms.contact.text')} <br />
               <span className="text-blue-600 font-medium">legal@moneytracker.com</span>
             </p>
           </div>

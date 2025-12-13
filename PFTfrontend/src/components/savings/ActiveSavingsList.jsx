@@ -7,6 +7,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 export default function ActiveSavingsList({
   savings,
@@ -14,6 +15,8 @@ export default function ActiveSavingsList({
   handleCardClick,
   userCurrency,
 }) {
+  const { t } = useTranslation();
+
   if (savings.length === 0) {
     return (
       <div className="rounded-2xl bg-white dark:bg-gray-900 p-12 shadow-sm border border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center">
@@ -21,10 +24,10 @@ export default function ActiveSavingsList({
           <PiggyBank className="text-gray-300 dark:text-gray-600" size={40} />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-          No active savings goals
+          {t('app.savings.activeList.emptyTitle')}
         </h3>
         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 max-w-xs">
-          Start saving for your dreams by creating a new goal.
+          {t('app.savings.activeList.emptyDesc')}
         </p>
       </div>
     );
@@ -57,7 +60,7 @@ export default function ActiveSavingsList({
                     {s.name}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate uppercase tracking-wider font-medium">
-                    Target: {formatCurrency(target, userCurrency)}
+                    {t('app.savings.activeList.target')}: {formatCurrency(target, userCurrency)}
                   </p>
                 </div>
                 <div className="ml-3">
@@ -72,19 +75,19 @@ export default function ActiveSavingsList({
               <div className="flex items-center space-x-2 mb-6 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg w-fit">
                 <Calendar size={14} />
                 <span className="truncate">
-                    Created: {new Date(s.created_at).toLocaleDateString()}
+                    {t('app.savings.activeList.created')}: {new Date(s.created_at).toLocaleDateString()}
                 </span>
               </div>
 
               <div className="space-y-3 mb-5">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Target</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('app.savings.activeList.target')}</span>
                   <span className="font-bold text-teal-600 dark:text-teal-400">
                     {formatCurrency(target, userCurrency)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">Saved</span>
+                  <span className="text-gray-500 dark:text-gray-400">{t('app.savings.activeList.saved')}</span>
                   <span className="font-bold text-teal-600 dark:text-teal-400">
                     {formatCurrency(current, userCurrency)}
                   </span>
@@ -111,7 +114,7 @@ export default function ActiveSavingsList({
                 
                 <div className="mt-4 flex justify-end">
                     <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                        View Details →
+                        {t('app.savings.activeList.viewDetails')} →
                     </span>
                 </div>
               </div>

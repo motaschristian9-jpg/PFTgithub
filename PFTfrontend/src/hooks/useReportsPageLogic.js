@@ -16,8 +16,10 @@ import {
 } from "./useTransactions";
 import { keepPreviousData } from "@tanstack/react-query";
 import { confirmDelete, showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useReportsPageLogic = () => {
+  const { t } = useTranslation();
   const [datePreset, setDatePreset] = useState("this_month");
   
   // Initialize with correct default dates to match DataLoader immediately
@@ -293,10 +295,10 @@ export const useReportsPageLogic = () => {
       };
 
       await exportFullReport(exportData);
-      showSuccess("Exported!", "Financial report downloaded successfully.");
+      showSuccess(t('app.swal.exportSuccess'), t('app.swal.exportSuccessMsg'));
     } catch (error) {
       console.error("Export failed:", error);
-      showError("Export Failed", "Could not generate the Excel report.");
+      showError(t('app.swal.exportFailed'), t('app.swal.exportFailedMsg'));
     }
   };
 

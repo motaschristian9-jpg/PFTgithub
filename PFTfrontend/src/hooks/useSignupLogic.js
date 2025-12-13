@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { registerUser } from "../api/auth";
 import { showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useSignupLogic = () => {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isVisible, setIsVisible] = React.useState(false);
@@ -78,9 +80,7 @@ export const useSignupLogic = () => {
           );
         }
       } else {
-        showError(
-          "Something went wrong. Please check your connection and try again."
-        );
+        showError(t('app.swal.errorText'));
       }
     } finally {
       setLoading(false);
@@ -105,11 +105,11 @@ export const useSignupLogic = () => {
       if (data.success) {
         window.location.href = data.redirect_url;
       } else {
-        showError(data.message || "Failed to initiate Google signup");
+        showError(data.message || t('app.swal.googleSignupInitError'));
       }
     } catch (err) {
       console.error("Google signup error:", err);
-      showError("Something went wrong with Google signup. Try again later.");
+      showError(t('app.swal.googleSignupError'));
     } finally {
       setGoogleLoading(false);
     }

@@ -122,6 +122,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'currency' => 'required|string|max:3',
+            'language' => 'nullable|string|in:en,fil,zh',
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'email_notifications_enabled' => 'nullable|boolean',
             'theme_preference' => 'nullable|string|in:light,dark,system',
@@ -133,6 +134,10 @@ class AuthController extends Controller
 
         if ($request->has('currency')) {
             $user->currency = $request->currency;
+        }
+
+        if ($request->has('language')) {
+            $user->language = $request->language;
         }
 
         if ($request->has('theme_preference')) {

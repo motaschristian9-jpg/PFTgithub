@@ -3,8 +3,10 @@ import { Target, Wallet } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const ActiveBudgets = ({ budgets, userCurrency }) => {
+  const { t } = useTranslation();
   return (
     <motion.div 
       className="rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800"
@@ -14,8 +16,8 @@ const ActiveBudgets = ({ budgets, userCurrency }) => {
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Active Budgets</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Spending limits</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('app.dashboard.budgets.title')}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('app.dashboard.budgets.subtitle')}</p>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
           <Wallet size={20} />
@@ -28,7 +30,7 @@ const ActiveBudgets = ({ budgets, userCurrency }) => {
             <Wallet size={24} className="text-gray-400 dark:text-gray-500" />
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            No active budgets. Set limits to track spending.
+            {t('app.dashboard.budgets.noBudgets')}
           </p>
         </div>
       ) : (
@@ -50,7 +52,7 @@ const ActiveBudgets = ({ budgets, userCurrency }) => {
                   {budget.name}
                 </h4>
                 <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
-                  Limit: {formatCurrency(Number(budget.amount), userCurrency)}
+                  {t('app.dashboard.budgets.limit')}: {formatCurrency(Number(budget.amount), userCurrency)}
                 </p>
 
                 <div className="mb-2 flex items-end justify-between">
@@ -79,9 +81,9 @@ const ActiveBudgets = ({ budgets, userCurrency }) => {
                 
                 <div className="mt-2 text-xs font-medium text-gray-400 dark:text-gray-500 text-right">
                     {budget.remaining < 0 ? (
-                        <span className="text-red-500 dark:text-red-400">Over by {formatCurrency(Math.abs(budget.remaining), userCurrency)}</span>
+                        <span className="text-red-500 dark:text-red-400">{t('app.dashboard.budgets.overBy')} {formatCurrency(Math.abs(budget.remaining), userCurrency)}</span>
                     ) : (
-                        <span>{formatCurrency(budget.remaining, userCurrency)} left</span>
+                        <span>{formatCurrency(budget.remaining, userCurrency)} {t('app.dashboard.budgets.left')}</span>
                     )}
                 </div>
               </div>

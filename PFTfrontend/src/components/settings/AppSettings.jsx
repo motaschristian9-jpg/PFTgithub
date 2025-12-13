@@ -1,37 +1,39 @@
 import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { Moon, Sun, Monitor } from 'lucide-react';
+import { useTranslation } from "react-i18next";
 
 export default function AppSettings() {
   const { theme, updateTheme } = useTheme();
+  const { t } = useTranslation();
 
   const themes = [
     {
       id: 'light',
-      label: 'Light',
+      label: t('app.settings.app.light'),
       icon: Sun,
-      description: 'Clean and bright interface',
+      description: t('app.settings.app.lightDesc'),
     },
     {
       id: 'dark',
-      label: 'Dark',
+      label: t('app.settings.app.dark'),
       icon: Moon,
-      description: 'Easy on the eyes in low light',
+      description: t('app.settings.app.darkDesc'),
     },
     {
       id: 'system',
-      label: 'System',
+      label: t('app.settings.app.system'),
       icon: Monitor,
-      description: 'Matches your device settings',
+      description: t('app.settings.app.systemDesc'),
     },
   ];
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col gap-1 pb-6 border-b border-gray-100 dark:border-gray-800">
-        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">Appearance</h3>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('app.settings.app.title')}</h3>
         <p className="text-gray-500 dark:text-gray-400">
-          Customize how the application looks on your device.
+          {t('app.settings.app.subtitle')}
         </p>
       </div>
 

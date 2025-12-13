@@ -1,4 +1,5 @@
-import { Loader2, Check, FileText, Calendar } from "lucide-react";
+import { DollarSign, Calendar, Type, Loader2, Save } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function BudgetEditForm({
   register,
@@ -8,51 +9,85 @@ export default function BudgetEditForm({
   currencySymbol,
   startDateValue,
 }) {
+  const { t } = useTranslation();
   return (
-    <form onSubmit={handleSubmit(handleSaveChanges)} className="p-8 space-y-8 flex-1">
-      <div className="flex flex-col items-center justify-center py-6">
-        <label className="text-xs font-bold text-violet-600 dark:text-violet-400 uppercase tracking-wide mb-2">
-          Total Budget Limit
-        </label>
-        <div className="flex items-baseline justify-center relative w-full group">
-          <span className="text-4xl font-medium text-violet-400 absolute left-[15%] top-1 transition-colors duration-300">
-            {currencySymbol}
-          </span>
-          <input
-            type="number"
-            {...register("amount", { required: true, min: 0.01 })}
-            className="block w-full text-center text-6xl font-bold bg-transparent border-0 focus:ring-0 p-0 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 tracking-tight outline-none"
-            autoFocus
-          />
-        </div>
-      </div>
-
-      <div className="space-y-6">
+    <form onSubmit={handleSubmit(handleSaveChanges)} className="p-8 space-y-6">
+      <div className="space-y-4">
+        {/* Amount Field */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-            <FileText size={12} /> Budget Name
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+            <DollarSign size={12} /> {t('app.budgets.modal.limitLabel')}
+          </label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
+              {currencySymbol}
+            </span>
+            <input
+              type="number"
+              step="0.01"
+              {...register("amount", {
+                required: t('app.budgets.modal.validation.amountRequired'),
+                min: { value: 0.01, message: t('app.budgets.modal.validation.amountMin') },
+              })}
+              className="block w-full pl-8 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 transition-all outline-none text-gray-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        {/* Name Field */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+            <Type size={12} /> {t('app.budgets.modal.nameLabel')}
           </label>
           <input
             type="text"
-            {...register("name", { required: "Name is required" })}
-            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-gray-900 dark:text-white text-sm font-medium shadow-sm"
-            placeholder="Budget Name"
+            {...register("name", { required: t('app.budgets.modal.validation.nameRequired') })}
+            className="block w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 transition-all outline-none text-gray-900 dark:text-white"
           />
         </div>
+
+        {/* Date Fields Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+              <Calendar size={12} /> {t('app.budgets.modal.startDateLabel')}
+            </label>
+            <input
+              type="date"
+              {...register("start_date")}
+              disabled
+              className="block w-full px-4 py-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-500 cursor-not-allowed outline-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+              <Calendar size={12} /> {t('app.budgets.modal.endDateLabel')}
+            </label>
+            <input
+              type="date"
+              {...register("end_date", {
+                required: t('app.budgets.modal.validation.endDateRequired'),
+                validate: (value) =>
+                  new Date(value) > new Date(startDateValue) ||
+                  t('app.budgets.modal.validation.endDateBeforeStart'),
+              })}
+              min={new Date().toISOString().split("T")[0]}
+              className="block w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 transition-all outline-none text-gray-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        {/* Description Field */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-            <Calendar size={12} /> End Date
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+            <Type size={12} /> {t('app.budgets.card.note')}
           </label>
-          <input
-            type="date"
-            {...register("end_date", {
-              required: true,
-              validate: (val) =>
-                !startDateValue ||
-                new Date(val) >= new Date(startDateValue) ||
-                "Invalid date",
-            })}
-            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-violet-500 outline-none text-gray-900 dark:text-white text-sm font-medium shadow-sm"
+          <textarea
+            {...register("description")}
+            rows="3"
+            className="block w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-violet-500 transition-all outline-none text-gray-900 dark:text-white resize-none"
+            placeholder={t('app.budgets.modal.descriptionPlaceholder')}
           />
         </div>
       </div>
@@ -60,13 +95,17 @@ export default function BudgetEditForm({
       <button
         type="submit"
         disabled={isSaving}
-        className="w-full py-4 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl shadow-lg shadow-violet-200 dark:shadow-violet-900/40 transition-all duration-200 flex items-center justify-center gap-2 text-base transform hover:-translate-y-0.5"
+        className="w-full py-4 px-6 rounded-xl text-white font-bold text-base bg-violet-600 hover:bg-violet-700 transition-all duration-200 flex items-center justify-center gap-2 transform active:scale-[0.98]"
       >
         {isSaving ? (
-          <Loader2 className="animate-spin" size={24} />
+          <>
+            <Loader2 className="animate-spin" size={20} />
+            {t('app.budgets.modal.saving')}
+          </>
         ) : (
           <>
-            <Check size={20} strokeWidth={3} /> Save Changes
+            <Save size={20} />
+            {t('app.budgets.modal.updateBtn')}
           </>
         )}
       </button>

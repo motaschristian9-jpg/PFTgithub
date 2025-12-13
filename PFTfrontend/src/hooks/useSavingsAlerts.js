@@ -1,6 +1,7 @@
 import { useRef } from "react";
-import MySwal, { showSuccess, showError } from "../utils/swal";
+import MySwal, { showSuccess, showError, baseConfig } from "../utils/swal";
 import { formatCurrency } from "../utils/currency";
+import { useTranslation } from "react-i18next";
 
   export const useSavingsAlerts = ({
   userCurrency,
@@ -18,6 +19,7 @@ import { formatCurrency } from "../utils/currency";
   onClose,
 }) => {
   const isSwalOpen = useRef(false);
+  const { t } = useTranslation();
 
   const handleQuickContribute = () => {
     if (isSwalOpen.current) return;
@@ -29,38 +31,43 @@ import { formatCurrency } from "../utils/currency";
     );
 
     MySwal.fire({
-      title: "Add Contribution",
+      ...baseConfig,
+      title: t('app.savings.alerts.addContributionTitle'),
       html: `
-        <input id="swal-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to add (e.g., 50.00)">
-        <div class="text-sm text-gray-500 mt-2">Available Net Balance: ${formattedAvailableBalance}</div>
-        <div class="text-xs text-emerald-600 font-medium mt-1">(Recorded as Expense)</div>
+        <input id="swal-amount" type="number" step="0.01" class="block w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-lg font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 outline-none transition-all" placeholder="${t('app.savings.alerts.addContributionPlaceholder')}">
+        <div class="flex items-center justify-between mt-3 px-1">
+           <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">${t('app.savings.alerts.availableBalance')}</span>
+           <span class="text-sm font-bold text-gray-900 dark:text-gray-200 font-mono">${formattedAvailableBalance}</span>
+        </div>
+        <div class="mt-2 px-1 text-left">
+           <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-900/30 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50">
+             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+             ${t('app.savings.alerts.recordedAsExpense')}
+           </span>
+        </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: "Contribute",
+      confirmButtonText: t('app.savings.alerts.contributeBtn'),
+      cancelButtonText: t('app.savings.card.cancelBtn'),
       customClass: {
-        container: "z-[10000]",
+        ...baseConfig.customClass,
         confirmButton:
           "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-colors mx-2",
-        cancelButton:
-          "text-gray-600 hover:bg-gray-100 font-medium py-2 px-4 rounded-xl transition-colors mx-2",
-        popup: "rounded-2xl shadow-2xl border border-gray-100 p-6",
-        input:
-          "h-10 mt-2 mb-4 rounded-lg border border-gray-300 text-base px-3 w-full box-border",
+        // Keep baseConfig cancelButton or override if needed. baseConfig uses gray-50/gray-700 which is good.
       },
-      buttonsStyling: false,
       didClose: () => {
         isSwalOpen.current = false;
       },
       preConfirm: () => {
         const amount = parseFloat(document.getElementById("swal-amount").value);
         if (isNaN(amount) || amount <= 0) {
-          MySwal.showValidationMessage("Please enter a valid amount.");
+          MySwal.showValidationMessage(t('app.savings.alerts.validAmount'));
           return false;
         }
         if (availableBalance !== undefined && amount > availableBalance) {
           MySwal.showValidationMessage(
-            `Insufficient funds. Available: ${formattedAvailableBalance}`
+            `${t('app.savings.alerts.insufficientFunds')}${formattedAvailableBalance}`
           );
           return false;
         }
@@ -113,16 +120,17 @@ import { formatCurrency } from "../utils/currency";
           if (!response) throw new Error("Transaction creation failed");
 
           showSuccess(
-            "Contribution Added!",
-            `${formatCurrency(amountToAdd, userCurrency)} added to ${
-              localSaving.name
-            }.`
+            t('app.savings.alerts.contributionAddedTitle'),
+            t('app.savings.alerts.contributionAddedMsg', { 
+                amount: formatCurrency(amountToAdd, userCurrency), 
+                name: localSaving.name 
+            })
           );
         } catch (error) {
           console.error("Error adding contribution", error);
           // 4. Rollback on Error
           // rollbackOptimisticGlobal(tempTxId); // Rollback handled by query mutation 
-          showError("Error", "Failed to add contribution.");
+          showError(t('app.savings.alerts.errorTitle'), t('app.savings.alerts.addFailed'));
         } finally {
           setIsSaving(false);
         }
@@ -137,26 +145,30 @@ import { formatCurrency } from "../utils/currency";
     const formattedCurrent = formatCurrency(stats.current, userCurrency);
 
     MySwal.fire({
-      title: "Withdraw Funds",
+      ...baseConfig,
+      title: t('app.savings.alerts.withdrawTitle'),
       html: `
-        <input id="swal-withdraw-amount" type="number" step="0.01" class="swal2-input custom-swal-input" placeholder="Amount to withdraw">
-        <div class="text-sm text-gray-500 mt-2">Available to Withdraw: ${formattedCurrent}</div>
-        <div class="text-xs text-rose-600 font-medium mt-1">(Recorded as Income)</div>
+        <input id="swal-withdraw-amount" type="number" step="0.01" class="block w-full px-4 py-3 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl text-lg font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 outline-none transition-all" placeholder="${t('app.savings.alerts.withdrawPlaceholder')}">
+        <div class="flex items-center justify-between mt-3 px-1">
+           <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">${t('app.savings.alerts.availableToWithdraw')}</span>
+           <span class="text-sm font-bold text-gray-900 dark:text-gray-200 font-mono">${formattedCurrent}</span>
+        </div>
+        <div class="mt-2 px-1 text-left">
+           <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 dark:bg-rose-900/30 text-xs font-semibold text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800/50">
+             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+             ${t('app.savings.alerts.recordedAsIncome')}
+           </span>
+        </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: "Withdraw",
+      confirmButtonText: t('app.savings.alerts.withdrawBtn'),
+      cancelButtonText: t('app.savings.card.cancelBtn'),
       customClass: {
-        container: "z-[10000]",
+        ...baseConfig.customClass,
         confirmButton:
           "bg-rose-600 hover:bg-rose-700 text-white font-bold py-2 px-4 rounded-xl shadow-lg transition-colors mx-2",
-        cancelButton:
-          "text-gray-600 hover:bg-gray-100 font-medium py-2 px-4 rounded-xl transition-colors mx-2",
-        popup: "rounded-2xl shadow-2xl border border-gray-100 p-6",
-        input:
-          "h-10 mt-2 mb-4 rounded-lg border border-gray-300 text-base px-3 w-full box-border",
       },
-      buttonsStyling: false,
       didClose: () => {
         isSwalOpen.current = false;
       },
@@ -165,11 +177,11 @@ import { formatCurrency } from "../utils/currency";
           document.getElementById("swal-withdraw-amount").value
         );
         if (isNaN(amount) || amount <= 0) {
-          MySwal.showValidationMessage("Please enter a valid amount.");
+          MySwal.showValidationMessage(t('app.savings.alerts.validAmount'));
           return false;
         }
         if (amount > stats.current) {
-          MySwal.showValidationMessage("Cannot withdraw more than saved.");
+          MySwal.showValidationMessage(t('app.savings.alerts.cannotWithdrawMore'));
           return false;
         }
         return amount;
@@ -221,27 +233,26 @@ import { formatCurrency } from "../utils/currency";
 
           if (wasDeleted) {
             showSuccess(
-              "Withdrawn & Deleted",
-              `${formatCurrency(
-                amountToWithdraw,
-                userCurrency
-              )} withdrawn. Goal deleted as it is empty.`
+              t('app.savings.alerts.withdrawnDeletedTitle'),
+              t('app.savings.alerts.withdrawnDeletedMsg', {
+                  amount: formatCurrency(amountToWithdraw, userCurrency)
+              })
             );
             onClose();
           } else {
             showSuccess(
-              "Withdrawn!",
-              `${formatCurrency(
-                amountToWithdraw,
-                userCurrency
-              )} withdrawn from ${localSaving.name}.`
+              t('app.savings.alerts.withdrawnTitle'),
+              t('app.savings.alerts.withdrawnMsg', {
+                  amount: formatCurrency(amountToWithdraw, userCurrency),
+                  name: localSaving.name
+              })
             );
           }
         } catch (error) {
           console.error("Error withdrawing", error);
           // 4. Rollback on Error
           // rollbackOptimisticGlobal(tempTxId); // Rollback handled by query mutation
-          showError("Error", "Failed to withdraw funds.");
+          showError(t('app.savings.alerts.errorTitle'), t('app.savings.alerts.withdrawFailed'));
         } finally {
           setIsSaving(false);
         }

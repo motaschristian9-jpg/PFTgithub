@@ -14,7 +14,7 @@ import { formatCurrency } from "../../utils/currency";
 import { TrendingUp } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
-const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label, userCurrency }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 p-3 border border-gray-100 dark:border-gray-700 shadow-xl rounded-xl z-50">
@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }) => {
             ></span>
             <span className="text-gray-600 dark:text-gray-300 capitalize">{entry.name}:</span>
             <span className="font-semibold text-gray-900 dark:text-gray-100">
-              {formatCurrency(entry.value, "USD")}
+              {formatCurrency(entry.value, userCurrency)}
             </span>
           </p>
         ))}
@@ -38,9 +38,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
-const DashboardCharts = ({ data }) => {
+const DashboardCharts = ({ data, userCurrency }) => {
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   return (
@@ -52,8 +54,8 @@ const DashboardCharts = ({ data }) => {
     >
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Financial Overview</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Income, Expense & Savings (Last 7 Days)</p>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('app.dashboard.charts.title')}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('app.dashboard.charts.subtitle')}</p>
         </div>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
           <TrendingUp size={20} />
@@ -98,13 +100,13 @@ const DashboardCharts = ({ data }) => {
               tick={{ fill: "#9CA3AF", fontSize: 12 }}
             />
             <Tooltip
-              content={<CustomTooltip />}
+              content={<CustomTooltip userCurrency={userCurrency} />}
               cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
             />
             <Area
               type="monotone"
               dataKey="income"
-              name="Income"
+              name={t('app.dashboard.charts.income')}
               stroke="#10B981"
               strokeWidth={3}
               fillOpacity={1}
@@ -113,7 +115,7 @@ const DashboardCharts = ({ data }) => {
             <Area
               type="monotone"
               dataKey="expense"
-              name="Expense"
+              name={t('app.dashboard.charts.expense')}
               stroke="#EF4444"
               strokeWidth={3}
               fillOpacity={1}
@@ -122,7 +124,7 @@ const DashboardCharts = ({ data }) => {
             <Area
               type="monotone"
               dataKey="savings"
-              name="Savings"
+              name={t('app.dashboard.charts.savings')}
               stroke="#14B8A6"
               strokeWidth={3}
               fillOpacity={1}

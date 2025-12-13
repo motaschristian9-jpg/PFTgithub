@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { showSuccess, showError } from "../utils/swal";
 import { getCurrencySymbol } from "../utils/currency";
+import { useTranslation } from "react-i18next";
 import { useDataContext } from "../components/DataLoader";
 
 export const useSavingsModalLogic = ({
@@ -11,6 +12,7 @@ export const useSavingsModalLogic = ({
   editMode,
   saving,
 }) => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const { user } = useDataContext();
 
@@ -98,7 +100,7 @@ export const useSavingsModalLogic = ({
       onClose();
     } catch (error) {
       console.error("Failed to save saving:", error);
-      showError("Error", "Something went wrong. Please try again.");
+      showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
     } finally {
       setLoading(false);
     }

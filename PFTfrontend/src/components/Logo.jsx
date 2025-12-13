@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useId } from "react";
 
 export const Logo = ({ className = "", textClassName = "", iconSize = 32 }) => {
+  const gradientId = useId();
+  
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       {/* Icon */}
@@ -16,7 +18,7 @@ export const Logo = ({ className = "", textClassName = "", iconSize = 32 }) => {
         >
           <defs>
             <linearGradient
-              id="logoGradient"
+              id={gradientId}
               x1="0"
               y1="0"
               x2="40"
@@ -32,7 +34,7 @@ export const Logo = ({ className = "", textClassName = "", iconSize = 32 }) => {
             width="40"
             height="40"
             rx="10"
-            fill="url(#logoGradient)"
+            fill={`url(#${gradientId})`}
           />
           <path
             d="M11 27V13L20 22L29 13V27"
@@ -55,6 +57,8 @@ export const Logo = ({ className = "", textClassName = "", iconSize = 32 }) => {
 };
 
 export const LogoIcon = ({ size = 32, className = "" }) => {
+  const gradientId = useId();
+
   return (
     <div
       className={`relative flex items-center justify-center ${className}`}
@@ -68,7 +72,7 @@ export const LogoIcon = ({ size = 32, className = "" }) => {
       >
         <defs>
           <linearGradient
-            id="logoIconGradient"
+            id={gradientId}
             x1="0"
             y1="0"
             x2="40"
@@ -84,7 +88,7 @@ export const LogoIcon = ({ size = 32, className = "" }) => {
           width="40"
           height="40"
           rx="12"
-          fill="url(#logoIconGradient)"
+          fill={`url(#${gradientId})`}
         />
         <path
           d="M11 27V13L20 22L29 13V27"

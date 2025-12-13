@@ -46,6 +46,7 @@ class SavingCompletedNotification extends Notification implements ShouldQueue
             'title' => 'Goal Reached! 🎉',
             'message' => 'Congratulations! You have reached your savings goal for ' . $this->saving->name,
             'saving_id' => $this->saving->id,
+            'saving_name' => $this->saving->name,
             'type' => 'saving_completed',
         ];
     }

@@ -1,13 +1,15 @@
 import { CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 export default function BudgetComplianceTable({ budgetCompliance, userCurrency }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 overflow-hidden min-w-0">
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <CheckCircle2 size={20} className="text-gray-400 dark:text-gray-500" />
-          Budget Compliance
+          {t('app.reports.budgetCompliance.title')}
         </h3>
       </div>
       {/* Desktop View */}
@@ -16,22 +18,22 @@ export default function BudgetComplianceTable({ budgetCompliance, userCurrency }
           <thead className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
             <tr>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Budget Name
+                {t('app.reports.budgetCompliance.headers.name')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Category
+                {t('app.reports.budgetCompliance.headers.category')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Allocated
+                {t('app.reports.budgetCompliance.headers.allocated')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Spent
+                {t('app.reports.budgetCompliance.headers.spent')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Remaining
+                {t('app.reports.budgetCompliance.headers.remaining')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
+                {t('app.reports.budgetCompliance.headers.status')}
               </th>
             </tr>
           </thead>
@@ -39,7 +41,7 @@ export default function BudgetComplianceTable({ budgetCompliance, userCurrency }
             {budgetCompliance.length === 0 ? (
               <tr>
                 <td colSpan="6" className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  No budget data found for this period.
+                  {t('app.reports.budgetCompliance.empty')}
                 </td>
               </tr>
             ) : (
@@ -95,7 +97,7 @@ export default function BudgetComplianceTable({ budgetCompliance, userCurrency }
       <div className="lg:hidden">
         {budgetCompliance.length === 0 ? (
            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              No budget data found for this period.
+              {t('app.reports.budgetCompliance.empty')}
            </div>
         ) : (
            <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -112,14 +114,14 @@ export default function BudgetComplianceTable({ budgetCompliance, userCurrency }
                         <div className={`text-sm font-bold ${b.remaining < 0 ? "text-rose-600 dark:text-rose-400" : "text-violet-600 dark:text-violet-400"}`}>
                            {formatCurrency(b.remaining, userCurrency)}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">Remaining</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{t('app.reports.budgetCompliance.headers.remaining')}</div>
                      </div>
                   </div>
 
                   <div className="mb-3 space-y-1">
                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 gap-2">
-                        <span className="truncate">Spent: {formatCurrency(b.spent, userCurrency)}</span>
-                        <span className="truncate">Allocated: {formatCurrency(b.allocated, userCurrency)}</span>
+                        <span className="truncate">{t('app.reports.budgetCompliance.spent')}: {formatCurrency(b.spent, userCurrency)}</span>
+                        <span className="truncate">{t('app.reports.budgetCompliance.allocated')}: {formatCurrency(b.allocated, userCurrency)}</span>
                      </div>
                      <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div

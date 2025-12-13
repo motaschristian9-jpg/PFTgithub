@@ -8,6 +8,7 @@ import {
   Calendar,
   ArrowUpDown,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const TransactionsFilters = ({
   search,
@@ -28,6 +29,7 @@ const TransactionsFilters = ({
   endDate,
   setEndDate,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800">
       <div className="flex flex-col lg:flex-row gap-4 justify-between items-center mb-5">
@@ -38,7 +40,7 @@ const TransactionsFilters = ({
           />
           <input
             type="text"
-            placeholder="Search transactions..."
+            placeholder={t('app.transactions.filters.searchPlaceholder')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -65,9 +67,9 @@ const TransactionsFilters = ({
             }}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
-            <option value="all">All Types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expenses</option>
+            <option value="all">{t('app.transactions.filters.type.all')}</option>
+            <option value="income">{t('app.transactions.filters.type.income')}</option>
+            <option value="expense">{t('app.transactions.filters.type.expense')}</option>
           </select>
         </div>
 
@@ -83,7 +85,7 @@ const TransactionsFilters = ({
             }}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
-            <option value="">All Categories</option>
+            <option value="">{t('app.transactions.filters.categoryPlaceholder')}</option>
             {filteredCategories.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.name}
@@ -101,10 +103,10 @@ const TransactionsFilters = ({
             onChange={(e) => setDatePreset(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
-            <option value="all">All Dates</option>
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="custom">Custom Range</option>
+            <option value="all">{t('app.transactions.filters.date.all')}</option>
+            <option value="this_month">{t('app.transactions.filters.date.thisMonth')}</option>
+            <option value="last_month">{t('app.transactions.filters.date.lastMonth')}</option>
+            <option value="custom">{t('app.transactions.filters.date.custom')}</option>
           </select>
         </div>
 
@@ -120,9 +122,9 @@ const TransactionsFilters = ({
             }}
             className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none appearance-none text-sm text-gray-700 dark:text-gray-200 font-medium cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
           >
-            <option value="date">Sort by Date</option>
-            <option value="amount">Sort by Amount</option>
-            <option value="created_at">Sort by Created</option>
+            <option value="date">{t('app.transactions.filters.date.sortByDate')}</option>
+            <option value="amount">{t('app.transactions.filters.date.sortByAmount')}</option>
+            <option value="created_at">{t('app.transactions.filters.date.sortByCreated')}</option>
           </select>
         </div>
       </div>

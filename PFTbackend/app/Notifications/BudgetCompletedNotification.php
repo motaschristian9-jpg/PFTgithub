@@ -46,6 +46,7 @@ class BudgetCompletedNotification extends Notification implements ShouldQueue
             'title' => 'Budget Limit Reached',
             'message' => 'You have reached 100% of your allocated amount for ' . $this->budget->name,
             'budget_id' => $this->budget->id,
+            'budget_name' => $this->budget->name,
             'type' => 'budget_reached',
         ];
     }

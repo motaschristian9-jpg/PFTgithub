@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { updateProfile, deleteAccount } from "../api/auth";
 import { showSuccess, showError, confirmDelete } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useSettingsPageLogic = () => {
+  const { t } = useTranslation();
   const { user, setUser } = useAuth();
   const isGoogleUser = user?.login_method === "google";
 
@@ -14,6 +16,7 @@ export const useSettingsPageLogic = () => {
     name: "",
     email: "",
     currency: "USD",
+    language: "en",
     email_notifications_enabled: true,
   });
   const [avatarFile, setAvatarFile] = useState(null);
@@ -25,6 +28,7 @@ export const useSettingsPageLogic = () => {
         name: user.name || "",
         email: user.email || "",
         currency: user.currency || "USD",
+        language: user.language || "en",
         email_notifications_enabled: user.email_notifications_enabled ?? true,
       });
       if (user.avatar_url) {
@@ -44,6 +48,7 @@ export const useSettingsPageLogic = () => {
       const data = new FormData();
       data.append("name", formData.name);
       data.append("currency", formData.currency);
+      data.append("language", formData.language);
       data.append("email_notifications_enabled", formData.email_notifications_enabled ? "1" : "0");
 
       if (avatarFile) {
@@ -62,13 +67,13 @@ export const useSettingsPageLogic = () => {
         }
       }
 
-      showSuccess("Settings Saved!", "Your preferences have been updated successfully.");
+      showSuccess(t('app.swal.settingsSaved'), t('app.swal.settingsSavedMsg'));
     } catch (error) {
       console.error("Update failed:", error);
 
       showError(
-        "Update Failed",
-        error.response?.data?.message || "Something went wrong. Please try again."
+        t('app.swal.errorTitle'),
+        error.response?.data?.message || t('app.swal.errorText')
       );
     } finally {
       setIsSaving(false);
@@ -78,14 +83,14 @@ export const useSettingsPageLogic = () => {
 
   const handleDeleteAccount = async () => {
     const result = await confirmDelete(
-      "Are you sure?",
-      "You won't be able to revert this! All your data will be permanently deleted."
+      t('app.swal.confirmTitle'),
+      t('app.swal.confirmText')
     );
 
     if (result.isConfirmed) {
       try {
         await deleteAccount();
-        showSuccess("Deleted!", "Your account has been deleted.");
+        showSuccess(t('app.swal.accountDeleted'), t('app.swal.accountDeletedMsg'));
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setUser(null);
@@ -93,7 +98,7 @@ export const useSettingsPageLogic = () => {
       } catch (error) {
         showError(
           "Error",
-          error.response?.data?.message || "Failed to delete account."
+          error.response?.data?.message || t('app.swal.errorText')
         );
       }
     }
@@ -128,12 +133,12 @@ export const useSettingsPageLogic = () => {
       }
       
       // Optional: Show a small toast
-      showSuccess("Preferences Updated", enabled ? "Email notices enabled" : "Email notices disabled");
+      showSuccess(t('app.swal.preferencesUpdated'), enabled ? t('app.swal.emailEnabled') : t('app.swal.emailDisabled'));
     } catch (error) {
       console.error("Toggle failed", error);
       // Revert optimism
       setFormData((prev) => ({ ...prev, email_notifications_enabled: !enabled }));
-      showError("Update Failed", "Could not update preference");
+      showError(t('app.swal.errorTitle'), "Could not update preference");
     }
   };
 

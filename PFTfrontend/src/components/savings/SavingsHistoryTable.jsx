@@ -1,5 +1,6 @@
 import { Eye, Trash2, PiggyBank } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 export default function SavingsHistoryTable({
   savings,
@@ -11,11 +12,13 @@ export default function SavingsHistoryTable({
   setHistoryPage,
   totalPages,
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 overflow-hidden">
       <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-white dark:bg-gray-900">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Savings History</h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">Completed Goals</span>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('app.savings.historyTable.title')}</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{t('app.savings.historyTable.subtitle')}</span>
       </div>
       {/* Desktop Table View */}
       <div className="hidden lg:block overflow-x-auto">
@@ -23,22 +26,22 @@ export default function SavingsHistoryTable({
           <thead className="bg-gray-50/50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
             <tr>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Name
+                {t('app.savings.historyTable.headers.name')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Target
+                {t('app.savings.historyTable.headers.target')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Final Amount
+                {t('app.savings.historyTable.headers.finalAmount')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Date
+                {t('app.savings.historyTable.headers.date')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Status
+                {t('app.savings.historyTable.headers.status')}
               </th>
               <th className="py-4 px-6 font-semibold text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                Actions
+                {t('app.savings.historyTable.headers.actions')}
               </th>
             </tr>
           </thead>
@@ -46,7 +49,7 @@ export default function SavingsHistoryTable({
             {loading ? (
               <tr>
                 <td colSpan="6" className="p-8 text-center">
-                  Loading history...
+                  {t('app.savings.historyTable.loading')}
                 </td>
               </tr>
             ) : savings.length === 0 ? (
@@ -56,7 +59,7 @@ export default function SavingsHistoryTable({
                     <div className="mb-3 rounded-full bg-gray-100 dark:bg-gray-800 p-3">
                       <PiggyBank size={24} className="text-gray-400 dark:text-gray-500" />
                     </div>
-                    <p className="text-sm">No savings history found.</p>
+                    <p className="text-sm">{t('app.savings.historyTable.empty')}</p>
                   </div>
                 </td>
               </tr>
@@ -82,7 +85,7 @@ export default function SavingsHistoryTable({
                   </td>
                   <td className="py-4 px-6">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300">
-                      Completed
+                      {t('app.savings.historyTable.status.completed')}
                     </span>
                   </td>
                   <td className="py-4 px-6 text-right">
@@ -111,14 +114,14 @@ export default function SavingsHistoryTable({
       {/* Mobile Card View */}
       <div className="lg:hidden">
         {loading ? (
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">Loading history...</div>
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">{t('app.savings.historyTable.loading')}</div>
         ) : savings.length === 0 ? (
           <div className="p-12 text-center text-gray-500 dark:text-gray-400">
             <div className="flex flex-col items-center justify-center opacity-60">
               <div className="mb-3 rounded-full bg-gray-100 dark:bg-gray-800 p-3">
                 <PiggyBank size={24} className="text-gray-400 dark:text-gray-500" />
               </div>
-              <p className="text-sm">No savings history found.</p>
+              <p className="text-sm">{t('app.savings.historyTable.empty')}</p>
             </div>
           </div>
         ) : (
@@ -135,14 +138,14 @@ export default function SavingsHistoryTable({
                     </p>
                   </div>
                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300">
-                    Completed
+                    {t('app.savings.historyTable.status.completed')}
                   </span>
                 </div>
                 
                 <div className="flex justify-between items-end mt-3">
                   <div className="space-y-1">
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Target: {formatCurrency(Number(s.target_amount), userCurrency)}
+                      {t('app.savings.historyTable.headers.target')}: {formatCurrency(Number(s.target_amount), userCurrency)}
                     </div>
                     <div className="text-sm font-bold text-teal-600 dark:text-teal-400">
                       Final: {formatCurrency(Number(s.current_amount), userCurrency)}
@@ -177,17 +180,17 @@ export default function SavingsHistoryTable({
               disabled={historyPage === 1}
               className="px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
             >
-              Previous
+              {t('app.savings.historyTable.previous')}
             </button>
             <span className="px-3 py-1 text-gray-600 dark:text-gray-300">
-              Page {historyPage} of {totalPages}
+              {t('app.savings.historyTable.page')} {historyPage} {t('app.savings.historyTable.of')} {totalPages}
             </span>
             <button
               onClick={() => setHistoryPage((p) => p + 1)}
               disabled={historyPage >= totalPages}
               className="px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
             >
-              Next
+              {t('app.savings.historyTable.next')}
             </button>
           </div>
         </div>

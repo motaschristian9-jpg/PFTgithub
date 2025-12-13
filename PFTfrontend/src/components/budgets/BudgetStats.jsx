@@ -1,6 +1,7 @@
 import React from "react";
 import { Banknote, TrendingUp, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 const StatCard = ({ title, value, icon: Icon, colorClass }) => {
   // Extract base color from classes (e.g., "text-emerald-600" -> "emerald")
@@ -35,22 +36,23 @@ const StatCard = ({ title, value, icon: Icon, colorClass }) => {
 };
 
 const BudgetStats = ({ stats, activeTab, userCurrency }) => {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard
-        title={activeTab === "active" ? "Active Allocated" : "History Allocated"}
+        title={activeTab === "active" ? t('app.budgets.stats.activeAllocated') : t('app.budgets.stats.historyAllocated')}
         value={formatCurrency(stats.totalAllocated, userCurrency)}
         icon={Banknote}
         colorClass="text-violet-600"
       />
       <StatCard
-        title={activeTab === "active" ? "Active Spent" : "History Spent"}
+        title={activeTab === "active" ? t('app.budgets.stats.activeSpent') : t('app.budgets.stats.historySpent')}
         value={formatCurrency(stats.totalSpent, userCurrency)}
         icon={TrendingUp}
         colorClass="text-violet-600"
       />
       <StatCard
-        title={activeTab === "active" ? "Active Count" : "History Count"}
+        title={activeTab === "active" ? t('app.budgets.stats.activeCount') : t('app.budgets.stats.historyCount')}
         value={stats.count}
         icon={CheckCircle2}
         colorClass="text-violet-600"

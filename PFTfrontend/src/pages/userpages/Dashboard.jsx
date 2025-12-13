@@ -23,7 +23,10 @@ import RecentTransactions from "../../components/dashboard/RecentTransactions";
 import ActiveBudgets from "../../components/dashboard/ActiveBudgets";
 import SavingsGoals from "../../components/dashboard/SavingsGoals";
 
+import { useTranslation } from "react-i18next";
+
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { user } = useDataContext();
   const userCurrency = user?.currency || "USD";
 
@@ -47,10 +50,10 @@ const Dashboard = () => {
       <motion.div variants={itemVariants} className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-            Dashboard
+            {t('app.sidebar.items.dashboard')}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Welcome back, <span className="font-semibold text-gray-900 dark:text-gray-200">{user?.name}</span>
+            {t('app.dashboard.welcome', { name: user?.name })}
           </p>
         </div>
         <div className="mt-4 flex items-center gap-2 sm:mt-0">
@@ -68,7 +71,7 @@ const Dashboard = () => {
       {/* Charts & Activity Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <motion.div variants={itemVariants} className="lg:col-span-2">
-          <DashboardCharts data={lineChartData} />
+          <DashboardCharts data={lineChartData} userCurrency={userCurrency} />
         </motion.div>
         <motion.div variants={itemVariants}>
           <RecentTransactions 

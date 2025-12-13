@@ -60,25 +60,28 @@ const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
   );
 };
 
+import { useTranslation } from "react-i18next";
+
 const TransactionsStats = ({ totalIncome, totalExpenses, netBalance, userCurrency }) => {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <StatCard
-        title="Total Income"
+        title={t('app.transactions.stats.totalIncome')}
         amount={totalIncome}
         icon={TrendingUp}
         type="income"
         currency={userCurrency}
       />
       <StatCard
-        title="Total Expenses"
+        title={t('app.transactions.stats.totalExpenses')}
         amount={totalExpenses}
         icon={TrendingDown}
         type="expense"
         currency={userCurrency}
       />
       <StatCard
-        title="Net Balance"
+        title={t('app.transactions.stats.netBalance')}
         amount={netBalance}
         icon={Wallet}
         type="balance"

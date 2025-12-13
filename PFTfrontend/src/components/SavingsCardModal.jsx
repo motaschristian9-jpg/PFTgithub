@@ -24,6 +24,7 @@ import {
 import { formatCurrency } from "../utils/currency";
 import { useSavingsCardModalLogic } from "../hooks/useSavingsCardModalLogic";
 import SavingsEditForm from "./savings/SavingsEditForm";
+import { useTranslation } from "react-i18next";
 
 export default function SavingsCardModal({
   isOpen,
@@ -35,6 +36,7 @@ export default function SavingsCardModal({
   handleCreateWithdrawalTransaction,
   handleCreateContributionTransaction,
 }) {
+  const { t } = useTranslation();
   const {
     userCurrency,
     currencySymbol,
@@ -122,12 +124,12 @@ export default function SavingsCardModal({
                     {localSaving.name}
                     {stats.isCompleted && (
                       <span className="text-xs bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 px-2.5 py-1 rounded-full uppercase tracking-wide font-bold shrink-0">
-                        Completed
+                         {t('app.savings.card.completed')}
                       </span>
                     )}
                   </h2>
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mt-1 truncate">
-                    <Target size={14} className="shrink-0" /> Target:{" "}
+                    <Target size={14} className="shrink-0" /> {t('app.savings.card.target')}:{" "}
                     {formatCurrency(stats.target, userCurrency)}
                   </p>
                 </div>
@@ -155,7 +157,7 @@ export default function SavingsCardModal({
                         disabled={isReadOnly}
                       >
                         <Plus size={18} strokeWidth={2.5} />
-                        <span className="hidden sm:inline">Add</span>
+                        <span className="hidden sm:inline">{t('app.savings.card.addBtn')}</span>
                       </button>
                     )}
                     <button
@@ -169,7 +171,7 @@ export default function SavingsCardModal({
                         disabled={isReadOnly && stats.current === 0}
                       >
                       <Minus size={18} strokeWidth={2.5} />
-                      <span className="hidden sm:inline">Withdraw</span>
+                      <span className="hidden sm:inline">{t('app.savings.card.withdrawBtn')}</span>
                     </button>
                     {!stats.isCompleted && (
                       <>
@@ -196,7 +198,7 @@ export default function SavingsCardModal({
                     onClick={() => setIsEditing(false)}
                     className="px-5 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200"
                   >
-                    Cancel
+                    {t('app.savings.card.cancelBtn')}
                   </button>
                 )}
                 {/* Desktop Close Button */}
@@ -220,7 +222,7 @@ export default function SavingsCardModal({
                 }`}
               >
                 <LayoutDashboard size={16} />
-                Overview
+                {t('app.savings.card.overview')}
               </button>
               <button
                 onClick={() => setActiveTab("history")}
@@ -231,7 +233,7 @@ export default function SavingsCardModal({
                 }`}
               >
                 <History size={16} />
-                History
+                {t('app.savings.card.history')}
               </button>
             </div>
 
@@ -254,7 +256,7 @@ export default function SavingsCardModal({
                   <div className="p-8 space-y-10">
                     <div className="text-center space-y-3">
                       <p className="text-sm font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">
-                        {stats.isCompleted ? "Goal Completed" : "Total Saved"}
+                        {stats.isCompleted ? t('app.savings.card.goalCompleted') : t('app.savings.card.totalSaved')}
                       </p>
                       <div className="text-6xl font-black text-teal-900 dark:text-teal-50 tracking-tighter">
                         {formatCurrency(stats.current, userCurrency)}
@@ -264,7 +266,7 @@ export default function SavingsCardModal({
                     <div className="space-y-3">
                       <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                         <span>{formatCurrency(0, userCurrency)}</span>
-                        <span>{stats.percentage.toFixed(0)}% reached</span>
+                        <span>{stats.percentage.toFixed(0)}% {t('app.savings.card.reached')}</span>
                       </div>
                       <div className="h-5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden shadow-inner relative ring-1 ring-gray-200/50 dark:ring-gray-700/50">
                         <div
@@ -279,7 +281,7 @@ export default function SavingsCardModal({
                         <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 mb-2">
                           <Target size={16} />
                           <span className="text-xs font-bold uppercase tracking-wide">
-                            Target
+                            {t('app.savings.card.target')}
                           </span> 
                         </div>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -290,7 +292,7 @@ export default function SavingsCardModal({
                         <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 mb-2">
                           <TrendingUp size={16} />
                           <span className="text-xs font-bold uppercase tracking-wide">
-                            To Go
+                            {t('app.savings.card.toGo')}
                           </span>
                         </div>
                         <p className="text-2xl font-bold text-gray-500 dark:text-gray-400">
@@ -302,7 +304,7 @@ export default function SavingsCardModal({
                     {localSaving.description && (
                       <div className="p-5 rounded-2xl bg-teal-50/50 dark:bg-teal-900/10 text-teal-900 dark:text-teal-200 text-sm border border-teal-100 dark:border-teal-800/30 leading-relaxed">
                         <span className="font-bold block mb-2 text-xs uppercase opacity-60 tracking-wider">
-                          Note
+                           {t('app.savings.card.note')}
                         </span>
                         {localSaving.description}
                       </div>
@@ -317,28 +319,22 @@ export default function SavingsCardModal({
                   activeTab === "history" ? "flex" : "hidden lg:flex"
                 }`}
               >
-                <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/30 flex justify-between items-center shrink-0">
-                  <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-3 text-lg">
-                    Contributions and Withdrawal History
-                    {filteredTransactions.length > 0 && (
-                      <span className="px-2.5 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold">
-                        {filteredTransactions.length}
-                      </span>
-                    )}
-                  </h3>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar max-h-[400px] lg:max-h-[500px]">
+                <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                  <div className="h-full flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                       <History size={20} className="text-teal-500" />
+                       {t('app.savings.card.historyTitle')}
+                    </h3>
+
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
                   {isLoadingHistory ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-4 opacity-60">
                       <Loader2 className="animate-spin" size={40} />
-                      <p className="text-sm font-medium">Loading history...</p>
+                      <p className="text-sm font-medium">{t('app.savings.card.loadingHistory')}</p>
                     </div>
                   ) : filteredTransactions.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-4 opacity-60">
-                      <div className="p-6 rounded-full bg-gray-50 dark:bg-gray-800">
-                        <Clock size={40} />
-                      </div>
-                      <p className="text-sm font-medium">No contribution history</p>
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+                       {t('app.savings.card.noHistory')}
                     </div>
                   ) : (
                     filteredTransactions.map((tx) => {
@@ -349,27 +345,21 @@ export default function SavingsCardModal({
                       return (
                         <div
                           key={tx.id}
-                          className="group flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all duration-200"
+                          className="group relative flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-all"
                         >
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors shadow-sm group-hover:shadow-md ${
-                                isContribution
-                                  ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                                  : "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400"
-                              }`}
-                            >
-                              {isContribution ? (
-                                <ArrowUpRight size={20} strokeWidth={2.5} />
-                              ) : (
-                                <ArrowDownLeft size={20} strokeWidth={2.5} />
-                              )}
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+                                {isContribution ? (
+                                  <ArrowUpRight size={20} className="text-emerald-500" />
+                                ) : (
+                                  <ArrowDownLeft size={20} className="text-rose-500" />
+                                )}
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900 dark:text-white text-base">
-                                {isContribution ? "Contribution" : "Withdrawal"}
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {isContribution ? t('app.savings.card.contribution') : t('app.savings.card.withdrawal')}
                               </p>
-                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {tx.date || tx.transaction_date
                                   ? new Date(
                                       tx.date || tx.transaction_date
@@ -378,27 +368,17 @@ export default function SavingsCardModal({
                                       month: "short",
                                       day: "numeric",
                                     })
-                                  : "No Date"}
+                                  : t('app.savings.card.noDate')}
                               </p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <span
-                                className={`font-bold text-base block ${
-                                  isContribution
-                                    ? "text-emerald-600 dark:text-emerald-400"
-                                    : "text-rose-600 dark:text-rose-400"
-                                }`}
-                              >
-                                {isContribution ? "+" : "-"}
-                                {formatCurrency(Number(tx.amount), userCurrency)}
-                              </span>
-                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                                {isContribution ? "Saved" : "Withdrawn"}
-                              </span>
-                            </div>
+                            <span
+                              className={`font-bold text-gray-900 dark:text-white`}
+                            >
+                              {formatCurrency(Number(tx.amount), userCurrency)}
+                            </span>
 
                             {!isReadOnly && (
                               <button
@@ -407,21 +387,17 @@ export default function SavingsCardModal({
                                   if (!tx.pending) handleDeleteTx(tx);
                                 }}
                                 disabled={tx.pending}
-                                  className={`p-2.5 rounded-xl transition-all duration-200 ${
-                                    tx.pending
-                                      ? "text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-100"
-                                      : "text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100"
-                                  }`}
+                                className="opacity-0 group-hover:opacity-100 p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
                                 title={
                                   tx.pending
-                                    ? "Syncing with server..."
-                                    : "Delete Transaction"
+                                    ? t('app.savings.card.syncing')
+                                    : t('app.savings.card.deleteTx')
                                 }
                               >
                                 {tx.pending ? (
-                                  <Loader2 size={18} className="animate-spin" />
+                                  <Loader2 size={14} className="animate-spin" />
                                 ) : (
-                                  <Trash2 size={18} />
+                                  <Trash2 size={14} />
                                 )}
                               </button>
                             )}
@@ -430,6 +406,8 @@ export default function SavingsCardModal({
                       );
                     })
                   )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

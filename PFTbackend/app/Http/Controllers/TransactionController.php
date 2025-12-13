@@ -302,6 +302,11 @@ class TransactionController extends Controller
             $insertedCount = 0;
             
             \Illuminate\Support\Facades\DB::transaction(function () use ($transactionsData, $userId, &$insertedCount) {
+                // Optimization: Fetch all categories once to avoid N+1 queries in the loop
+                // keyBy to make lookup faster? Or just filter the collection?
+                // Given the complex logic (name match + (type match OR fallback)), filtering collection is safer.
+                $allCategories = \App\Models\Category::all();
+
                 foreach ($transactionsData as $data) {
                     // Enrich data
                     $data['user_id'] = $userId;
@@ -311,36 +316,31 @@ class TransactionController extends Controller
                     // Logic to resolve Category Name -> ID
                     if (isset($data['category']) && !empty($data['category'])) {
                         // 1. Try to find exact match
-                        $category = \App\Models\Category::where('name', $data['category'])
-                            ->where(function($q) use ($data) {
-                                $q->where('type', $data['type'])
-                                  ->orWhere('type', 'expense'); // Fallback if type mismatch? Mostly stick to strict type.
-                            })
-                            ->first();
+                        // Original Logic: Name matches AND (Type matches OR Type is 'expense')
+                        $category = $allCategories->first(function($cat) use ($data) {
+                            return strcasecmp($cat->name, $data['category']) === 0 && 
+                                   ($cat->type === $data['type'] || $cat->type === 'expense');
+                        });
 
                         if ($category) {
                             $data['category_id'] = $category->id;
                         } else {
                             // 2. Not found -> Fallback to "Other"
-                            $otherCategory = \App\Models\Category::where('name', 'Other')
-                                ->where('type', $data['type'])
-                                ->first();
+                            $otherCategory = $allCategories->first(function($cat) use ($data) {
+                                return strcasecmp($cat->name, 'Other') === 0 && $cat->type === $data['type'];
+                            });
                             
                             if ($otherCategory) {
                                 $data['category_id'] = $otherCategory->id;
                             } else {
-                                $data['category_id'] = null; // Should not happen if seeded, but safe fallback
+                                $data['category_id'] = null;
                             }
                         }
                     } else {
-                        // No category provided -> Default to "Other" as requested? 
-                        // Or Uncategorized (null)? 
-                        // User said: "maybe make it the "Other" category" when upload csv and it is successful. 
-                        // This implies if NO match or NO category, use Other.
-                        
-                        $otherCategory = \App\Models\Category::where('name', 'Other')
-                            ->where('type', $data['type'])
-                            ->first();
+                        // No category provided -> Default to "Other"
+                        $otherCategory = $allCategories->first(function($cat) use ($data) {
+                            return strcasecmp($cat->name, 'Other') === 0 && $cat->type === $data['type'];
+                        });
                             
                          if ($otherCategory) {
                             $data['category_id'] = $otherCategory->id;
@@ -353,7 +353,6 @@ class TransactionController extends Controller
                     unset($data['category']);
 
                     // Create transaction
-                    // We use create() in a loop instead of insert() to ensure any model observers run 
                     Auth::user()->transactions()->create($data);
                     $insertedCount++;
                 }

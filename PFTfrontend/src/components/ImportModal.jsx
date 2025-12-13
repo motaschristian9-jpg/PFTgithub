@@ -5,8 +5,10 @@ import Papa from "papaparse";
 import { format, parse, isValid } from "date-fns";
 import { showSuccess, showError } from "../utils/swal";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const ImportModal = ({ isOpen, onClose, onImport }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState([]);
   const [error, setError] = useState(null);
@@ -36,7 +38,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
         if (selectedFile.type !== "text/csv" && !selectedFile.name.endsWith('.csv')) {
-            setError("Please upload a valid CSV file.");
+            setError(t('app.import.errors.invalidType'));
             return;
         }
         setFile(selectedFile);
@@ -58,17 +60,17 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
             if (valid) {
                 setPreview(results.data.slice(0, 5));
             } else {
-                setError("Invalid CSV format. Required columns: Date, Amount, Type, Name/Description");
+                setError(t('app.import.errors.invalidFormat'));
                 setFile(null);
             }
         } else {
-            setError("File is empty.");
+            setError(t('app.import.errors.emptyFile'));
             setFile(null);
         }
       },
       error: (err) => {
         setIsProcessing(false);
-        setError("Error parsing file: " + err.message);
+        setError(t('app.import.errors.parseError', { error: err.message }));
       }
     });
   };
@@ -104,14 +106,14 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                         return val ? val.toLowerCase() : (Number(getAmount()) < 0 ? 'expense' : 'income');
                     };
                     const getCategory = () => row[keys.find(key => key.toLowerCase().includes('category'))];
-                    const getName = () => row[keys.find(key => key.toLowerCase().includes('name') || key.toLowerCase().includes('description') || key.toLowerCase().includes('memo'))] || "Imported Transaction";
+                    const getName = () => row[keys.find(key => key.toLowerCase().includes('name') || key.toLowerCase().includes('description') || key.toLowerCase().includes('memo'))] || t('app.modal.defaultTransactionName') || "Imported Transaction";
 
                     // Amount Validation
                     const amountRaw = getAmount();
                     const amountVal = Number(amountRaw);
                     
                     if (isNaN(amountVal)) {
-                         throw new Error(`Row ${i + 1} has an invalid amount: "${amountRaw}". Please only use numbers.`);
+                         throw new Error(t('app.import.errors.rowError', { row: i + 1, amount: amountRaw }));
                     }
 
                     // Date parsing attempts
@@ -128,15 +130,15 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                         type: getType().includes('inc') ? 'income' : 'expense',
                         name: getName(),
                         category: getCategory(), // Add category
-                        description: 'Imported via CSV'
+                        description: t('app.import.defaultDescription')
                     });
                 }
 
                 await onImport(formattedData);
                 handleClose();
-                showSuccess(`Successfully imported ${formattedData.length} transactions.`);
+                showSuccess(t('app.swal.importSuccess', { count: formattedData.length }));
             } catch (err) {
-                const msg = err.message || "Import failed";
+                const msg = err.message || t('app.import.errors.generic');
                 setError(msg);
                 // showError(msg); // Removed as per user request (modal handles error UI)
             } finally {
@@ -162,7 +164,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <Upload className="text-blue-600" size={24} />
-                Import Transactions
+                {t('app.import.title')}
             </h2>
             <button onClick={handleClose} className="text-gray-400 hover:text-gray-500 transition-colors">
               <X size={24} />
@@ -179,9 +181,9 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                     <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                         <FileText size={32} />
                     </div>
-                    <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">Click to upload CSV</p>
+                    <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('app.import.uploadTitle')}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                        Required columns: Date, Name, Amount, Type
+                        {t('app.import.uploadDesc')}
                     </p>
                 </div>
             ) : (
@@ -197,7 +199,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                             </div>
                         </div>
                         <button onClick={resetState} className="text-red-500 hover:bg-red-50 p-2 rounded-lg text-sm font-medium transition-colors">
-                            Remove
+                            {t('app.import.removeBtn')}
                         </button>
                     </div>
 
@@ -222,7 +224,7 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                                 </tbody>
                             </table>
                             <div className="bg-gray-50 p-2 text-center text-xs text-gray-500">
-                                Showing first 5 rows
+                                {t('app.import.showingPreview')}
                             </div>
                         </div>
                     )}
@@ -252,14 +254,14 @@ const ImportModal = ({ isOpen, onClose, onImport }) => {
                 className="px-5 py-2.5 text-gray-700 font-medium hover:bg-gray-100 rounded-xl transition-colors"
                 disabled={isProcessing}
             >
-                Cancel
+                {t('app.import.cancelBtn')}
             </button>
             <button 
                 onClick={processImport}
                 disabled={!file || !!error || isProcessing}
-                className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200"
+                className="px-5 py-2.5 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-                {isProcessing ? 'Processing...' : 'Import Transactions'}
+                {isProcessing ? t('app.import.processingBtn') : t('app.import.importBtn')}
             </button>
           </div>
         </motion.div>

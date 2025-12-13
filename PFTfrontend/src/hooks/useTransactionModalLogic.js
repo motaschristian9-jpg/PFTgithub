@@ -5,6 +5,7 @@ import { useModalFormHooks } from "./useModalFormHooks";
 import { useDataContext } from "../components/DataLoader";
 import { useCreateTransaction, useUpdateTransaction } from "./useTransactions";
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
+import { useTranslation } from "react-i18next";
 
 export const useTransactionModalLogic = ({
   isOpen,
@@ -13,6 +14,7 @@ export const useTransactionModalLogic = ({
   editMode,
   transactionToEdit,
 }) => {
+  const { t } = useTranslation();
   const {
     activeBudgetsData,
     transactionsData,
@@ -286,8 +288,8 @@ export const useTransactionModalLogic = ({
           );
 
           showSuccess(
-            "Success!",
-            `Transaction saved & ${formattedDeduction} allocated to "${selectedGoal.name}".`
+            t('app.swal.successTitle'),
+            t('app.swal.savingsAllocated', { amount: formattedDeduction, goal: selectedGoal.name })
           );
 
           if (onTransactionAdded) onTransactionAdded(response);
@@ -299,8 +301,8 @@ export const useTransactionModalLogic = ({
       }
 
       showSuccess(
-        editMode ? "Updated!" : "Added!",
-        "Transaction saved successfully."
+        editMode ? t('app.swal.transactionUpdated') : t('app.swal.transactionAdded'),
+        t('app.swal.transactionSavedMsg')
       );
 
       if (onTransactionAdded) onTransactionAdded(response);
@@ -318,7 +320,7 @@ export const useTransactionModalLogic = ({
           setError(fieldName, { type: "server", message: val[0] });
         });
       } else {
-        showError("Error", "Something went wrong.");
+        showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
       }
     } finally {
       setLoading(false);

@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { BarChart as BarIcon, PieChart as PieIcon, TrendingUp, Trophy } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
+import { useTranslation } from "react-i18next";
 
 const COLORS = [
   "#10B981",
@@ -90,6 +91,8 @@ export default function ReportsCharts({
   savingsMetrics,
   userCurrency,
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {/* 1. Expense Pie Chart */}
@@ -97,7 +100,7 @@ export default function ReportsCharts({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <PieIcon size={20} className="text-gray-400 dark:text-gray-500" />
-            Expense Breakdown
+            {t('app.reports.charts.expenseBreakdown')}
           </h3>
         </div>
         <div className="h-64 sm:h-80 w-full">
@@ -129,7 +132,8 @@ export default function ReportsCharts({
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-400">
               <PieIcon size={48} className="mb-2 opacity-20" />
-              <p>No expense data available</p>
+
+              <p>{t('app.reports.charts.noExpenseData')}</p>
             </div>
           )}
         </div>
@@ -140,7 +144,7 @@ export default function ReportsCharts({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <BarIcon size={20} className="text-gray-400 dark:text-gray-500" />
-            Income vs Expenses
+            {t('app.reports.charts.incomeVsExpense')}
           </h3>
         </div>
         <div className="h-64 sm:h-80 w-full">
@@ -181,7 +185,7 @@ export default function ReportsCharts({
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <TrendingUp size={20} className="text-teal-600 dark:text-teal-400" />
-            Savings Performance
+            {t('app.reports.charts.savingsPerformance')}
           </h3>
         </div>
         
@@ -192,11 +196,11 @@ export default function ReportsCharts({
                     <div className="w-12 h-12 bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center mb-4">
                         <TrendingUp size={24} />
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-1">Total Saved</p>
+                    <p className="text-xs sm:text-sm font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider mb-1">{t('app.reports.charts.totalSaved')}</p>
                     <p className="text-2xl sm:text-3xl font-black text-teal-900 dark:text-teal-50 truncate max-w-full">
                         {formatCurrency(savingsMetrics.totalSaved, userCurrency)}
                     </p>
-                    <p className="text-xs text-teal-600/70 dark:text-teal-400/70 mt-2 font-medium">in this period</p>
+                    <p className="text-xs text-teal-600/70 dark:text-teal-400/70 mt-2 font-medium">{t('app.reports.charts.inPeriod')}</p>
                 </div>
 
                 {/* Card 2: Savings Rate */}
@@ -204,11 +208,11 @@ export default function ReportsCharts({
                     <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mb-4">
                         <PieIcon size={24} />
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">Savings Rate</p>
+                    <p className="text-xs sm:text-sm font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-1">{t('app.reports.charts.savingsRate')}</p>
                     <p className="text-2xl sm:text-3xl font-black text-indigo-900 dark:text-indigo-50">
                         {savingsMetrics.savingsRate.toFixed(1)}%
                     </p>
-                    <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-2 font-medium">of total income</p>
+                    <p className="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-2 font-medium">{t('app.reports.charts.ofIncome')}</p>
                 </div>
 
                 {/* Card 3: Top Goal */}
@@ -216,7 +220,7 @@ export default function ReportsCharts({
                     <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mb-4">
                         <Trophy size={24} /> 
                     </div>
-                    <p className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">Top Goal</p>
+                    <p className="text-xs sm:text-sm font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-1">{t('app.reports.charts.topGoal')}</p>
                     <p className="text-lg sm:text-xl font-bold text-rose-900 dark:text-rose-50 truncate w-full px-2">
                         {savingsMetrics.topGoal ? savingsMetrics.topGoal.name : "N/A"}
                     </p>
@@ -228,8 +232,8 @@ export default function ReportsCharts({
         ) : (
              <div className="h-64 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
                <TrendingUp size={48} className="mb-2 opacity-20" />
-               <p className="font-medium">No savings activity in this period</p>
-               <p className="text-xs mt-1">Contributions will appear here</p>
+               <p className="font-medium">{t('app.reports.charts.noSavings')}</p>
+               <p className="text-xs mt-1">{t('app.reports.charts.contributionsHint')}</p>
              </div>
         )}
       </section>

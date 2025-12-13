@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   List,
@@ -10,9 +11,11 @@ import {
   Settings,
 } from "lucide-react";
 import { Logo, LogoIcon } from "../components/Logo";
+import { useTranslation } from "react-i18next";
 
 export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, toggleMobileMenu }) {
   const location = useLocation();
+  const { t } = useTranslation();
 
   // Add custom scrollbar styles
   useEffect(() => {
@@ -41,79 +44,87 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
   // Grouped Menu Items
   const menuGroups = [
     {
-      title: "Overview",
+      title: t('app.sidebar.overview'),
       items: [
         {
-          label: "Dashboard",
+          label: t('app.sidebar.items.dashboard'),
           icon: <LayoutDashboard size={20} />,
           path: "/dashboard",
         },
       ],
     },
     {
-      title: "Tracking",
+      title: t('app.sidebar.tracking'),
       items: [
         {
-          label: "Transactions",
+          label: t('app.sidebar.items.transactions'),
           icon: <List size={20} />,
           path: "/transaction",
         },
       ],
     },
     {
-      title: "Management",
+      title: t('app.sidebar.management'),
       items: [
-        { label: "Budgets", icon: <PieChart size={20} />, path: "/budget" },
-        { label: "Savings", icon: <Target size={20} />, path: "/saving" },
+        { label: t('app.sidebar.items.budgets'), icon: <PieChart size={20} />, path: "/budget" },
+        { label: t('app.sidebar.items.savings'), icon: <Target size={20} />, path: "/saving" },
       ],
     },
     {
-      title: "Insights",
+      title: t('app.sidebar.insights'),
       items: [
-        { label: "Reports", icon: <BarChart2 size={20} />, path: "/report" },
+        { label: t('app.sidebar.items.reports'), icon: <BarChart2 size={20} />, path: "/report" },
       ],
     },
     {
-      title: "System",
+      title: t('app.sidebar.system'),
       items: [
-        { label: "Settings", icon: <Settings size={20} />, path: "/setting" },
+        { label: t('app.sidebar.items.settings'), icon: <Settings size={20} />, path: "/setting" },
       ],
     },
   ];
 
+
+
+  const mobileSidebarVariants = {
+    closed: { x: "-100%" },
+    open: { x: 0 },
+  };
+
   return (
     <>
       {/* Desktop Sidebar */}
+      {/* Desktop Sidebar */}
       <aside
-        className={`${
+        className={`hidden md:block sticky top-0 z-20 h-screen bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] flex flex-col transition-none ${
           sidebarOpen ? "w-72" : "w-20"
-        } hidden md:block sticky top-0 z-20 h-screen transition-all duration-300 ease-in-out`}
+        }`}
       >
-        <div className="h-full bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] relative">
+        <div className="h-full flex flex-col relative w-full">
           
           {/* Floating Toggle Button */}
           <button
             onClick={toggleSidebar}
             className="absolute -right-3 top-8 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-md p-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all z-50 flex items-center justify-center group"
           >
-            <ChevronLeft size={16} className={`transition-transform duration-300 ${!sidebarOpen && "rotate-180"}`} />
+            <ChevronLeft size={16} className={`${!sidebarOpen && "rotate-180"}`} />
           </button>
 
           {/* Header */}
           <div className={`flex items-center h-20 px-6 ${sidebarOpen ? "justify-start" : "justify-center"}`}>
             {sidebarOpen ? (
-              <Logo className="animate-in fade-in duration-300" />
+              <Logo />
             ) : (
-              <LogoIcon size={32} className="animate-in fade-in duration-300" />
+              <LogoIcon size={32} />
             )}
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto custom-scrollbar py-6 px-3 space-y-8">
+          <nav className="flex-1 overflow-y-auto custom-scrollbar py-6 px-3 space-y-8 overflow-x-hidden">
             {menuGroups.map((group, groupIdx) => (
               <div key={groupIdx}>
                 {sidebarOpen && (
-                  <h3 className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider animate-in fade-in duration-300">
+                  <h3 className="px-4 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">
                     {group.title}
                   </h3>
                 )}
@@ -177,11 +188,11 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
                           <span className={`${isActive ? theme.activeIcon : "text-gray-400 group-hover:text-current"} transition-colors`}>
                             {item.icon}
                           </span>
-                          {sidebarOpen && (
-                            <span className="text-sm whitespace-nowrap">
-                              {item.label}
-                            </span>
-                          )}
+                            {sidebarOpen && (
+                              <span className="text-sm whitespace-nowrap overflow-hidden">
+                                {item.label}
+                              </span>
+                            )}
                         </div>
                         
                         {/* Tooltip for collapsed state */}
@@ -201,10 +212,12 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
       </aside>
 
       {/* Mobile Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out z-50 md:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+      <motion.aside
+        initial="closed"
+        animate={mobileMenuOpen ? "open" : "closed"}
+        variants={mobileSidebarVariants}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed inset-y-0 left-0 w-72 bg-white dark:bg-gray-900 shadow-2xl z-50 md:hidden"
       >
         <div className="h-full flex flex-col">
           <div className="flex items-center justify-between h-20 px-6 border-b border-gray-100 dark:border-gray-800">
@@ -293,7 +306,7 @@ export default function Sidebar({ sidebarOpen, toggleSidebar, mobileMenuOpen, to
             ))}
           </nav>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 }

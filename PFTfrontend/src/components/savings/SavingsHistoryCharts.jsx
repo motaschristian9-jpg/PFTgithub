@@ -16,6 +16,7 @@ import {
 import { formatCurrency } from "../../utils/currency";
 import { TrendingUp, AlertCircle } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const CustomTooltip = ({ active, payload, label, userCurrency }) => {
   if (active && payload && payload.length) {
@@ -41,6 +42,7 @@ const CustomTooltip = ({ active, payload, label, userCurrency }) => {
 };
 
 const SavingsHistoryCharts = ({ savings, userCurrency }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const [effectiveTheme, setEffectiveTheme] = React.useState("light");
 
@@ -80,15 +82,15 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
     // Handle case where no data
     if (totalTargetMet === 0 && totalSurplus === 0) {
         return [
-            { name: "No Data", value: 1, color: isDark ? "#374151" : "#f3f4f6" }
+            { name: t('app.savings.charts.surplus.noData'), value: 1, color: isDark ? "#374151" : "#f3f4f6" }
         ];
     }
 
     return [
-      { name: "Target Met", value: totalTargetMet, color: "#0d9488" }, // Teal-600
-      { name: "Surplus (Bonus)", value: totalSurplus, color: "#facc15" },   // Yellow-400
+      { name: t('app.savings.charts.surplus.targetMet'), value: totalTargetMet, color: "#0d9488" }, // Teal-600
+      { name: t('app.savings.charts.surplus.surplus'), value: totalSurplus, color: "#facc15" },   // Yellow-400
     ];
-  }, [savings, isDark]);
+  }, [savings, isDark, t]);
 
   // --- 2. Savings Trend Data (Bar + Line Chart) ---
   const trendData = useMemo(() => {
@@ -113,10 +115,10 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
       <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
           <TrendingUp size={20} className="text-teal-600 dark:text-teal-400" />
-          Savings Surplus
+          {t('app.savings.charts.surplus.title')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Base Goals vs. Bonus Savings
+          {t('app.savings.charts.surplus.subtitle')}
         </p>
         
         <div className="flex-1 min-h-[250px] relative">
@@ -142,9 +144,9 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
           {/* Center Text */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none pb-8">
             <div className="text-center">
-              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider block mb-1">Total Saved</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wider block mb-1">{t('app.savings.charts.surplus.totalSaved')}</span>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
-                {formatCurrency(surplusData.reduce((acc, curr) => (curr.name === "No Data" ? 0 : acc + curr.value), 0), userCurrency)}
+                {formatCurrency(surplusData.reduce((acc, curr) => (curr.name === t('app.savings.charts.surplus.noData') ? 0 : acc + curr.value), 0), userCurrency)}
               </span>
             </div>
           </div>
@@ -155,10 +157,10 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
       <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
           <AlertCircle size={20} className="text-teal-600 dark:text-teal-400" />
-          Savings Performance
+          {t('app.savings.charts.trend.title')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Last 10 goals: Target vs. Actual Saved
+          {t('app.savings.charts.trend.subtitle')}
         </p>
 
         <div className="h-[300px] w-full">
@@ -187,11 +189,11 @@ const SavingsHistoryCharts = ({ savings, userCurrency }) => {
               />
               <Tooltip content={<CustomTooltip userCurrency={userCurrency} />} cursor={{ fill: isDark ? "#374151" : "#f9fafb", opacity: 0.4 }} />
               <Legend verticalAlign="top" align="right" height={36} iconType="circle" />
-              <Bar dataKey="target" name="Target" fill="#ccfbf1" radius={[4, 4, 0, 0]} barSize={30} />
+              <Bar dataKey="target" name={t('app.savings.charts.trend.target')} fill="#ccfbf1" radius={[4, 4, 0, 0]} barSize={30} />
               <Line 
                 type="monotone" 
                 dataKey="saved" 
-                name="Saved" 
+                name={t('app.savings.charts.trend.saved')} 
                 stroke="#0d9488" 
                 strokeWidth={3}
                 dot={{ r: 4, fill: "#0d9488", strokeWidth: 2, stroke: "#fff" }}

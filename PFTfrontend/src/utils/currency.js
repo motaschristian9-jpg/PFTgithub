@@ -19,6 +19,7 @@ export const formatCurrency = (amount, currencyCode = "USD") => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: code,
+      currencyDisplay: "narrowSymbol",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(safeAmount);
@@ -65,10 +66,5 @@ export const getCurrencySymbol = (currencyCode = "USD") => {
 export const SUPPORTED_CURRENCIES = [
   { code: "USD", symbol: "$", name: "US Dollar" },
   { code: "PHP", symbol: "₱", name: "Philippine Peso" },
-  { code: "EUR", symbol: "€", name: "Euro" },
-  { code: "GBP", symbol: "£", name: "British Pound" },
-  { code: "JPY", symbol: "¥", name: "Japanese Yen" },
-  { code: "INR", symbol: "₹", name: "Indian Rupee" },
-  { code: "CAD", symbol: "C$", name: "Canadian Dollar" },
-  { code: "AUD", symbol: "A$", name: "Australian Dollar" },
+  { code: "CNY", symbol: "¥", name: "Chinese Yuan" },
 ];

@@ -1,11 +1,13 @@
 import { User, Shield, Bell, Smartphone } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function SettingsSidebar({ activeTab, setActiveTab }) {
+  const { t } = useTranslation();
   const tabs = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "security", label: "Security", icon: Shield },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "app", label: "App Settings", icon: Smartphone },
+    { id: "profile", label: t('app.settings.sidebar.profile'), icon: User },
+    { id: "security", label: t('app.settings.sidebar.security'), icon: Shield },
+    { id: "notifications", label: t('app.settings.sidebar.notifications'), icon: Bell },
+    { id: "app", label: t('app.settings.sidebar.app'), icon: Smartphone },
   ];
 
   return (

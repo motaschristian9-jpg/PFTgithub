@@ -8,6 +8,8 @@ import { formatCurrency, getCurrencySymbol } from "../utils/currency";
 import MySwal, { showSuccess, showError, confirmDelete } from "../utils/swal";
 import { useSavingsAlerts } from "./useSavingsAlerts";
 
+import { useTranslation } from "react-i18next";
+
 export const useSavingsCardModalLogic = ({
   isOpen,
   saving,
@@ -18,6 +20,7 @@ export const useSavingsCardModalLogic = ({
   handleCreateWithdrawalTransaction,
   handleCreateContributionTransaction,
 }) => {
+  const { t } = useTranslation();
   const [localSaving, setLocalSaving] = useState(saving || {});
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -84,6 +87,7 @@ export const useSavingsCardModalLogic = ({
     return () => {
       document.body.style.overflow = "";
       setIsEditing(false);
+      setLocalSaving({}); // Clear data on close to prevent ghosts
     };
   }, [isOpen, saving, reset]);
 
@@ -204,11 +208,11 @@ export const useSavingsCardModalLogic = ({
         description: data.description || "",
       }));
 
-      showSuccess("Saved!", "Goal updated successfully.");
+      showSuccess(t('app.savings.alerts.saveSuccessTitle'), t('app.savings.alerts.saveSuccessMsg'));
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating saving", error);
-      showError("Error", "Failed to update goal.");
+      showError(t('app.savings.alerts.saveErrorTitle'), t('app.savings.alerts.saveErrorMsg'));
     } finally {
       setIsSaving(false);
     }
@@ -269,8 +273,10 @@ export const useSavingsCardModalLogic = ({
 
   const handleDeleteTx = async (tx) => {
     const result = await confirmDelete(
-      "Delete Transaction?",
-      "This will revert the balance impact on this goal."
+      t('app.savings.alerts.deleteTxTitle'),
+      t('app.savings.alerts.deleteTxMsg'),
+      t('app.savings.alerts.deleteTxBtn'),
+      t('app.savings.alerts.cancelBtn')
     );
 
     if (result.isConfirmed && onDeleteTransaction) {
@@ -307,7 +313,7 @@ export const useSavingsCardModalLogic = ({
         queryClient.invalidateQueries(["transactions"]);
         queryClient.invalidateQueries(["savings"]); // This will fetch strict truth
       } catch (error) {
-        showError("Error", "Failed to delete transaction.");
+        showError(t('app.savings.alerts.deleteTxErrorTitle'), t('app.savings.alerts.deleteTxErrorMsg'));
         // Should rollback here theoretically, but for now we rely on refetch
       }
     }

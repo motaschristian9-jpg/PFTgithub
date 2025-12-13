@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { forgotPassword } from "../api/auth";
 import MySwal, { showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useForgotPasswordLogic = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -75,7 +77,7 @@ export const useForgotPasswordLogic = () => {
         ) {
           setError("email", { message: errorMessage });
         } else {
-          showError("Error", errorMessage);
+          showError(t('app.swal.errorTitle'), errorMessage);
         }
       }
     } finally {

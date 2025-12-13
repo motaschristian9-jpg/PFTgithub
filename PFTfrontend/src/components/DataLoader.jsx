@@ -144,15 +144,44 @@ const DataLoader = ({ children }) => {
       const data = n.data || {};
       let type = "info";
       
-      if (data.type === "budget_reached") type = "budget-error";
-      if (data.type === "budget_warning") type = "budget-warning";
-      if (data.type === "saving_completed") type = "savings-success";
-      if (data.type === "saving_warning") type = "savings-warning";
+      let translationKey = null;
+      let translationParams = null;
+      
+      if (data.type === "budget_reached") {
+        type = "budget-error";
+        if (data.budget_name) {
+          translationKey = "app.notifications.budgetReached";
+          translationParams = { name: data.budget_name };
+        }
+      }
+      if (data.type === "budget_warning") {
+        type = "budget-warning";
+        if (data.budget_name) {
+          translationKey = "app.notifications.budgetWarning";
+          translationParams = { name: data.budget_name };
+        }
+      }
+      if (data.type === "saving_completed") {
+        type = "savings-success";
+        if (data.saving_name) {
+          translationKey = "app.notifications.savingCompleted";
+          translationParams = { name: data.saving_name };
+        }
+      }
+      if (data.type === "saving_warning") {
+        type = "savings-warning";
+        if (data.saving_name) {
+          translationKey = "app.notifications.savingWarning";
+          translationParams = { name: data.saving_name };
+        }
+      }
 
       return {
         id: n.id,
         type: type,
         message: data.message || "New notification",
+        translationKey,
+        translationParams,
         timestamp: n.created_at,
         read_at: n.read_at
       };

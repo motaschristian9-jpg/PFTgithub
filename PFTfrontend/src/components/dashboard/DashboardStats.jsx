@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
 import { formatCurrency } from "../../utils/currency";
 import { motion } from "framer-motion";
@@ -74,6 +75,7 @@ const StatCard = ({ title, amount, icon: Icon, type, currency }) => {
 };
 
 const DashboardStats = ({ stats, userCurrency }) => {
+  const { t } = useTranslation();
   return (
     <motion.div 
       className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
@@ -90,28 +92,28 @@ const DashboardStats = ({ stats, userCurrency }) => {
       animate="visible"
     >
       <StatCard
-        title="Total Income"
+        title={t('app.dashboard.stats.income')}
         amount={stats.income}
         icon={TrendingUp}
         type="income"
         currency={userCurrency}
       />
       <StatCard
-        title="Total Expenses"
+        title={t('app.dashboard.stats.expenses')}
         amount={stats.expenses}
         icon={TrendingDown}
         type="expense"
         currency={userCurrency}
       />
       <StatCard
-        title="Net Balance"
+        title={t('app.dashboard.stats.netBalance')}
         amount={stats.net}
         icon={Wallet}
         type="balance"
         currency={userCurrency}
       />
       <StatCard
-        title="Total Savings"
+        title={t('app.dashboard.stats.totalSavings')}
         amount={stats.totalSavings}
         icon={PiggyBank}
         type="savings"

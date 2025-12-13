@@ -16,8 +16,10 @@ import {
 import { formatCurrency } from "../../utils/currency";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
+  const { t } = useTranslation();
   const { theme } = useTheme();
   const [effectiveTheme, setEffectiveTheme] = React.useState("light");
 
@@ -59,10 +61,10 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
     });
 
     return [
-      { name: "Under Budget", value: under, color: "#10b981" }, // Emerald-500
-      { name: "Over Budget", value: over, color: "#ef4444" },   // Red-500
+      { name: t('app.budgets.charts.underBudget'), value: under, color: "#10b981" }, // Emerald-500
+      { name: t('app.budgets.charts.overBudget'), value: over, color: "#ef4444" },   // Red-500
     ];
-  }, [budgets, getBudgetSpent]);
+  }, [budgets, getBudgetSpent, t]);
 
   // --- 2. Trend Data (Bar + Line Chart) ---
   const trendData = useMemo(() => {
@@ -87,10 +89,10 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
       <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
           <CheckCircle2 size={20} className="text-violet-600 dark:text-violet-400" />
-          Success Rate
+          {t('app.budgets.charts.successRate')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Budgets kept within limit
+          {t('app.budgets.charts.successRateDesc')}
         </p>
         
         <div className="flex-1 min-h-[250px] relative">
@@ -110,7 +112,7 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
                 ))}
               </Pie>
               <Tooltip 
-                formatter={(value) => [`${value} Budgets`, ""]}
+                formatter={(value) => [t('app.budgets.charts.budgetsCount', { count: value }), ""]}
                 contentStyle={{ 
                   backgroundColor: tooltipBg,
                   borderRadius: "12px", 
@@ -138,10 +140,10 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
       <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)]">
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
           <AlertCircle size={20} className="text-violet-600 dark:text-violet-400" />
-          Spending Trend
+          {t('app.budgets.charts.spendingTrend')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Last 10 budgets: Planned vs. Actual
+          {t('app.budgets.charts.spendingTrendDesc')}
         </p>
 
         <div className="h-[300px] w-full">
@@ -180,11 +182,11 @@ const BudgetHistoryCharts = ({ budgets, userCurrency, getBudgetSpent }) => {
                 formatter={(value) => [formatCurrency(value, userCurrency), ""]}
               />
               <Legend verticalAlign="top" align="right" height={36} iconType="circle" />
-              <Bar dataKey="allocated" name="Limit" fill="#ddd6fe" radius={[4, 4, 0, 0]} barSize={30} />
+              <Bar dataKey="allocated" name={t('app.budgets.charts.limit')} fill="#ddd6fe" radius={[4, 4, 0, 0]} barSize={30} />
               <Line 
                 type="monotone" 
                 dataKey="spent" 
-                name="Spent" 
+                name={t('app.budgets.charts.spent')} 
                 stroke="#8b5cf6" 
                 strokeWidth={3}
                 dot={{ r: 4, fill: "#8b5cf6", strokeWidth: 2, stroke: "#fff" }}

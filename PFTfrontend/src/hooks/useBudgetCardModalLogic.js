@@ -6,6 +6,8 @@ import { getCurrencySymbol } from "../utils/currency";
 import { confirmDelete } from "../utils/swal";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { useTranslation } from "react-i18next";
+
 export const useBudgetCardModalLogic = ({
   isOpen,
   budget,
@@ -15,6 +17,7 @@ export const useBudgetCardModalLogic = ({
   isReadOnlyProp,
 }) => {
   const { user } = useDataContext();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const userCurrency = user?.currency || "USD";
   const currencySymbol = getCurrencySymbol(userCurrency);
@@ -178,8 +181,8 @@ export const useBudgetCardModalLogic = ({
 
   const handleDeleteTx = async (tx) => {
     const result = await confirmDelete(
-      "Delete Transaction?",
-      "This will remove it from your budget history."
+      t('app.swal.deleteTxTitle'),
+      t('app.swal.deleteTxHistoryMsg')
     );
 
     if (result.isConfirmed && onDeleteTransaction) {

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDataContext } from "../components/DataLoader";
 import {
@@ -11,6 +12,7 @@ import { useDeleteTransaction } from "./useTransactions";
 import { confirmDelete, showSuccess, showError } from "../utils/swal";
 
 export const useBudgetPageLogic = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -158,41 +160,41 @@ export const useBudgetPageLogic = () => {
     const ratio = total > 0 ? spent / total : 0;
     if (spent > total)
       return {
-        label: "Overspent",
+        label: t('app.budgets.statusLabels.overspent'),
         colorClass: "bg-red-100 text-red-700",
         textClass: "text-red-700",
         barColor: "bg-red-600",
       };
     if (ratio >= 1 || dbStatus === "reached")
       return {
-        label: "Limit Reached",
+        label: t('app.budgets.statusLabels.limitReached'),
         colorClass: "bg-red-50 text-red-600",
         textClass: "text-red-600",
         barColor: "bg-red-500",
       };
     if (dbStatus === "completed")
       return {
-        label: "Completed",
+        label: t('app.budgets.statusLabels.completed'),
         colorClass: "bg-green-100 text-green-700",
         textClass: "text-green-700",
         barColor: "bg-green-500",
       };
     if (dbStatus === "expired")
       return {
-        label: "Expired",
+        label: t('app.budgets.statusLabels.expired'),
         colorClass: "bg-orange-100 text-orange-700",
         textClass: "text-orange-700",
         barColor: "bg-orange-500",
       };
     if (ratio > 0.85)
       return {
-        label: "Near Limit",
+        label: t('app.budgets.statusLabels.nearLimit'),
         colorClass: "bg-yellow-100 text-yellow-700",
         textClass: "text-yellow-700",
         barColor: "bg-yellow-500",
       };
     return {
-      label: "Active",
+      label: t('app.budgets.statusLabels.active'),
       colorClass: "bg-violet-50 text-violet-700",
       textClass: "text-violet-600",
       barColor: "bg-violet-500",
@@ -217,15 +219,20 @@ export const useBudgetPageLogic = () => {
     );
     const hasTransactions = linkedTransactions.length > 0;
 
-    let title = "Delete Budget?";
-    let text = "This action cannot be undone.";
+    let title = t('app.budgets.alerts.deleteBudgetTitle');
+    let text = t('app.budgets.alerts.deleteBudgetMsg');
 
     if (hasTransactions) {
-      title = "Delete & Preserve History?";
-      text = `This budget has ${linkedTransactions.length} transaction(s). They will be unlinked but kept in your history.`;
+      title = t('app.budgets.alerts.deletePreserveTitle');
+      text = t('app.budgets.alerts.deletePreserveMsg', { count: linkedTransactions.length });
     }
 
-    const result = await confirmDelete(title, text);
+    const result = await confirmDelete(
+      title,
+      text,
+      t('app.budgets.alerts.confirmDeleteBtn'),
+      t('app.budgets.alerts.cancelBtn')
+    );
 
     if (result.isConfirmed) {
       try {
@@ -236,10 +243,10 @@ export const useBudgetPageLogic = () => {
           setSelectedBudget(null);
         }
 
-        showSuccess("Deleted!", "Budget deleted successfully.");
+        showSuccess(t('app.budgets.alerts.deleteSuccessTitle'), t('app.budgets.alerts.deleteSuccessMsg'));
       } catch (error) {
         console.error("Delete failed", error);
-        showError("Error", "Failed to delete budget.");
+        showError(t('app.budgets.alerts.deleteErrorTitle'), t('app.budgets.alerts.deleteErrorMsg'));
       }
     }
   };
@@ -267,12 +274,12 @@ export const useBudgetPageLogic = () => {
       setEditingBudget(null);
       setModalOpen(false);
       showSuccess(
-        budgetData.id ? "Updated!" : "Created!",
-        "Budget saved successfully."
+        budgetData.id ? t('app.swal.transactionUpdated') : t('app.swal.transactionAdded'),
+        t('app.swal.transactionSavedMsg')
       );
     } catch (error) {
-      const msg = error.response?.data?.message || "Failed to save budget";
-      showError("Error", msg);
+      const msg = error.response?.data?.message || t('app.swal.transactionFailedMsg');
+      showError(t('app.swal.errorTitle'), msg);
     }
   };
 
@@ -288,9 +295,9 @@ export const useBudgetPageLogic = () => {
           remaining: prev.remaining + amount,
         }));
       }
-      showSuccess("Deleted!", "Transaction deleted successfully.");
+      showSuccess(t('app.budgets.alerts.deleteTxSuccessTitle'), t('app.budgets.alerts.deleteTxSuccessMsg'));
     } catch {
-      showError("Error", "Failed to delete transaction");
+      showError(t('app.budgets.alerts.deleteTxErrorTitle'), t('app.budgets.alerts.deleteTxErrorMsg'));
     }
   };
 

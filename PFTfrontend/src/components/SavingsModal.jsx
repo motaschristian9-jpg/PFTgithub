@@ -12,6 +12,7 @@ import {
 
 import { formatCurrency } from "../utils/currency";
 import { useSavingsModalLogic } from "../hooks/useSavingsModalLogic";
+import { useTranslation } from "react-i18next";
 
 export default function SavingsModal({
   isOpen,
@@ -21,6 +22,7 @@ export default function SavingsModal({
   saving = null,
   activeCount = 0,
 }) {
+  const { t } = useTranslation();
   const {
     loading,
     userCurrency,
@@ -69,7 +71,7 @@ export default function SavingsModal({
               <div className="relative px-8 pt-8 pb-6 bg-white dark:bg-gray-900">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                    {editMode ? "Edit Goal" : "New Savings Goal"}
+                    {editMode ? t('app.savings.modal.titleEdit') : t('app.savings.modal.titleNew')}
                     {!editMode && (
                       <span className="text-sm font-medium px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 border border-teal-100 dark:border-teal-900/30">
                         {activeCount}/6
@@ -86,7 +88,7 @@ export default function SavingsModal({
 
                 <div className="flex flex-col items-center justify-center py-2">
                   <label className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wide mb-2">
-                    Target Goal Amount
+                    {t('app.savings.modal.targetLabel')}
                   </label>
                   <div className="relative w-full flex justify-center items-baseline group">
                     <span className="text-4xl font-medium text-teal-500 dark:text-teal-400 absolute left-[15%] sm:left-[20%] top-1 transition-colors duration-300">
@@ -94,11 +96,11 @@ export default function SavingsModal({
                     </span>
                     <input
                       type="number"
-                      placeholder="0.00"
+                      placeholder={t('app.savings.modal.targetPlaceholder')}
                       step="0.01"
                       {...register("target_amount", {
-                        required: "Target amount is required",
-                        min: { value: 0.01, message: "Target must be > 0" },
+                        required: t('app.savings.modal.targetRequired'),
+                        min: { value: 0.01, message: t('app.savings.modal.targetMin') },
                       })}
                       disabled={loading}
                       className="block w-full text-center text-6xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 dark:placeholder-gray-700 text-gray-900 dark:text-white tracking-tight outline-none"
@@ -120,12 +122,12 @@ export default function SavingsModal({
               >
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                    <Target size={12} /> Goal Name
+                    <Target size={12} /> {t('app.savings.modal.nameLabel')}
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. New MacBook, Vacation"
-                    {...register("name", { required: "Goal name is required" })}
+                    placeholder={t('app.savings.modal.namePlaceholder')}
+                    {...register("name", { required: t('app.savings.modal.nameRequired') })}
                     disabled={loading}
                     className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                   />
@@ -137,9 +139,9 @@ export default function SavingsModal({
                 {editMode && (
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                      <TrendingUp size={12} /> Already Saved?{" "}
+                      <TrendingUp size={12} /> {t('app.savings.modal.alreadySavedLabel')}{" "}
                       <span className="text-gray-400 font-normal lowercase ml-1">
-                        (optional)
+                        {t('app.savings.modal.alreadySavedOptional')}
                       </span>
                     </label>
                     <input
@@ -147,7 +149,7 @@ export default function SavingsModal({
                       placeholder="0.00"
                       step="0.01"
                       {...register("current_amount", {
-                        min: { value: 0, message: "Cannot be negative" },
+                        min: { value: 0, message: t('app.savings.modal.currentMin') },
                       })}
                       disabled={loading}
                       className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-teal-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -157,11 +159,11 @@ export default function SavingsModal({
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                    <FileText size={12} /> Description
+                    <FileText size={12} /> {t('app.savings.modal.descriptionLabel')}
                   </label>
                   <textarea
                     rows="2"
-                    placeholder="What is this for?"
+                    placeholder={t('app.savings.modal.descriptionPlaceholder')}
                     {...register("description")}
                     disabled={loading}
                     className="block w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:bg-white dark:focus:bg-gray-700 transition-all outline-none resize-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -172,10 +174,10 @@ export default function SavingsModal({
                   <div className="bg-teal-50 dark:bg-teal-900/20 border border-teal-100 dark:border-teal-900/30 rounded-xl p-4 animate-in fade-in slide-in-from-bottom-2">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase">
-                        Preview
+                        {t('app.savings.modal.preview')}
                       </span>
                       <span className="text-xs font-medium text-teal-600 dark:text-teal-400">
-                        {progressPreview.toFixed(0)}% Complete
+                        {progressPreview.toFixed(0)}% {t('app.savings.modal.complete')}
                       </span>
                     </div>
                     <div className="w-full bg-teal-200/50 dark:bg-teal-900/40 rounded-full h-2 mb-2">
@@ -213,7 +215,7 @@ export default function SavingsModal({
                   ) : (
                     <>
                       <Check size={24} strokeWidth={3} />
-                      {editMode ? "Update Goal" : "Set Goal"}
+                      {editMode ? t('app.savings.modal.saveBtn.update') : t('app.savings.modal.saveBtn.create')}
                     </>
                   )}
                 </button>

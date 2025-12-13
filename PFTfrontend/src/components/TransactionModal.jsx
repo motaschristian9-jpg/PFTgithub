@@ -18,43 +18,48 @@ import {
 
 import { formatCurrency, getCurrencySymbol } from "../utils/currency";
 import { useTransactionModalLogic } from "../hooks/useTransactionModalLogic";
+import { useTranslation } from "react-i18next";
 
-const TypeTabs = ({ type, setType, editMode }) => (
-  <div className="flex p-1 bg-gray-100/80 dark:bg-gray-800 rounded-lg mb-4 relative w-full max-w-[200px] mx-auto">
-    {(!editMode || type === "income") && (
-      <button
-        type="button"
-        disabled={editMode}
-        onClick={() => setType("income")}
-        className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
-          type === "income"
-            ? "bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-        } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
-      >
-        <TrendingUp size={14} />
-        Income
-      </button>
-    )}
-    {(!editMode || type === "expense") && (
-      <button
-        type="button"
-        disabled={editMode}
-        onClick={() => setType("expense")}
-        className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
-          type === "expense"
-            ? "bg-white dark:bg-gray-700 text-rose-600 dark:text-rose-400 shadow-sm ring-1 ring-black/5"
-            : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-        } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
-      >
-        <CreditCard size={14} />
-        Expense
-      </button>
-    )}
-  </div>
-);
+const TypeTabs = ({ type, setType, editMode }) => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex p-1 bg-gray-100/80 dark:bg-gray-800 rounded-lg mb-4 relative w-full max-w-[200px] mx-auto">
+      {(!editMode || type === "income") && (
+        <button
+          type="button"
+          disabled={editMode}
+          onClick={() => setType("income")}
+          className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+            type === "income"
+              ? "bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm ring-1 ring-black/5"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
+        >
+          <TrendingUp size={14} />
+          {t('app.transactions.modal.income')}
+        </button>
+      )}
+      {(!editMode || type === "expense") && (
+        <button
+          type="button"
+          disabled={editMode}
+          onClick={() => setType("expense")}
+          className={`flex-1 py-1.5 rounded-md text-xs font-semibold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+            type === "expense"
+              ? "bg-white dark:bg-gray-700 text-rose-600 dark:text-rose-400 shadow-sm ring-1 ring-black/5"
+              : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          } ${editMode ? "cursor-not-allowed opacity-100 w-full" : ""}`}
+        >
+          <CreditCard size={14} />
+          {t('app.transactions.modal.expense')}
+        </button>
+      )}
+    </div>
+  );
+};
 
 const BudgetStatusCard = ({ budget, userCurrency }) => {
+  const { t } = useTranslation();
   if (!budget) return null;
 
   const spent = budget.spent || 0;
@@ -81,7 +86,7 @@ const BudgetStatusCard = ({ budget, userCurrency }) => {
               : "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 border-violet-100 dark:border-violet-800"
           }`}
         >
-          {isOver ? "Over" : "On Track"}
+          {isOver ? t('app.transactions.modal.budgetStatus.over') : t('app.transactions.modal.budgetStatus.onTrack')}
         </span>
       </div>
 
@@ -96,14 +101,14 @@ const BudgetStatusCard = ({ budget, userCurrency }) => {
         </div>
         <div className="flex justify-between items-center text-[10px]">
           <span className="text-gray-400 dark:text-gray-500">
-            {formatCurrency(spent, userCurrency)} spent
+            {formatCurrency(spent, userCurrency)} {t('app.transactions.modal.budgetStatus.spent')}
           </span>
           <span
             className={`font-semibold ${
               isOver ? "text-red-600 dark:text-red-400" : "text-violet-600 dark:text-violet-400"
             }`}
           >
-            {formatCurrency(remaining, userCurrency)} left
+            {formatCurrency(remaining, userCurrency)} {t('app.transactions.modal.budgetStatus.left')}
           </span>
         </div>
       </div>
@@ -119,6 +124,7 @@ const SavingsSection = ({
   watch,
   userCurrency,
 }) => {
+  const { t } = useTranslation();
   const selectedGoalId = watch("savingsGoalId");
   const selectedGoal = savingsGoals.find((g) => g.id == selectedGoalId);
   const currencySymbol = getCurrencySymbol(userCurrency);
@@ -144,7 +150,7 @@ const SavingsSection = ({
           </div>
           <div>
             <p className="font-semibold text-xs text-gray-800 dark:text-gray-200">
-              Allocate to Savings
+              {t('app.transactions.modal.allocateSavings')}
             </p>
           </div>
         </div>
@@ -173,7 +179,7 @@ const SavingsSection = ({
           
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
-              Select Goal
+              {t('app.transactions.modal.selectGoal')}
             </label>
             <div className="relative">
               <select
@@ -182,7 +188,7 @@ const SavingsSection = ({
                 })}
                 className="block w-full px-2 py-2 bg-white dark:bg-gray-700 border border-teal-200 dark:border-teal-800 rounded-lg text-xs text-gray-900 dark:text-white focus:ring-1 focus:ring-teal-500 focus:border-transparent outline-none appearance-none"
               >
-                <option value="">Choose a goal...</option>
+                <option value="">{t('app.transactions.modal.chooseGoal')}</option>
                 {savingsGoals.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}
@@ -196,7 +202,7 @@ const SavingsSection = ({
 
             {selectedGoal && (
               <div className="flex justify-between items-center text-[10px] bg-white/50 dark:bg-gray-700/50 p-1.5 rounded border border-teal-100 dark:border-teal-800 mt-1">
-                <span className="text-teal-700 dark:text-teal-300">Progress:</span>
+                <span className="text-teal-700 dark:text-teal-300">{t('app.transactions.modal.progress')}</span>
                 <span className="font-bold text-teal-800 dark:text-teal-200">
                   {formatCurrency(Number(selectedGoal.current_amount), userCurrency)} 
                   <span className="text-teal-400 mx-1">/</span>
@@ -209,7 +215,7 @@ const SavingsSection = ({
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
-                Amount ({currencySymbol})
+                {t('app.transactions.modal.amount')} ({currencySymbol})
               </label>
               <input
                 type="number"
@@ -226,7 +232,7 @@ const SavingsSection = ({
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wide">
-                Percent (%)
+                {t('app.transactions.modal.percent')}
               </label>
               <input
                 type="number"
@@ -255,6 +261,7 @@ export default function TransactionModal({
   editMode = false,
   transactionToEdit = null,
 }) {
+  const { t } = useTranslation();
   const {
     type,
     setType,
@@ -311,7 +318,7 @@ export default function TransactionModal({
               <div className="relative px-6 pt-6 pb-4 bg-white dark:bg-gray-900 shrink-0 z-20">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    {editMode ? "Edit Transaction" : "New Transaction"}
+                    {editMode ? t('app.transactions.modal.titleEdit') : t('app.transactions.modal.titleNew')}
                   </h2>
                   <button
                     onClick={onClose}
@@ -327,7 +334,7 @@ export default function TransactionModal({
                       <Loader2 size={14} className="animate-spin" style={{ animationDuration: '3s' }} />
                     </div>
                     <p className="text-[10px] text-blue-600 dark:text-blue-300 leading-tight">
-                      <strong>Note:</strong> Transactions can only be edited within 1 hour of creation.
+                      <strong>Note:</strong> {t('app.transactions.modal.noteTime')}
                     </p>
                   </div>
                 )}
@@ -346,7 +353,7 @@ export default function TransactionModal({
                       step="0.01"
                       placeholder="0.00"
                       {...register("amount", {
-                        required: "Required",
+                        required: t('app.transactions.modal.required'),
                         validate: validateAmount,
                       })}
                       className="block w-full text-center text-5xl font-bold bg-transparent border-0 focus:ring-0 p-0 placeholder-gray-200 dark:placeholder-gray-700 tracking-tight outline-none text-gray-900 dark:text-white"
@@ -371,13 +378,13 @@ export default function TransactionModal({
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                        <Calendar size={10} /> Date
+                        <Calendar size={10} /> {t('app.transactions.modal.date')}
                       </label>
                       <input
                         type="date"
                         max={todayString}
                         {...register("transaction_date", {
-                          required: "Required",
+                          required: t('app.transactions.modal.required'),
                           validate: (value) => {
                             if (budgetStatus) {
                               const d = new Date(value);
@@ -402,13 +409,13 @@ export default function TransactionModal({
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                        <Tag size={10} /> Category
+                        <Tag size={10} /> {t('app.transactions.modal.category')}
                       </label>
                       <div className="relative">
                         <Controller
                           name="category"
                           control={control}
-                          rules={{ required: "Required" }}
+                          rules={{ required: t('app.transactions.modal.required') }}
                           render={({ field }) => (
                             <select
                               {...field}
@@ -419,7 +426,7 @@ export default function TransactionModal({
                               className="block w-full pl-3 pr-7 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none appearance-none cursor-pointer text-gray-700 dark:text-gray-200"
                             >
                               <option value="" disabled>
-                                Select
+                                {t('app.transactions.modal.selectCategory')}
                               </option>
                               {sortedCategories.map((cat) => (
                                 <option key={cat.id} value={cat.id}>
@@ -443,12 +450,12 @@ export default function TransactionModal({
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                      <Type size={10} /> Description
+                      <Type size={10} /> {t('app.transactions.modal.description')}
                     </label>
                     <input
                       type="text"
-                      placeholder="What is this for?"
-                      {...register("name", { required: "Name is required" })}
+                      placeholder={t('app.transactions.modal.namePlaceholder')}
+                      {...register("name", { required: t('app.transactions.modal.required') })}
                       className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                     {errors.name && (
@@ -462,7 +469,7 @@ export default function TransactionModal({
                       className="absolute left-3 top-3 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors"
                     />
                     <textarea
-                      placeholder="Add a note (optional)"
+                      placeholder={t('app.transactions.modal.notePlaceholder')}
                       rows={2}
                       {...register("description")}
                       className="block w-full pl-9 pr-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all outline-none resize-none text-gray-700 dark:text-gray-200"
@@ -504,7 +511,7 @@ export default function TransactionModal({
                   ) : (
                     <>
                       <Check size={20} strokeWidth={3} />
-                      {editMode ? "Save Changes" : "Add Transaction"}
+                      {editMode ? t('app.transactions.modal.save') : t('app.transactions.modal.add')}
                     </>
                   )}
                 </button>

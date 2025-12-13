@@ -1,4 +1,5 @@
 import { Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function ReportsFilters({
   datePreset,
@@ -8,6 +9,8 @@ export default function ReportsFilters({
   endDate,
   setEndDate,
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="rounded-2xl bg-white dark:bg-gray-900 p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-gray-100 dark:border-gray-800 min-w-0">
       <div className="flex flex-wrap items-center gap-2 w-full">
@@ -19,7 +22,7 @@ export default function ReportsFilters({
               : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
           }`}
         >
-          This Month
+          {t('app.reports.filters.thisMonth')}
         </button>
         <button
           onClick={() => setDatePreset("last_month")}
@@ -29,7 +32,7 @@ export default function ReportsFilters({
               : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
           }`}
         >
-          Last Month
+          {t('app.reports.filters.lastMonth')}
         </button>
         <button
           onClick={() => setDatePreset("all")}
@@ -39,7 +42,7 @@ export default function ReportsFilters({
               : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
           }`}
         >
-          All Time
+          {t('app.reports.filters.allTime')}
         </button>
         <button
           onClick={() => setDatePreset("custom")}
@@ -49,7 +52,7 @@ export default function ReportsFilters({
               : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800"
           }`}
         >
-          Custom
+          {t('app.reports.filters.custom')}
         </button>
       </div>
 
@@ -57,7 +60,7 @@ export default function ReportsFilters({
         <div className="mt-4 pt-4 border-t border-dashed border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="flex-1 space-y-1">
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">
-              Start Date
+              {t('app.reports.filters.startDate')}
             </label>
             <div className="relative">
               <Calendar
@@ -74,7 +77,7 @@ export default function ReportsFilters({
           </div>
           <div className="flex-1 space-y-1">
             <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider ml-1">
-              End Date
+              {t('app.reports.filters.endDate')}
             </label>
             <div className="relative">
               <Calendar

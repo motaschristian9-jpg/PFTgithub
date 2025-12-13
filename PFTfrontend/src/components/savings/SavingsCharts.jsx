@@ -10,7 +10,8 @@ import {
   Cell,
 } from "recharts";
 import { formatCurrency } from "../../utils/currency";
-import { TrendingUp, PieChart as PieChartIcon } from "lucide-react";
+import { TrendingUp, PieChart as PieChartIcon, PiggyBank } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const COLORS = [
   "#0d9488", // Teal 600
@@ -22,6 +23,7 @@ const COLORS = [
 ];
 
 const CustomTooltip = ({ active, payload, label, userCurrency }) => {
+  const { t } = useTranslation();
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     // RadialBar payload often has the fill color in the payload object itself or in the top level payload attributes
@@ -35,15 +37,15 @@ const CustomTooltip = ({ active, payload, label, userCurrency }) => {
         </div>
         <div className="space-y-1">
           <p className="text-sm flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-300">Saved:</span>
+            <span className="text-gray-600 dark:text-gray-300">{t('app.savings.charts.tooltip.saved')}:</span>
             <span className="font-semibold text-teal-600 dark:text-teal-400">{formatCurrency(data.current, userCurrency)}</span>
           </p>
           <p className="text-sm flex items-center gap-2">
-            <span className="text-gray-600 dark:text-gray-300">Target:</span>
+            <span className="text-gray-600 dark:text-gray-300">{t('app.savings.charts.tooltip.target')}:</span>
             <span className="font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(data.target, userCurrency)}</span>
           </p>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-            {((data.current / data.target) * 100).toFixed(1)}% Completed
+            {((data.current / data.target) * 100).toFixed(1)}% {t('app.savings.charts.tooltip.completed')}
           </p>
         </div>
       </div>
@@ -53,6 +55,7 @@ const CustomTooltip = ({ active, payload, label, userCurrency }) => {
 };
 
 const SavingsCharts = ({ savings, userCurrency }) => {
+  const { t } = useTranslation();
   const { radialData, pieData, totalSaved } = useMemo(() => {
     // Sort by percentage completion for radial chart
     const sorted = [...savings]
@@ -84,7 +87,7 @@ const SavingsCharts = ({ savings, userCurrency }) => {
     return { radialData: radial, pieData: pie, totalSaved: total };
   }, [savings]);
 
-  if (savings.length === 0) return null;
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -94,7 +97,7 @@ const SavingsCharts = ({ savings, userCurrency }) => {
           <div className="p-2 bg-teal-50 dark:bg-teal-900/20 rounded-lg text-teal-600 dark:text-teal-400">
             <TrendingUp size={20} />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Goal Progress</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t('app.savings.charts.radial.title')}</h3>
         </div>
         
         <div className="h-[300px] w-full relative">
@@ -136,7 +139,10 @@ const SavingsCharts = ({ savings, userCurrency }) => {
             </ResponsiveContainer>
           ) : (
              <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
-                <p>No active goals to display</p>
+                <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <PiggyBank className="text-gray-300 dark:text-gray-600" size={32} />
+                </div>
+                <p>{t('app.savings.charts.radial.empty')}</p>
              </div>
           )}
         </div>
@@ -147,9 +153,9 @@ const SavingsCharts = ({ savings, userCurrency }) => {
          <div className="p-4 bg-teal-50 dark:bg-teal-900/20 rounded-full mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-600 dark:text-teal-400"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
          </div>
-         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Growth Tracker</h3>
+         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('app.savings.charts.growthTracker.title')}</h3>
          <p className="text-gray-500 dark:text-gray-400 max-w-xs">
-            Watch your savings grow and track your progress towards your financial goals.
+            {t('app.savings.charts.growthTracker.desc')}
          </p>
       </div>
     </div>

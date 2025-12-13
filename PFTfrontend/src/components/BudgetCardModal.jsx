@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,9 +17,11 @@ import {
   FileText,
   LayoutDashboard,
   History,
+  Tag,
 } from "lucide-react";
 
 import { formatCurrency } from "../utils/currency";
+import { useTranslation } from "react-i18next";
 import { useBudgetCardModalLogic } from "../hooks/useBudgetCardModalLogic";
 import BudgetEditForm from "./budgets/BudgetEditForm";
 
@@ -40,8 +42,8 @@ export default function BudgetCardModal({
     isEditing,
     setIsEditing,
     isSaving,
-    isLoadingHistory,
-    transactions,
+    isLoadingHistory: transactionsLoading,
+    transactions: historyTransactions,
     isReadOnly,
     register,
     handleSubmit,
@@ -61,7 +63,15 @@ export default function BudgetCardModal({
 
   const [activeTab, setActiveTab] = useState("overview");
 
+  useEffect(() => {
+    setActiveTab("overview");
+  }, [isOpen]);
+
+  const { t } = useTranslation();
+
   const isDataStale = isOpen && budget && localBudget?.id !== budget.id;
+
+  if (!isOpen || !budget) return null;
 
   return createPortal(
     <AnimatePresence>
@@ -95,10 +105,24 @@ export default function BudgetCardModal({
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3 truncate">
                     {localBudget.name}
+                    {/* Status Badge */}
                     {isReadOnly && (
-                      <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2.5 py-1 rounded-full uppercase tracking-wide font-bold shrink-0">
-                        Expired
-                      </span>
+                      <div
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                          localBudget.status === "completed"
+                            ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                            : "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400"
+                        }`}
+                      >
+                        {localBudget.status === "completed" ? (
+                           <Check size={12} />
+                        ) : (
+                           <AlertTriangle size={12} />
+                        )}
+                        {localBudget.status === "completed"
+                          ? t("app.budgets.statusLabels.completed")
+                          : t("app.budgets.card.expired")}
+                      </div>
                     )}
                   </h2>
                   <div className="flex flex-col gap-1 mt-1">
@@ -160,29 +184,41 @@ export default function BudgetCardModal({
               </div>
             </div>
 
-            {/* Mobile Tabs */}
-            <div className="flex border-b border-gray-100 dark:border-gray-800 lg:hidden shrink-0">
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 dark:border-gray-800 lg:hidden">
               <button
-                onClick={() => setActiveTab("overview")}
-                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium transition-colors relative ${
                   activeTab === "overview"
-                    ? "text-violet-600 dark:text-violet-400 border-b-2 border-violet-600 dark:border-violet-400 bg-violet-50/50 dark:bg-violet-900/10"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    ? "text-violet-600 dark:text-violet-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
+                onClick={() => setActiveTab("overview")}
               >
                 <LayoutDashboard size={16} />
-                Overview
+                {t('app.budgets.card.overview')}
+                {activeTab === "overview" && (
+                  <motion.div
+                    layoutId="activeBudgetTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 dark:bg-violet-400"
+                  />
+                )}
               </button>
               <button
-                onClick={() => setActiveTab("history")}
-                className={`flex-1 py-3 text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                className={`flex-1 flex items-center justify-center gap-2 py-4 text-sm font-medium transition-colors relative ${
                   activeTab === "history"
-                    ? "text-violet-600 dark:text-violet-400 border-b-2 border-violet-600 dark:border-violet-400 bg-violet-50/50 dark:bg-violet-900/10"
-                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    ? "text-violet-600 dark:text-violet-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 }`}
+                onClick={() => setActiveTab("history")}
               >
                 <History size={16} />
-                History
+                {t('app.budgets.card.history')}
+                {activeTab === "history" && (
+                  <motion.div
+                    layoutId="activeBudgetTab"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-600 dark:bg-violet-400"
+                  />
+                )}
               </button>
             </div>
 
@@ -206,14 +242,14 @@ export default function BudgetCardModal({
                   <div className="p-8 space-y-10">
                     <div className="text-center space-y-3">
                       <p className="text-sm font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
-                        {stats.isOverspent ? "Over Budget By" : "Remaining Budget"}
+                        {stats.isOverspent ? t('app.budgets.card.overBudgetBy') : t('app.budgets.card.remainingBudget')}
                       </p>
                       <div className={`text-6xl font-black tracking-tighter ${stats.isOverspent ? "text-red-600 dark:text-red-400" : "text-violet-900 dark:text-violet-300"}`}>
                         {formatCurrency(Math.abs(stats.remaining), userCurrency)}
                       </div>
                       {stats.isOverspent && (
                         <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs font-bold border border-red-100 dark:border-red-900/30">
-                          <AlertTriangle size={14} /> Critical Overspend
+                          <AlertTriangle size={14} /> {t('app.budgets.card.criticalOverspend')}
                         </div>
                       )}
                     </div>
@@ -241,7 +277,7 @@ export default function BudgetCardModal({
                         <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 mb-2">
                           <DollarSign size={16} />
                           <span className="text-xs font-bold uppercase tracking-wide">
-                            Allocated
+                            {t('app.budgets.card.allocated')}
                           </span>
                         </div>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -252,7 +288,7 @@ export default function BudgetCardModal({
                         <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 mb-2">
                           <TrendingDown size={16} />
                           <span className="text-xs font-bold uppercase tracking-wide">
-                            Spent
+                            {t('app.budgets.card.spent')}
                           </span>
                         </div>
                         <p className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -264,7 +300,7 @@ export default function BudgetCardModal({
                     {localBudget.description && (
                       <div className="p-5 rounded-2xl bg-violet-50/50 dark:bg-violet-900/10 text-violet-900 dark:text-violet-100 text-sm border border-violet-100 dark:border-violet-800/30 leading-relaxed">
                         <span className="font-bold block mb-2 text-xs uppercase opacity-60 tracking-wider">
-                          Note
+                          {t('app.budgets.card.note')}
                         </span>
                         {localBudget.description}
                       </div>
@@ -279,71 +315,61 @@ export default function BudgetCardModal({
                   activeTab === "history" ? "flex" : "hidden lg:flex"
                 }`}
               >
-                <div className="px-8 py-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/30 flex justify-between items-center shrink-0">
-                  <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-3 text-lg">
-                    Transaction History
-                    <span className="px-2.5 py-1 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold">
-                      {transactions.length}
-                    </span>
-                  </h3>
-                </div>
-
                 <div className="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
-                  {isLoadingHistory ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-4 opacity-60">
-                      <Loader2 className="animate-spin" size={40} />
-                      <p className="text-sm font-medium">Loading transactions...</p>
-                    </div>
-                  ) : transactions.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-4 opacity-60">
-                      <div className="p-6 rounded-full bg-gray-50 dark:bg-gray-800">
-                        <Clock size={40} />
-                      </div>
-                      <p className="text-sm font-medium">No transactions yet</p>
-                    </div>
-                  ) : (
-                    transactions.map((tx) => (
-                      <div
-                        key={tx.id}
-                        className="group flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-800 border border-transparent hover:border-gray-100 dark:hover:border-gray-700 transition-all duration-200"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 flex items-center justify-center shadow-sm group-hover:bg-white dark:group-hover:bg-gray-700 group-hover:shadow-md transition-all duration-200">
-                            <ArrowRight size={20} className="-rotate-45" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-900 dark:text-white text-base">
-                              {formatCurrency(Number(tx.amount), userCurrency)}
-                            </p>
-                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-0.5">
-                              {tx.date || tx.transaction_date
-                                ? new Date(
-                                    tx.date || tx.transaction_date
-                                  ).toLocaleDateString()
-                                : "No Date"}
-                            </p>
-                          </div>
-                        </div>
+                  <div className="h-full flex flex-col">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                      <History size={20} className="text-violet-500" />
+                      {t('app.budgets.card.historyTitle')}
+                    </h3>
 
-                        <div className="flex items-center gap-4">
-                          {tx.name && (
-                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 hidden sm:block truncate max-w-[120px]">
-                              {tx.name}
-                            </span>
-                          )}
-                          {!isReadOnly && (
-                            <button
-                              onClick={() => handleDeleteTx(tx)}
-                              className="p-2.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200"
-                              title="Delete Transaction"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
+                    <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                      {transactionsLoading ? (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                           {t('app.budgets.card.loadingHistory')}
                         </div>
-                      </div>
-                    ))
-                  )}
+                      ) : historyTransactions.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+                           {t('app.budgets.card.noTransactions')}
+                        </div>
+                      ) : (
+                        historyTransactions.map((tx) => (
+                          <div key={tx.id} className="group relative flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-all">
+                             <div className="flex items-center gap-3">
+                               <div className="p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+                                  {tx.category ? (
+                                    <span className="text-xl">{tx.category.icon}</span>
+                                  ) : (
+                                    <Tag size={16} className="text-gray-400" />
+                                  )}
+                               </div>
+                               <div>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                     {tx.description || tx.category?.name || "Untitled"}
+                                  </p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                     {new Date(tx.date).toLocaleDateString() || t('app.budgets.card.noDate')}
+                                  </p>
+                               </div>
+                             </div>
+
+                             <div className="flex items-center gap-4">
+                               <span className="font-bold text-gray-900 dark:text-white">
+                                  {formatCurrency(tx.amount, userCurrency)}
+                               </span>
+
+                               <button
+                                 onClick={() => onDeleteTransaction(tx)}
+                                 className="opacity-0 group-hover:opacity-100 p-1.5 text-red-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                 title={t('app.budgets.card.deleteTransaction')}
+                               >
+                                  <Trash2 size={14} />
+                               </button>
+                             </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

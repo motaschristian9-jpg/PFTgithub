@@ -1,10 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Users, Award, Globe } from "lucide-react";
+import { Users, Award, Globe, ChevronDown } from "lucide-react";
 import { LogoIcon } from "../components/Logo";
+import { useTranslation } from "react-i18next";
 
 export default function AboutPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setIsLangMenuOpen(false);
+  };
+
+  const icons = [Users, Award, Globe];
+  const values = t('about.values', { returnObjects: true });
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900">
@@ -15,48 +26,73 @@ export default function AboutPage() {
             <LogoIcon size={28} />
             <span className="text-xl font-bold text-gray-900">MoneyTracker</span>
           </div>
-          <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-600 hover:text-blue-600">
-            Back to Home
-          </button>
+          
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <button 
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+              >
+                <Globe size={18} />
+                <span className="uppercase">{i18n.language === 'zh' ? 'CN' : i18n.language}</span>
+                <ChevronDown size={14} />
+              </button>
+              
+              {isLangMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                  {[
+                    { code: 'en', label: 'English' },
+                    { code: 'fil', label: 'Filipino' },
+                    { code: 'zh', label: '中文 (CN)' }
+                  ].map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => changeLanguage(lang.code)}
+                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${i18n.language === lang.code ? 'text-blue-600 font-bold' : 'text-gray-600'}`}
+                    >
+                      {lang.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-600 hover:text-blue-600">
+              {t('common.backToHome')}
+            </button>
+          </div>
         </div>
       </nav>
 
       <main className="container mx-auto px-6 py-16 max-w-4xl">
         <div className="mb-12">
-          <button onClick={() => navigate("/")} className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 transition-colors">
-            <ArrowLeft size={18} /> Back
-          </button>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">About Us</h1>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">{t('about.title')}</h1>
           <p className="text-xl text-gray-600 leading-relaxed">
-            We're on a mission to simplify personal finance for everyone. 
-            MoneyTracker was built to help you take control of your financial future.
+            {t('about.intro')}
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          {[
-            { icon: Users, title: "Community First", desc: "Built for real people with real financial goals." },
-            { icon: Award, title: "Excellence", desc: "Award-winning design and security standards." },
-            { icon: Globe, title: "Global Vision", desc: "Helping users worldwide achieve financial freedom." }
-          ].map((item, i) => (
-            <div key={i} className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-4">
-                <item.icon size={24} />
+          {values.map((item, i) => {
+            const Icon = icons[i] || Globe;
+            return (
+              <div key={i} className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-4">
+                  <Icon size={24} />
+                </div>
+                <h3 className="text-lg font-bold mb-2">{item.title}</h3>
+                <p className="text-gray-600 text-sm">{item.desc}</p>
               </div>
-              <h3 className="text-lg font-bold mb-2">{item.title}</h3>
-              <p className="text-gray-600 text-sm">{item.desc}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="prose prose-lg text-gray-600">
           <p>
-            Founded in 2025, MoneyTracker started with a simple idea: budgeting shouldn't be boring. 
-            We believe that when you can see your money clearly, you can make better decisions.
+            {t('about.history.p1')}
           </p>
           <p>
-            Our team consists of finance experts, designers, and engineers who are passionate about 
-            creating tools that are not only powerful but also a joy to use.
+            {t('about.history.p2')}
           </p>
         </div>
       </main>

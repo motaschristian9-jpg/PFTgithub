@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import Topbar from "./Topbar";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
@@ -29,12 +30,18 @@ const DashboardLayout = () => {
         <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-gray-200/40 dark:bg-gray-800/10 rounded-full blur-[80px] opacity-50"></div>
       </div>
 
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <Sidebar
         sidebarOpen={sidebarOpen}

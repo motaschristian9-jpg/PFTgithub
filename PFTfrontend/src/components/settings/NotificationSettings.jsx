@@ -1,5 +1,6 @@
 import React from "react";
 import { Bell, Mail } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function NotificationSettings({
   formData,
@@ -8,6 +9,7 @@ export default function NotificationSettings({
   isSaving,
   onToggle,    // New prop
 }) {
+  const { t } = useTranslation();
   const handleChange = (e) => {
     const { checked } = e.target;
     // Call the auto-save toggle handler
@@ -20,10 +22,10 @@ export default function NotificationSettings({
     <div className="space-y-8">
       <div>
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-          Notification Preferences
+          {t('app.settings.notifications.title')}
         </h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Manage how you receive notifications.
+          {t('app.settings.notifications.subtitle')}
         </p>
       </div>
 
@@ -34,9 +36,9 @@ export default function NotificationSettings({
               <Mail size={20} />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-900 dark:text-white">Email Notifications</h4>
+              <h4 className="font-semibold text-gray-900 dark:text-white">{t('app.settings.notifications.emailTitle')}</h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Receive emails about account activity and updates.
+                {t('app.settings.notifications.emailDesc')}
               </p>
             </div>
           </div>

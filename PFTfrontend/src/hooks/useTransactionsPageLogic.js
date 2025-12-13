@@ -4,8 +4,10 @@ import { useMutationState } from "@tanstack/react-query"; // Import useMutationS
 import { useDataContext } from "../components/DataLoader";
 import { useTransactions, useDeleteTransaction } from "./useTransactions";
 import { confirmDelete, showSuccess, showError } from "../utils/swal";
+import { useTranslation } from "react-i18next";
 
 export const useTransactionsPageLogic = () => {
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     const saved = localStorage.getItem("sidebarOpen");
     return saved !== null ? JSON.parse(saved) : window.innerWidth >= 768;
@@ -115,16 +117,16 @@ export const useTransactionsPageLogic = () => {
 
   const handleDelete = async (transactionId) => {
     const result = await confirmDelete(
-      "Delete Transaction?",
-      "This action cannot be undone."
+      t('app.swal.confirmTitle'),
+      t('app.swal.confirmText')
     );
 
     if (result.isConfirmed) {
       try {
         await deleteTransactionMutation.mutateAsync(transactionId);
-        showSuccess("Deleted!", "Transaction has been removed.");
+        showSuccess(t('app.swal.transactionDeleted'), t('app.swal.transactionDeletedMsg'));
       } catch (error) {
-        showError("Error", "Failed to delete transaction.");
+        showError(t('app.swal.errorTitle'), t('app.swal.errorText'));
       }
     }
   };
