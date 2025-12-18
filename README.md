@@ -1,4 +1,4 @@
-<align="center">
+<p align="center">
   <img src="./PFTfrontend/public/logo.svg" alt="PFT Money Tracker Logo" width="120" />
 </p>
 
