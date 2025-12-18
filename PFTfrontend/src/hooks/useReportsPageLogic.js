@@ -292,6 +292,8 @@ export const useReportsPageLogic = () => {
           preset: datePreset,
         },
         expenseAllocation: expenseChartData,
+        savingsMetrics: savingsMetrics, // Pass specialized metrics
+        userCurrency: user?.currency || "USD", // Pass user currency code
       };
 
       await exportFullReport(exportData);

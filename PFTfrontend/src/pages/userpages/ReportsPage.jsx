@@ -53,7 +53,7 @@ export default function ReportsPage() {
       className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto"
     >
       <motion.div variants={itemVariants}>
-        <ReportsHeader handleExport={handleExport} />
+        <ReportsHeader onExport={handleExport} />
       </motion.div>
 
       <motion.div variants={itemVariants}>

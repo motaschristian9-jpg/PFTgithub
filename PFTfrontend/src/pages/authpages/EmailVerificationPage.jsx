@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { Mail, RefreshCw, Loader2, ArrowLeft, ShieldCheck } from "lucide-react";
+
+import { useTranslation } from "react-i18next";
 import { useEmailVerificationLogic } from "../../hooks/useEmailVerificationLogic";
 
 export default function EmailVerificationPage() {
@@ -12,6 +14,7 @@ export default function EmailVerificationPage() {
     errors,
     handleResendEmail,
   } = useEmailVerificationLogic();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
@@ -24,8 +27,9 @@ export default function EmailVerificationPage() {
               tabIndex={-1}
               className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-8 group"
             >
+
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-              Back to login
+              {t('auth.verifyEmail.backToLogin')}
             </Link>
 
             <div className="mb-8">
@@ -33,10 +37,10 @@ export default function EmailVerificationPage() {
                 <Mail size={24} />
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
-                Check your email
+                {t('auth.verifyEmail.title')}
               </h2>
               <p className="text-sm text-gray-600">
-                We've sent a verification link to your email address.
+                {t('auth.verifyEmail.subtitle')}
               </p>
             </div>
 
@@ -45,7 +49,7 @@ export default function EmailVerificationPage() {
                 <p className="text-sm text-blue-800 flex items-start gap-2">
                   <ShieldCheck size={18} className="shrink-0 mt-0.5" />
                   <span>
-                    Click the link in the email to verify your account and unlock full access.
+                    {t('auth.verifyEmail.instruction')}
                   </span>
                 </p>
               </div>
@@ -55,22 +59,22 @@ export default function EmailVerificationPage() {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white px-2 text-sm text-gray-500">Didn't receive it?</span>
+                  <span className="bg-white px-2 text-sm text-gray-500">{t('auth.verifyEmail.notReceived')}</span>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit(handleResendEmail)} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Confirm Email Address
+                    {t('auth.verifyEmail.confirmEmailLabel')}
                   </label>
                   <input
                     type="email"
                     {...register("email", {
-                      required: "Email is required",
+                      required: t('auth.verifyEmail.validation.emailRequired'),
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address",
+                        message: t('auth.verifyEmail.validation.emailInvalid'),
                       },
                     })}
                     placeholder="you@example.com"
@@ -83,7 +87,7 @@ export default function EmailVerificationPage() {
                   )}
                   {isEmailFromUrl && (
                     <p className="mt-1 text-xs text-gray-500">
-                      Pre-filled from registration.
+                      {t('auth.verifyEmail.preFilled')}
                     </p>
                   )}
                 </div>
@@ -98,7 +102,7 @@ export default function EmailVerificationPage() {
                   ) : (
                     <RefreshCw className="w-4 h-4" />
                   )}
-                  {loading ? "Sending..." : "Resend Verification Email"}
+                  {loading ? t('auth.verifyEmail.sending') : t('auth.verifyEmail.resendBtn')}
                 </button>
               </form>
             </div>
@@ -120,14 +124,14 @@ export default function EmailVerificationPage() {
           </div>
           
           <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-            Verify your <br />
+            {t('auth.verifyEmail.rightSide.title')} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-200">
-              Identity
+              {t('auth.verifyEmail.rightSide.highlight')}
             </span>
           </h2>
           
           <p className="text-lg text-gray-400 leading-relaxed max-w-md mx-auto">
-            To ensure the security of your financial data, we require email verification for all new accounts.
+            {t('auth.verifyEmail.rightSide.description')}
           </p>
         </div>
       </div>

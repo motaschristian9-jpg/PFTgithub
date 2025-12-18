@@ -2,6 +2,7 @@ import { LogoIcon } from "../../components/Logo";
 
 import { Link } from "react-router-dom";
 import { Eye, EyeOff, Loader2, ArrowRight, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useSignupLogic } from "../../hooks/useSignupLogic";
 
 export default function SignUpPage() {
@@ -20,6 +21,7 @@ export default function SignUpPage() {
     signupWithGoogle,
     password,
   } = useSignupLogic();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
@@ -35,30 +37,30 @@ export default function SignUpPage() {
             </Link>
 
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
-              Create an account
+              {t('auth.signup.title')}
             </h2>
             <p className="text-sm text-gray-600 mb-8">
-              Start your journey to financial freedom today.
+              {t('auth.signup.subtitle')}
             </p>
 
             <form onSubmit={handleSubmit(handleSignup)} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Full Name
+                  {t('auth.signup.fullNameLabel')}
                 </label>
                 <input
                   type="text"
                   {...register("name", {
-                    required: "Full name is required",
+                    required: t('auth.signup.validation.nameRequired'),
                     minLength: {
                       value: 2,
-                      message: "Name must be at least 2 characters",
+                      message: t('auth.signup.validation.nameMin'),
                     },
                   })}
                   className={`block w-full rounded-xl border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all ${
                     errors.name ? "ring-red-500 focus:ring-red-500" : ""
                   }`}
-                  placeholder="John Doe"
+                  placeholder={t('auth.signup.fullNamePlaceholder')}
                 />
                 {errors.name && (
                   <p className="mt-1 text-xs text-red-500">{errors.name.message}</p>
@@ -67,21 +69,21 @@ export default function SignUpPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Email address
+                  {t('auth.signup.emailLabel')}
                 </label>
                 <input
                   type="email"
                   {...register("email", {
-                    required: "Email is required",
+                    required: t('auth.signup.validation.emailRequired'),
                     pattern: {
                       value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
+                      message: t('auth.signup.validation.emailInvalid'),
                     },
                   })}
                   className={`block w-full rounded-xl border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all ${
                     errors.email ? "ring-red-500 focus:ring-red-500" : ""
                   }`}
-                  placeholder="you@example.com"
+                  placeholder={t('auth.signup.emailPlaceholder')}
                 />
                 {errors.email && (
                   <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
@@ -90,22 +92,22 @@ export default function SignUpPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Password
+                  {t('auth.signup.passwordLabel')}
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     {...register("password", {
-                      required: "Password is required",
+                      required: t('auth.signup.validation.passwordRequired'),
                       minLength: {
                         value: 8,
-                        message: "Password must be at least 8 characters",
+                        message: t('auth.signup.validation.passwordMin'),
                       },
                     })}
                     className={`block w-full rounded-xl border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all pr-10 ${
                       errors.password ? "ring-red-500 focus:ring-red-500" : ""
                     }`}
-                    placeholder="••••••••"
+                    placeholder={t('auth.signup.passwordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -123,20 +125,20 @@ export default function SignUpPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Confirm Password
+                  {t('auth.signup.confirmPasswordLabel')}
                 </label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     {...register("password_confirmation", {
-                      required: "Please confirm your password",
+                      required: t('auth.signup.validation.confirmRequired'),
                       validate: (value) =>
-                        value === password || "Passwords do not match",
+                        value === password || t('auth.signup.validation.passwordMismatch'),
                     })}
                     className={`block w-full rounded-xl border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all pr-10 ${
                       errors.password_confirmation ? "ring-red-500 focus:ring-red-500" : ""
                     }`}
-                    placeholder="••••••••"
+                    placeholder={t('auth.signup.passwordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -157,7 +159,7 @@ export default function SignUpPage() {
                 disabled={loading}
                 className="flex w-full justify-center rounded-xl bg-gray-900 px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
               >
-                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Create Account"}
+                {loading ? <Loader2 className="animate-spin h-5 w-5" /> : t('auth.signup.createAccount')}
               </button>
 
               <div className="relative">
@@ -165,7 +167,7 @@ export default function SignUpPage() {
                   <div className="w-full border-t border-gray-200" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-white px-2 text-sm text-gray-500">Or continue with</span>
+                  <span className="bg-white px-2 text-sm text-gray-500">{t('auth.signup.orContinueWith')}</span>
                 </div>
               </div>
 
@@ -180,16 +182,16 @@ export default function SignUpPage() {
                 ) : (
                   <>
                     <img src="/google.svg" alt="Google" className="h-5 w-5" />
-                    <span className="text-sm font-medium">Google</span>
+                    <span className="text-sm font-medium">{t('auth.signup.google')}</span>
                   </>
                 )}
               </button>
             </form>
 
             <p className="mt-8 text-center text-sm text-gray-500">
-              Already have an account?{" "}
+              {t('auth.signup.alreadyHaveAccount')}{" "}
               <Link to="/login" tabIndex={-1} className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
-                Sign in
+                {t('auth.signup.signIn')}
               </Link>
             </p>
           </div>
@@ -207,19 +209,18 @@ export default function SignUpPage() {
         <div className="relative z-10 flex flex-col justify-center px-12 text-white max-w-2xl mx-auto">
           <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-sm font-medium backdrop-blur-sm w-fit">
             <Shield size={16} className="text-blue-400" />
-            <span>Bank-grade security</span>
+            <span>{t('auth.signup.rightSide.badge')}</span>
           </div>
           
           <h2 className="text-5xl font-bold tracking-tight mb-6 leading-tight">
-            Join thousands of <br />
+            {t('auth.signup.rightSide.heroTitle')} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-200">
-              smart savers.
+              {t('auth.signup.rightSide.heroHighlight')}
             </span>
           </h2>
           
           <p className="text-lg text-gray-400 mb-12 leading-relaxed">
-            "I've saved over $5,000 in just 6 months using MoneyTracker. 
-            It's the best financial decision I've ever made."
+            {t('auth.signup.rightSide.testimonial')}
           </p>
 
           <div className="flex items-center gap-4">
@@ -227,8 +228,8 @@ export default function SignUpPage() {
               <img src="https://i.pravatar.cc/100?img=32" alt="User" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-white">Sarah Jenkins</span>
-              <span className="text-sm font-medium text-blue-400">Marketing Director</span>
+              <span className="font-bold text-white">{t('auth.signup.rightSide.authorName')}</span>
+              <span className="text-sm font-medium text-blue-400">{t('auth.signup.rightSide.authorRole')}</span>
             </div>
           </div>
         </div>

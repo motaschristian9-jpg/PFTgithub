@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { Loader2, ArrowLeft, ShieldCheck, Mail } from "lucide-react";
+
+import { useTranslation } from "react-i18next";
 import { useForgotPasswordLogic } from "../../hooks/useForgotPasswordLogic";
 
 export default function ForgotPasswordPage() {
@@ -14,6 +16,7 @@ export default function ForgotPasswordPage() {
     getValues,
     handleForgotPassword,
   } = useForgotPasswordLogic();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen flex bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900">
@@ -26,8 +29,9 @@ export default function ForgotPasswordPage() {
               tabIndex={-1}
               className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-8 group"
             >
+
               <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-              Back to login
+              {t('auth.forgotPassword.backToLogin')}
             </Link>
 
             <div className="mb-8">
@@ -35,10 +39,10 @@ export default function ForgotPasswordPage() {
                 <ShieldCheck size={24} />
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
-                Forgot password?
+                {t('auth.forgotPassword.title')}
               </h2>
               <p className="text-sm text-gray-600">
-                No worries, we'll send you reset instructions.
+                {t('auth.forgotPassword.subtitle')}
               </p>
             </div>
 
@@ -46,22 +50,24 @@ export default function ForgotPasswordPage() {
               <form onSubmit={handleSubmit(handleForgotPassword)} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Email address
+                    {t('auth.forgotPassword.emailLabel')}
                   </label>
                   <input
                     type="email"
                     {...register("email", {
-                      required: "Email is required",
+                      required: t('auth.forgotPassword.validation.emailRequired'),
                       pattern: {
                         value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address",
+                        message: t('auth.forgotPassword.validation.emailInvalid'),
                       },
                     })}
                     className={`block w-full rounded-xl border-0 px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-200 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 transition-all ${
                       errors.email ? "ring-red-500 focus:ring-red-500" : ""
                     }`}
-                    placeholder="Enter your email"
+
+                    placeholder={t('auth.forgotPassword.emailPlaceholder')}
                   />
+
                   {errors.email && (
                     <p className="mt-1 text-xs text-red-500">{errors.email.message}</p>
                   )}
@@ -72,7 +78,7 @@ export default function ForgotPasswordPage() {
                   disabled={loading}
                   className="flex w-full justify-center rounded-xl bg-gray-900 px-3 py-3 text-sm font-semibold leading-6 text-white shadow-sm hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
                 >
-                  {loading ? <Loader2 className="animate-spin h-5 w-5" /> : "Send Reset Link"}
+                  {loading ? <Loader2 className="animate-spin h-5 w-5" /> : t('auth.forgotPassword.sendLink')}
                 </button>
               </form>
             ) : (
@@ -80,31 +86,31 @@ export default function ForgotPasswordPage() {
                 <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mx-auto mb-4">
                   <Mail size={24} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('auth.forgotPassword.checkEmail.title')}</h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  We sent a password reset link to <br />
+                  {t('auth.forgotPassword.checkEmail.sentTo')} <br />
                   <span className="font-medium text-gray-900">{getValues("email")}</span>
                 </p>
                 <div className="text-xs text-gray-500">
-                  Didn't receive the email?{" "}
+                  {t('auth.forgotPassword.checkEmail.notReceived')}{" "}
                   <button
                     onClick={() => setEmailSent(false)}
                     className="text-blue-600 hover:text-blue-700 font-medium underline"
                   >
-                    Click to resend
+                    {t('auth.forgotPassword.checkEmail.resend')}
                   </button>
                 </div>
               </div>
             )}
 
             <p className="mt-8 text-center text-sm text-gray-500">
-              Don't have an account?{" "}
+              {t('auth.forgotPassword.noAccount')}{" "}
               <Link 
                 to="/signup" 
                 tabIndex={-1}
                 className="font-semibold text-blue-600 hover:text-blue-500 transition-colors"
               >
-                Sign up for free
+                {t('auth.forgotPassword.signUp')}
               </Link>
             </p>
           </div>
@@ -125,15 +131,14 @@ export default function ForgotPasswordPage() {
           </div>
           
           <h2 className="text-4xl font-bold tracking-tight mb-6 leading-tight">
-            Secure Account <br />
+            {t('auth.forgotPassword.rightSide.title')} <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-200">
-              Recovery
+              {t('auth.forgotPassword.rightSide.highlight')}
             </span>
           </h2>
           
           <p className="text-lg text-gray-400 leading-relaxed max-w-md mx-auto">
-            We use industry-standard encryption to keep your account safe. 
-            Resetting your password is quick and secure.
+            {t('auth.forgotPassword.rightSide.description')}
           </p>
         </div>
       </div>

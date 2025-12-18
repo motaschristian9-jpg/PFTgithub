@@ -880,6 +880,115 @@ const resources = {
             title: "Questions?",
             text: "If you have any questions about these Terms, please contact us at:"
         }
+      },
+      auth: {
+        login: {
+          welcome: "Welcome back",
+          subtitle: "Please enter your details to sign in.",
+          emailLabel: "Email address",
+          emailPlaceholder: "Enter your email",
+          passwordLabel: "Password",
+          passwordPlaceholder: "••••••••",
+          rememberMe: "Remember me",
+          forgotPassword: "Forgot password?",
+          signIn: "Sign in",
+          orContinueWith: "Or continue with",
+          google: "Google",
+          noAccount: "Don't have an account?",
+          signUp: "Sign up for free",
+          rightSide: {
+            trustedBy: "Trusted by 10,000+ users",
+            heroTitle: "Take control of your",
+            heroHighlight: "financial future.",
+            testimonial: "\"MoneyTracker has completely transformed how I manage my expenses. The insights are incredible and the interface is a joy to use.\"",
+            rating: "5.0/5.0 rating"
+          },
+          validation: {
+            emailRequired: "Email is required",
+            emailInvalid: "Invalid email address",
+            passwordRequired: "Password is required"
+          }
+        },
+        signup: {
+          title: "Create an account",
+          subtitle: "Start your journey to financial freedom today.",
+          fullNameLabel: "Full Name",
+          fullNamePlaceholder: "John Doe",
+          emailLabel: "Email address",
+          emailPlaceholder: "you@example.com",
+          passwordLabel: "Password",
+          passwordPlaceholder: "••••••••",
+          confirmPasswordLabel: "Confirm Password",
+          createAccount: "Create Account",
+          orContinueWith: "Or continue with",
+          google: "Google",
+          alreadyHaveAccount: "Already have an account?",
+          signIn: "Sign in",
+          rightSide: {
+            badge: "Bank-grade security",
+            heroTitle: "Join thousands of",
+            heroHighlight: "smart savers.",
+            testimonial: "\"I've saved over $5,000 in just 6 months using MoneyTracker. It's the best financial decision I've ever made.\"",
+            authorName: "Sarah Jenkins",
+            authorRole: "Marketing Director"
+          },
+          validation: {
+            nameRequired: "Full name is required",
+            nameMin: "Name must be at least 2 characters",
+            emailRequired: "Email is required",
+            emailInvalid: "Invalid email address",
+            passwordRequired: "Password is required",
+            passwordMin: "Password must be at least 8 characters",
+            confirmRequired: "Please confirm your password",
+            passwordMismatch: "Passwords do not match"
+          }
+
+        },
+        forgotPassword: {
+          backToLogin: "Back to login",
+          title: "Forgot password?",
+          subtitle: "No worries, we'll send you reset instructions.",
+          emailLabel: "Email address",
+          emailPlaceholder: "Enter your email",
+          sendLink: "Send Reset Link",
+          checkEmail: {
+            title: "Check your email",
+            sentTo: "We sent a password reset link to",
+            notReceived: "Didn't receive the email?",
+            resend: "Click to resend"
+          },
+          noAccount: "Don't have an account?",
+          signUp: "Sign up for free",
+          rightSide: {
+            title: "Secure Account",
+            highlight: "Recovery",
+            description: "We use industry-standard encryption to keep your account safe. Resetting your password is quick and secure."
+          },
+          validation: {
+            emailRequired: "Email is required",
+            emailInvalid: "Invalid email address"
+          }
+        },
+        verifyEmail: {
+          backToLogin: "Back to login",
+          title: "Check your email",
+          subtitle: "We've sent a verification link to your email address.",
+          instruction: "Click the link in the email to verify your account and unlock full access.",
+          notReceived: "Didn't receive it?",
+          confirmEmailLabel: "Confirm Email Address",
+          preFilled: "Pre-filled from registration.",
+          sending: "Sending...",
+          resendBtn: "Resend Verification Email",
+          rightSide: {
+            title: "Verify your",
+            highlight: "Identity",
+            description: "To ensure the security of your financial data, we require email verification for all new accounts."
+          },
+          validation: {
+            emailRequired: "Email is required",
+            emailInvalid: "Invalid email address"
+          }
+        }
       }
     }
   },
@@ -1757,6 +1866,116 @@ const resources = {
             title: "May Tanong?",
             text: "Kung may tanong ka tungkol sa Terms, kontakin kami sa:"
         }
+      },
+      auth: {
+        login: {
+          welcome: "Maligayang pagbabalik",
+          subtitle: "Ilagay ang iyong mga detalye upang mag-sign in.",
+          emailLabel: "Email address",
+          emailPlaceholder: "Ilagay ang iyong email",
+          passwordLabel: "Password",
+          passwordPlaceholder: "••••••••",
+          rememberMe: "Tandaan ako",
+          forgotPassword: "Nakalimutan ang password?",
+          signIn: "Mag-sign in",
+          orContinueWith: "O magpatuloy gamit ang",
+          google: "Google",
+          noAccount: "Wala pang account?",
+          signUp: "Mag-sign up nang libre",
+          rightSide: {
+            trustedBy: "Pinagkakatiwalaan ng 10,000+ users",
+            heroTitle: "Hawakan ang iyong",
+            heroHighlight: "kinabukasan sa pananalapi.",
+            testimonial: "\"Binago ng MoneyTracker kung paano ko pamahalaan ang aking mga gastusin. Ang mga insight ay kamangha-mangha at ang interface ay masarap gamitin.\"",
+            rating: "5.0/5.0 rating"
+          },
+           validation: {
+              emailRequired: "Kinakailangan ang email",
+              emailInvalid: "Hindi wastong email address",
+              passwordRequired: "Kinakailangan ang password"
+          }
+        },
+        signup: {
+          title: "Gumawa ng account",
+          subtitle: "Simulan ang iyong paglalakbay sa kalayaan sa pananalapi ngayon.",
+          fullNameLabel: "Buong Pangalan",
+          fullNamePlaceholder: "Juan dela Cruz",
+          emailLabel: "Email address",
+          emailPlaceholder: "ikaw@halimbawa.com",
+          passwordLabel: "Password",
+          passwordPlaceholder: "••••••••",
+          confirmPasswordLabel: "Kumpirmahin ang Password",
+          createAccount: "Gumawa ng Account",
+          orContinueWith: "O magpatuloy gamit ang",
+          google: "Google",
+          alreadyHaveAccount: "May account na?",
+          signIn: "Mag-sign in",
+          rightSide: {
+            badge: "Seguridad na pang-bangko",
+            heroTitle: "Sumali sa libu-libong",
+            heroHighlight: "matalinong nag-iipon.",
+            testimonial: "\"Nakaipon ako ng higit $5,000 sa loob lang ng 6 na buwan gamit ang MoneyTracker. Ito ang pinakamagandang desisyon ko sa pananalapi.\"",
+            authorName: "Sarah Jenkins",
+            authorRole: "Marketing Director"
+          },
+          validation: {
+            nameRequired: "Kinakailangan ang buong pangalan",
+            nameMin: "Ang pangalan ay dapat hindi bababa sa 2 letra",
+            emailRequired: "Kinakailangan ang email",
+            emailInvalid: "Hindi wastong email address",
+            passwordRequired: "Kinakailangan ang password",
+            passwordMin: "Ang password ay dapat hindi bababa sa 8 letra",
+            confirmRequired: "Pakikumpirma ang iyong password",
+            passwordMismatch: "Hindi magkatugma ang mga password"
+          }
+
+        },
+        forgotPassword: {
+          backToLogin: "Bumalik sa login",
+          title: "Nakalimutan ang password?",
+          subtitle: "Huwag mag-alala, magpapadala kami ng reset instructions.",
+          emailLabel: "Email address",
+          emailPlaceholder: "Ilagay ang iyong email",
+          sendLink: "Ipadala ang Reset Link",
+          checkEmail: {
+            title: "Suriin ang iyong email",
+            sentTo: "Nagpadala kami ng password reset link sa",
+            notReceived: "Hindi natanggap ang email?",
+            resend: "I-click para ipadala muli"
+          },
+          noAccount: "Wala pang account?",
+          signUp: "Mag-sign up nang libre",
+
+          rightSide: {
+            title: "Seguridad na",
+            highlight: "Pagbawi ng Account",
+            description: "Gumagamit kami ng industry-standard encryption para panatilihing ligtas ang iyong account. Ang pag-reset ng password ay mabilis at ligtas."
+          },
+          validation: {
+            emailRequired: "Kinakailangan ang email",
+            emailInvalid: "Hindi wastong email address"
+          }
+        },
+        verifyEmail: {
+          backToLogin: "Bumalik sa login",
+          title: "Suriin ang iyong email",
+          subtitle: "Nagpadala kami ng verification link sa iyong email address.",
+          instruction: "I-click ang link sa email upang i-verify ang iyong account at makuha ang buong access.",
+          notReceived: "Hindi natanggap?",
+          confirmEmailLabel: "Kumpirmahin ang Email Address",
+          preFilled: "Paunang napunan mula sa pagpaparehistro.",
+          sending: "Pinapadala...",
+          resendBtn: "Ipadala Muli ang Verification Email",
+          rightSide: {
+            title: "I-verify ang iyong",
+            highlight: "Pagkakakilanlan",
+            description: "Upang matiyak ang seguridad ng iyong data sa pananalapi, kinakailangan namin ang pag-verify sa email para sa lahat ng bagong account."
+          },
+          validation: {
+            emailRequired: "Kinakailangan ang email",
+            emailInvalid: "Hindi wastong email address"
+          }
+        }
       }
     }
   },
@@ -2553,6 +2772,7 @@ const resources = {
           }
       },
       },
+
       about: {
         title: "关于我们",
         intro: "我们的使命是让每个人的个人理财变得简单。MoneyTracker 旨在帮助您掌控您的财务未来。",
@@ -2634,10 +2854,119 @@ const resources = {
             title: "有问题？",
             text: "如果您对这些条款有任何疑问，请联系我们："
         }
+      },
+      auth: {
+        login: {
+          welcome: "欢迎回来",
+          subtitle: "请输入您的详细信息以登录。",
+          emailLabel: "电子邮件地址",
+          emailPlaceholder: "输入您的电子邮件",
+          passwordLabel: "密码",
+          passwordPlaceholder: "••••••••",
+          rememberMe: "记住我",
+          forgotPassword: "忘记密码？",
+          signIn: "登录",
+          orContinueWith: "或继续使用",
+          google: "Google",
+          noAccount: "还没有账号？",
+          signUp: "免费注册",
+          rightSide: {
+            trustedBy: "受到 10,000+ 用户的信赖",
+            heroTitle: "掌控您的",
+            heroHighlight: "财务未来。",
+            testimonial: "“MoneyTracker 完全改变了我管理支出的方式。见解令人难以置信，界面使用起来非常愉快。”",
+            rating: "5.0/5.0 评分"
+          },
+          validation: {
+              emailRequired: "需要电子邮件",
+              emailInvalid: "无效的电子邮件地址",
+              passwordRequired: "需要密码"
+          }
+        },
+        signup: {
+          title: "创建一个账户",
+          subtitle: "今天就开始您的财务自由之旅。",
+          fullNameLabel: "全名",
+          fullNamePlaceholder: "张三",
+          emailLabel: "电子邮件地址",
+          emailPlaceholder: "you@example.com",
+          passwordLabel: "密码",
+          passwordPlaceholder: "••••••••",
+          confirmPasswordLabel: "确认密码",
+          createAccount: "创建账户",
+          orContinueWith: "或继续使用",
+          google: "Google",
+          alreadyHaveAccount: "已经有账号了？",
+          signIn: "登录",
+          rightSide: {
+            badge: "银行级安全",
+            heroTitle: "加入成千上万的",
+            heroHighlight: "精明储蓄者。",
+            testimonial: "“使用 MoneyTracker 仅仅 6 个月，我就存了超过 5,000 美元。这是我做过的最好的财务决定。”",
+            authorName: "Sarah Jenkins",
+            authorRole: "营销总监"
+          },
+          validation: {
+            nameRequired: "需要全名",
+            nameMin: "名字必须至少 2 个字符",
+            emailRequired: "需要电子邮件",
+            emailInvalid: "无效的电子邮件地址",
+            passwordRequired: "需要密码",
+            passwordMin: "密码必须至少 8 个字符",
+            confirmRequired: "请确认您的密码",
+            passwordMismatch: "密码不匹配"
+          }
+        },
+        forgotPassword: {
+          backToLogin: "返回登录",
+          title: "忘记密码？",
+          subtitle: "不用担心，我们会发送重置说明给您。",
+          emailLabel: "电子邮件地址",
+          emailPlaceholder: "输入您的电子邮件",
+          sendLink: "发送重置链接",
+          checkEmail: {
+            title: "检查您的邮件",
+            sentTo: "我们已发送密码重置链接至",
+            notReceived: "没有收到邮件？",
+            resend: "点击重新发送"
+          },
+          noAccount: "还没有账号？",
+          signUp: "免费注册",
+          rightSide: {
+            title: "安全账户",
+            highlight: "恢复",
+            description: "我们使用行业标准加密来保护您的账户安全。重置密码既快速又安全。"
+          },
+          validation: {
+            emailRequired: "需要电子邮件",
+            emailInvalid: "无效的电子邮件地址"
+          }
+        },
+        verifyEmail: {
+          backToLogin: "返回登录",
+          title: "检查您的邮件",
+          subtitle: "我们已向您的电子邮件地址发送了验证链接。",
+          instruction: "点击邮件中的链接以验证您的账户并解锁全部访问权限。",
+          notReceived: "没有收到？",
+          confirmEmailLabel: "确认电子邮件地址",
+          preFilled: "根据注册信息预填。",
+          sending: "发送中...",
+          resendBtn: "重新发送验证邮件",
+          rightSide: {
+            title: "验证您的",
+            highlight: "身份",
+            description: "为了确保您的财务数据安全，我们需要对所有新账户进行电子邮件验证。"
+          },
+          validation: {
+            emailRequired: "需要电子邮件",
+            emailInvalid: "无效的电子邮件地址"
+          }
+        }
       }
     }
   },
 };
+
 
 i18n
   // detect user language
